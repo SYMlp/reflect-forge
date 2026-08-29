@@ -95,6 +95,23 @@ GET  /api/manifest  → {weapons:[{name:"剑", live:true}, {name:"刀", live:fal
 
 - 联调前 Codex 前端只吃 `static/mock.json`（同结构假数据），T2 换真接口，改一个 fetch 前缀即可。
 
+**追加 2026-08-29 · 佩剑出口（新接口，不改上面任何旧契约）**
+
+```
+POST /api/bestow    → 入 {sword_id} 出 {bestowed_to, name, version, triggers}
+                      动作：data/swords/<id>/SKILL.md → ~/.claude/skills/<id>/SKILL.md（用户级目录，
+                      claude 原生发现，不需注册不需重启）。bestowed_to = 落位绝对路径。
+                      triggers 从 SKILL.md frontmatter 取（triggers 优先，退 description）。
+                      仅 status=forged 可授，草稿剑 → 400 stage=not_forged
+                      「草稿剑不出鞘，先斩一活转正再来」。
+                      重复授剑 = 覆盖更新（淬火出新版本后重授是正路）。
+                      副作用：meta.json 写入 bestowed / bestowed_to / bestowed_at / bestowed_version。
+GET  /api/armory    → 追加两个字段（增量，旧字段一个没动）：bestowed:bool, bestowed_to:str
+```
+
+为什么这条出口是回路的最后一环：剑锻好了不装到侠客身上，它就只是仓库里一个 md 文件。
+锻造师不挥剑——挥剑的是侠客，而侠客只认 `~/.claude/skills/`。
+
 ## 5. 等级规则（写死，够 demo 用）
 
 | 等级 | 反思场次 | 锻剑数 | 转正剑 | 斩活数 |
@@ -132,6 +149,13 @@ GET  /api/manifest  → {weapons:[{name:"剑", live:true}, {name:"刀", live:fal
 - 现场 demo 不裸奔：T4 预跑好的数据就是演示数据，现场只点已验证的路径；录屏是最后保险。
 - claude CLI 调用慢（提炼 30s+）：demo 时用预跑结果，现场真调一次当"活证"就够。
 - 两线接口打架：mock.json 是合同，改契约必须过主节点。
+
+## 7.5 总装对照验收（今日教训，2026-08-29 T2 合体后）
+
+- **触发**：三段验收全绿 + 合体主线跑通，本以为回路已闭合；对照架构图逐步骤过一遍才发现有断点——**绿灯只证明"写了的都对"，不证明"该有的都在"**。
+- **判据**：成品必须**逐步骤按回架构图对照**，才分得清"有意砍"与"真漏"。测试和验收清单只覆盖已被想到的东西，架构图覆盖的是全集。
+- **本次真漏**：佩剑出口——剑锻成后回到侠客手里那一步没接（已补）。**本次有意砍**：场景入口与通用件库，v2 再开锋，图上留虚线。
+- **排除**：没有把它降级为"补个测试用例"——测试只会长出下一个绿灯，长不出被漏掉的那条边；对照物必须是图。
 
 ## 8. 宣传视频判决（主节点推荐，可推翻）
 

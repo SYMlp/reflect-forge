@@ -622,6 +622,43 @@ def temper(sword_id, action, why, patch=""):
     return out
 
 
+# ── 佩剑（把剑交到侠客手里） ────────────────────────────────────────
+
+# 用户级 skills 目录——claude 原生就在这儿找 skill，不需要注册、不需要重启。
+# 这是整条回路的出口：锻好的剑不落在这里，它就只是个文件，不是能挥的兵刃。
+SKILLS_DIR = Path.home() / ".claude" / "skills"
+
+
+def bestow(sword_id):
+    d, meta = read_sword(sword_id)
+    # 只有转正的剑能出鞘。草稿剑还没斩过活，装到侠客身上就是让它拿没试过的招上阵
+    if meta.get("status") != "forged":
+        raise ForgeError("not_forged", "草稿剑不出鞘，先斩一活转正再来")
+    src = d / "SKILL.md"
+    if not src.exists():
+        raise ForgeError("not_found", "这把剑的 SKILL.md 不见了，授不出去")
+    md = src.read_text(encoding="utf-8")
+
+    dest_dir = SKILLS_DIR / meta["id"]
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / "SKILL.md"
+    # 重复授剑 = 覆盖更新。淬火出了新版本再授一次是正路，不是错误
+    dest.write_text(md, encoding="utf-8")
+
+    fm = parse_frontmatter(md)
+    triggers = (fm.get("triggers") or fm.get("description")
+                or meta.get("triggers") or meta.get("description") or "")
+    meta["bestowed"] = True
+    meta["bestowed_to"] = str(dest)
+    meta["bestowed_at"] = _now()
+    meta["bestowed_version"] = meta.get("version", "v0.1")
+    (d / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2),
+                                 encoding="utf-8")
+    log("授剑：{}（{}）→ {}".format(meta.get("name"), meta.get("version"), dest))
+    return {"bestowed_to": str(dest), "name": meta.get("name"),
+            "version": meta.get("version", "v0.1"), "triggers": triggers}
+
+
 # ── 兵器架 ────────────────────────────────────────────────────────
 
 def armory():
@@ -639,6 +676,9 @@ def armory():
             "description": m.get("description", ""),
             "iron_ids": m.get("iron_ids") or [],
             "created": m.get("created", ""),
+            # 佩剑标记：兵器架上要一眼看得出哪把剑已经在侠客身上
+            "bestowed": bool(m.get("bestowed")),
+            "bestowed_to": m.get("bestowed_to", ""),
         })
     # 新锻的排前面，demo 时刚出炉那把一眼就在顶上
     out.sort(key=lambda s: s.get("created") or "", reverse=True)
@@ -789,6 +829,7 @@ STAGE_CODES = {
     "no_file": 400,
     "no_iron": 400,
     "no_why": 400,   # 产品红线走的就是这一条
+    "not_forged": 400,
     "not_found": 404,
 }
 
@@ -899,6 +940,9 @@ class Handler(BaseHTTPRequestHandler):
                                          data.get("action") or "promote",
                                          data.get("why") or "",
                                          data.get("patch") or ""))
+
+            if path == "/api/bestow":
+                return self._json(bestow(data.get("sword_id") or ""))
 
             return self._json({"error": "unknown route: " + path}, 404)
         except ForgeError as e:

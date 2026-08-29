@@ -465,6 +465,7 @@
   .weapon-status { position: absolute; top: 17px; right: 16px; z-index: 1; padding: 5px 10px; border: 1px solid #766b59; color: #b9ad95; background: rgba(16,15,12,.75); font-size: 12px; letter-spacing: .12em; }
   .weapon-status.forged { color: #edbd69; border-color: #a87d3c; }
   .weapon-status.draft { color: #c0b8a8; border-style: dashed; }
+  .weapon-worn { position: absolute; top: 17px; left: 16px; z-index: 1; padding: 5px 10px; border: 1px solid #c25a43; color: #de7359; background: rgba(112,31,22,.18); font-size: 12px; letter-spacing: .12em; transform: rotate(-2deg); }
   .armory-copy { padding: 18px 22px 22px; }
   .armory-copy h3 { margin: 0; color: var(--paper-100); font: 700 25px/1.3 var(--display); letter-spacing: .08em; }
   .armory-meta { display: flex; justify-content: space-between; gap: 16px; margin-top: 7px; color: var(--muted); font-size: 14px; }
@@ -585,7 +586,8 @@
   .placeholder-pane strong { display: block; color: var(--paper-200); font: 700 26px/1.5 var(--display); }
   .placeholder-pane p { margin: 5px 0 0; }
 
-  .toast { position: fixed; right: 34px; bottom: 34px; z-index: 50; max-width: 420px; padding: 14px 18px; border: 1px solid #987349; color: var(--paper-100); background: rgba(28,24,18,.97); box-shadow: 0 14px 38px rgba(0,0,0,.44); transform: translateY(20px); opacity: 0; pointer-events: none; transition: .25s ease; }
+  /* z-index 高过抽屉遮罩（80）：授剑成功那条落鞘路径是要被读的，不能压在蒙层底下 */
+  .toast { position: fixed; right: 34px; bottom: 34px; z-index: 300; max-width: 420px; padding: 14px 18px; border: 1px solid #987349; color: var(--paper-100); background: rgba(28,24,18,.97); box-shadow: 0 14px 38px rgba(0,0,0,.44); transform: translateY(20px); opacity: 0; pointer-events: none; transition: .25s ease; }
   .toast.show { transform: none; opacity: 1; }
 
   @media (max-width: 1320px) {
@@ -771,7 +773,7 @@
             <p class="stage-kicker">旧账不是废纸 · 是未开采的矿</p>
             <h2 id="prospectTitle">寻料</h2>
           </div>
-          <p class="stage-desc">侠客做过的每场活都留下过程卷宗。先看矿脉，再把值得回捞的旧 session 送进反思炉。</p>
+          <p class="stage-desc">侠客做过的每场活都留下过程卷宗。先看矿脉，再把值得回捞的旧 session 送进反思炉。<strong>此处皆是原石</strong>——未加工的过程记录；铁在炉中出，剑在架上看。</p>
         </header>
         <section class="prospect-banner" aria-label="历史回捞战绩">
           <div class="prospect-stat"><strong>76</strong><span>场历史会话</span></div>
@@ -871,6 +873,7 @@
       <footer class="drawer-actions">
         <button class="secondary-btn" id="promoteBtn" type="button">转正</button>
         <button class="danger-btn" id="temperBtn" type="button">淬火</button>
+        <button class="primary-btn" id="bestowBtn" type="button">授予侠客</button>
       </footer>
     </aside>
   </div>
@@ -912,12 +915,12 @@
 
   const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
 
-  function showToast(message) {
+  function showToast(message, duration = 2600) {
     const toast = document.getElementById('toast');
     toast.textContent = message;
     toast.classList.add('show');
     window.clearTimeout(showToast.timer);
-    showToast.timer = window.setTimeout(() => toast.classList.remove('show'), 2600);
+    showToast.timer = window.setTimeout(() => toast.classList.remove('show'), duration);
   }
 
   function renderTokenBurned(value) {
@@ -1032,6 +1035,7 @@
       return `<article class="armory-card" tabindex="0" role="button" data-sword-id="${escapeHtml(sword.id)}" aria-label="查看${escapeHtml(sword.name)}详情">
         <div class="armory-art">
           <span class="weapon-status ${escapeHtml(sword.status)}">${sword.status === 'forged' ? '已转正' : '草稿'}</span>
+          ${sword.bestowed ? '<span class="weapon-worn">已佩</span>' : ''}
           <img src="static/sword-${index % 4 + 1}.png" alt="${escapeHtml(sword.name)}">
         </div>
         <div class="armory-copy">
@@ -1066,6 +1070,11 @@
     document.getElementById('drawerSwordMeta').textContent = `${sword.kind} · ${sword.version} · ${sword.status === 'forged' ? '已转正' : '草稿'}`;
     document.getElementById('drawerSkill').textContent = sword.skill_md || swordSkill(sword);
     document.getElementById('promoteBtn').disabled = sword.status === 'forged';
+    // 草稿剑不出鞘：没转正的剑连按钮都不给，别让人点了才吃 400
+    const bestowBtn = document.getElementById('bestowBtn');
+    bestowBtn.style.display = sword.status === 'forged' ? '' : 'none';
+    bestowBtn.disabled = false;
+    bestowBtn.textContent = sword.bestowed ? '重授新版' : '授予侠客';
     document.getElementById('temperSheet').classList.remove('open');
     renderWhyLog(sword.why_log);
     const backdrop = document.getElementById('drawerBackdrop');
@@ -1184,6 +1193,26 @@
       if (document.getElementById('temperSheet').classList.contains('open')) document.getElementById('temperSheet').classList.remove('open');
       else closeSwordDrawer();
       event.preventDefault();
+    }
+  });
+  document.getElementById('bestowBtn').addEventListener('click', async () => {
+    const button = document.getElementById('bestowBtn');
+    const sword = state.activeSword;
+    if (!sword) return;
+    button.disabled = true;
+    button.textContent = '出鞘中…';
+    try {
+      const result = await api('bestow', {method: 'POST', body: {sword_id: sword.id}});
+      sword.bestowed = true;
+      sword.bestowed_to = result.bestowed_to;
+      renderArmory(state.armory);
+      button.disabled = false;
+      button.textContent = '重授新版';
+      showToast(`侠客已佩此剑，落鞘于 ${result.bestowed_to}——新开一个 claude 会话即可召出（试一句：帮我出今天的日报）`, 8000);
+    } catch (error) {
+      button.disabled = false;
+      button.textContent = sword.bestowed ? '重授新版' : '授予侠客';
+      showToast(error.message || '此剑未能出鞘，请再试。', 4000);
     }
   });
   document.getElementById('temperBtn').addEventListener('click', () => openTemperSheet('revise'));
