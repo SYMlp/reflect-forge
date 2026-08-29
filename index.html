@@ -280,6 +280,63 @@
   details.skill-preview summary { color: var(--paper-200); cursor: pointer; font-size: 15px; }
   details.skill-preview pre { max-height: 260px; overflow: auto; margin: 14px 0 0; padding: 16px 18px; background: #11100d; color: #d7c9ad; border: 1px solid rgba(255,255,255,.07); font: 13px/1.65 "Cascadia Code", Consolas, monospace; white-space: pre-wrap; }
 
+  .armory-headline { display: flex; align-items: end; justify-content: space-between; gap: 30px; margin-bottom: 20px; }
+  .armory-count { min-width: 230px; padding: 12px 18px; border-left: 3px solid var(--cinnabar); background: rgba(27,24,20,.78); color: var(--muted); text-align: right; }
+  .armory-count strong { color: var(--gold); font: 700 25px/1 var(--display); font-variant-numeric: tabular-nums; }
+  .armory-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+  .armory-card { position: relative; min-height: 420px; overflow: hidden; border: 1px solid #5b5448; background: linear-gradient(155deg, rgba(48,44,37,.96), rgba(22,21,18,.98)); box-shadow: 0 16px 34px rgba(0,0,0,.3), inset 0 1px rgba(255,255,255,.04); cursor: pointer; transition: transform .22s ease, border-color .22s ease, box-shadow .22s ease; }
+  .armory-card:hover { transform: translateY(-6px); border-color: #a48452; box-shadow: 0 23px 42px rgba(0,0,0,.4), inset 0 1px rgba(255,255,255,.05); }
+  .armory-art { position: relative; height: 276px; overflow: hidden; background: radial-gradient(circle at 50% 58%, rgba(206,118,46,.15), transparent 50%); }
+  .armory-art::after { content: ""; position: absolute; left: 18px; right: 18px; bottom: 0; height: 1px; background: linear-gradient(90deg, transparent, #8a7049, transparent); }
+  .armory-art img { width: 100%; height: 100%; object-fit: contain; padding: 14px 26px; transform: rotate(-7deg) scale(.94); filter: drop-shadow(0 18px 12px rgba(0,0,0,.64)); transition: transform .3s ease; }
+  .armory-card:hover .armory-art img { transform: rotate(-4deg) scale(1.01); }
+  .weapon-status { position: absolute; top: 17px; right: 16px; z-index: 1; padding: 5px 10px; border: 1px solid #766b59; color: #b9ad95; background: rgba(16,15,12,.75); font-size: 12px; letter-spacing: .12em; }
+  .weapon-status.forged { color: #edbd69; border-color: #a87d3c; }
+  .weapon-status.draft { color: #c0b8a8; border-style: dashed; }
+  .armory-copy { padding: 18px 22px 22px; }
+  .armory-copy h3 { margin: 0; color: var(--paper-100); font: 700 25px/1.3 var(--display); letter-spacing: .08em; }
+  .armory-meta { display: flex; justify-content: space-between; gap: 16px; margin-top: 7px; color: var(--muted); font-size: 14px; }
+  .armory-meta b { color: var(--gold); font-weight: 500; }
+  .why-preview { margin: 14px 0 0; color: #a99d87; font-size: 13px; line-height: 1.65; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .empty-armory { display: none; min-height: 430px; place-items: center; border: 1px dashed #685f50; background: rgba(20,19,16,.82); text-align: center; }
+  .empty-armory.show { display: grid; }
+  .empty-armory img { width: 150px; height: 150px; object-fit: contain; filter: grayscale(.8) opacity(.5); }
+  .empty-armory h3 { margin: 5px 0 4px; font: 700 27px/1.3 var(--display); color: var(--paper-200); }
+  .empty-armory p { margin: 0 0 18px; color: var(--muted); }
+
+  .drawer-backdrop { position: fixed; inset: 0; z-index: 80; display: flex; justify-content: flex-end; visibility: hidden; background: rgba(8,7,6,.66); opacity: 0; transition: opacity .25s ease, visibility .25s ease; }
+  .drawer-backdrop.open { visibility: visible; opacity: 1; }
+  .detail-drawer { width: min(680px, 48vw); height: 100%; display: flex; flex-direction: column; border-left: 1px solid #8c7248; background: linear-gradient(150deg, #25221c, #141310 72%); box-shadow: -24px 0 58px rgba(0,0,0,.48); transform: translateX(100%); transition: transform .32s cubic-bezier(.2,.8,.2,1); }
+  .drawer-backdrop.open .detail-drawer { transform: none; }
+  .drawer-head { flex: 0 0 auto; display: flex; align-items: center; gap: 18px; padding: 22px 26px; border-bottom: 1px solid var(--line); background: rgba(14,13,11,.58); }
+  .drawer-head img { width: 62px; height: 62px; object-fit: contain; }
+  .drawer-head-copy { min-width: 0; flex: 1; }
+  .drawer-head-copy p { margin: 0; color: var(--ember); font-size: 12px; letter-spacing: .18em; }
+  .drawer-head-copy h2 { margin: 0; color: #f0dcab; font: 700 29px/1.25 var(--display); letter-spacing: .08em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .close-btn { width: 42px; height: 42px; border: 1px solid #6d6455; background: transparent; color: var(--paper-200); cursor: pointer; font: 26px/1 Georgia, serif; }
+  .drawer-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 25px 28px 38px; }
+  .drawer-section { margin-bottom: 30px; }
+  .drawer-section h3 { margin: 0 0 13px; color: var(--paper-200); font: 700 20px/1.4 var(--display); letter-spacing: .08em; }
+  .drawer-skill { margin: 0; max-height: 310px; overflow: auto; padding: 17px 19px; border: 1px solid rgba(255,255,255,.07); background: #0f0e0c; color: #d4c6aa; font: 13px/1.7 "Cascadia Code", Consolas, monospace; white-space: pre-wrap; }
+  .why-timeline { position: relative; margin-left: 7px; padding-left: 25px; }
+  .why-timeline::before { content: ""; position: absolute; left: 4px; top: 6px; bottom: 9px; width: 1px; background: #66583f; }
+  .why-entry { position: relative; padding: 0 0 20px; }
+  .why-entry:last-child { padding-bottom: 0; }
+  .why-entry::before { content: ""; position: absolute; left: -25px; top: 7px; width: 9px; height: 9px; border: 2px solid var(--ember); background: #201c16; transform: rotate(45deg); }
+  .why-version { display: flex; gap: 12px; align-items: baseline; color: var(--gold); font-size: 13px; }
+  .why-version time { color: var(--iron-500); font-variant-numeric: tabular-nums; }
+  .why-entry p { margin: 3px 0 0; color: #c4b79e; font-size: 14px; }
+  .drawer-actions { flex: 0 0 auto; display: flex; justify-content: flex-end; gap: 12px; padding: 18px 26px; border-top: 1px solid var(--line); background: #141310; }
+  .drawer-actions button { min-width: 120px; }
+  .temper-sheet { display: none; margin: 4px 0 28px; padding: 19px 20px; border: 1px solid #8f5a46; background: rgba(112,41,29,.14); }
+  .temper-sheet.open { display: block; animation: panel-in .25s ease both; }
+  .temper-sheet h3 { margin: 0 0 5px; color: #edc4ad; }
+  .temper-sheet p { margin: 0 0 12px; color: #bca99f; font-size: 13px; }
+  .temper-sheet textarea { width: 100%; min-height: 96px; resize: vertical; padding: 12px 14px; border: 1px solid #826f5b; border-radius: 0; color: var(--paper-100); background: #171411; line-height: 1.65; }
+  .temper-actions { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 12px; }
+  .temper-error { color: #e78770; font-size: 13px; }
+  .temper-actions button { min-height: 42px; min-width: 108px; font-size: 15px; }
+
   .placeholder-pane { min-height: 520px; display: grid; place-items: center; border: 1px solid var(--line); background: rgba(17,16,13,.88); color: var(--muted); text-align: center; }
   .placeholder-pane strong { display: block; color: var(--paper-200); font: 700 26px/1.5 var(--display); }
   .placeholder-pane p { margin: 5px 0 0; }
@@ -428,13 +485,69 @@
         </section>
       </section>
 
-      <section class="tab-panel" id="tab-armory"><div class="placeholder-pane"><div><strong>兵器架正在上榫</strong><p>已锻之剑稍后归架</p></div></div></section>
+      <section class="tab-panel" id="tab-armory" aria-labelledby="armoryTitle">
+        <header class="stage-head armory-headline">
+          <div>
+            <p class="stage-kicker">剑不在多 · 贵在真斩过活</p>
+            <h2 id="armoryTitle">兵器架</h2>
+          </div>
+          <p class="stage-desc">草稿先试锋，斩活后转正；每次淬火都留一行 why，剑的来路与长法因此可追。</p>
+          <div class="armory-count"><strong id="armoryCount">—</strong><br>把剑已归架</div>
+        </header>
+        <div class="armory-grid" id="armoryGrid"></div>
+        <div class="empty-armory" id="emptyArmory">
+          <div>
+            <img src="static/sword-1.png" alt="尚未开锋的短剑">
+            <h3>尚无兵刃</h3>
+            <p>过程已经在手，只差开一炉。</p>
+            <button class="primary-btn" type="button" data-go-reflect>去反思炉锻一把</button>
+          </div>
+        </div>
+      </section>
       <section class="tab-panel" id="tab-prospect"><div class="placeholder-pane"><div><strong>矿灯正在点亮</strong><p>历史卷宗稍后显脉</p></div></div></section>
       <section class="tab-panel" id="tab-weapons"><div class="placeholder-pane"><div><strong>十八般兵器正在拓印</strong><p>本炉今日先锻一套剑</p></div></div></section>
       <section class="tab-panel" id="tab-scrolls"><div class="placeholder-pane"><div><strong>秘籍阁正在落锁</strong><p>江湖尚远，先留一卷真传</p></div></div></section>
     </main>
   </div>
   <div class="toast" id="toast" role="status"></div>
+  <div class="drawer-backdrop" id="drawerBackdrop" role="dialog" aria-modal="true" aria-labelledby="drawerSwordName" aria-hidden="true">
+    <aside class="detail-drawer" id="detailDrawer">
+      <header class="drawer-head">
+        <img id="drawerSwordImage" src="static/sword-2.png" alt="剑器图">
+        <div class="drawer-head-copy">
+          <p id="drawerSwordMeta">剑 · v0.1</p>
+          <h2 id="drawerSwordName">剑名</h2>
+        </div>
+        <button class="close-btn" id="closeDrawer" type="button" aria-label="关闭兵器详情">×</button>
+      </header>
+      <div class="drawer-body">
+        <section class="temper-sheet" id="temperSheet" aria-labelledby="temperSheetTitle">
+          <h3 id="temperSheetTitle">淬火此剑</h3>
+          <p>一行 why 是剑的黑匣子：说清触发了什么、为何值得改。</p>
+          <textarea id="temperWhy" placeholder="例如：补上失败分支，因为顺利路径不足以防重踩" aria-label="淬火原因"></textarea>
+          <div class="temper-actions">
+            <span class="temper-error" id="temperError"></span>
+            <div>
+              <button class="secondary-btn" id="cancelTemper" type="button">收起</button>
+              <button class="danger-btn" id="confirmTemper" type="button">落锤</button>
+            </div>
+          </div>
+        </section>
+        <section class="drawer-section">
+          <h3>SKILL.md</h3>
+          <pre class="drawer-skill" id="drawerSkill"></pre>
+        </section>
+        <section class="drawer-section">
+          <h3>淬火记录 · why 链</h3>
+          <div class="why-timeline" id="whyTimeline"></div>
+        </section>
+      </div>
+      <footer class="drawer-actions">
+        <button class="secondary-btn" id="promoteBtn" type="button">转正</button>
+        <button class="danger-btn" id="temperBtn" type="button">淬火</button>
+      </footer>
+    </aside>
+  </div>
 
 <script>
   const state = {
@@ -442,7 +555,11 @@
     irons: [],
     selectedIrons: new Set(),
     loadingTimer: null,
-    mock: null
+    mock: null,
+    armory: [],
+    activeSword: null,
+    temperAction: 'revise',
+    drawerTrigger: null
   };
 
   const forgeSayings = [
@@ -585,6 +702,87 @@
     document.getElementById('forgeBtn').disabled = state.selectedIrons.size === 0;
   }
 
+  function swordSkill(sword) {
+    return `---\nname: ${sword.name}\ndescription: 把工作过程锻成稳定、可复用的述职剑招\n---\n\n# ${sword.name}\n\n## 何时出鞘\n当侠客需要从零散工作记录中产出清晰汇报时。\n\n## 剑招\n1. 先找变化与影响，不从流水账起笔。\n2. 每个结论保留证据锚点。\n3. 将风险和下一步分别落成可执行动作。\n\n## 收剑判据\n读者能在三十秒内看见“变了什么、为何重要、接下来做什么”。`;
+  }
+
+  function renderArmory(armory) {
+    state.armory = armory || [];
+    const grid = document.getElementById('armoryGrid');
+    const empty = document.getElementById('emptyArmory');
+    document.getElementById('armoryCount').textContent = state.armory.length;
+    if (!state.armory.length) {
+      grid.innerHTML = '';
+      empty.classList.add('show');
+      return;
+    }
+    empty.classList.remove('show');
+    grid.innerHTML = state.armory.map((sword, index) => {
+      const lastWhy = sword.why_log?.at(-1)?.why || '初锻';
+      return `<article class="armory-card" tabindex="0" role="button" data-sword-id="${escapeHtml(sword.id)}" aria-label="查看${escapeHtml(sword.name)}详情">
+        <div class="armory-art">
+          <span class="weapon-status ${escapeHtml(sword.status)}">${sword.status === 'forged' ? '已转正' : '草稿'}</span>
+          <img src="static/sword-${index % 4 + 1}.png" alt="${escapeHtml(sword.name)}">
+        </div>
+        <div class="armory-copy">
+          <h3>${escapeHtml(sword.name)}</h3>
+          <div class="armory-meta"><span>${escapeHtml(sword.kind)}</span><b>${escapeHtml(sword.version)}</b></div>
+          <p class="why-preview">${escapeHtml(lastWhy)}</p>
+        </div>
+      </article>`;
+    }).join('');
+    grid.querySelectorAll('.armory-card').forEach(card => {
+      const open = () => openSwordDrawer(card.dataset.swordId, card);
+      card.addEventListener('click', open);
+      card.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); } });
+    });
+  }
+
+  function renderWhyLog(log = []) {
+    document.getElementById('whyTimeline').innerHTML = log.map(item => `<article class="why-entry">
+      <div class="why-version"><strong>${escapeHtml(item.v)}</strong><time>${escapeHtml(item.at)}</time></div>
+      <p>${escapeHtml(item.why)}</p>
+    </article>`).join('') || '<p class="iron-anchor">尚无淬火记录。</p>';
+  }
+
+  function openSwordDrawer(id, trigger) {
+    const sword = state.armory.find(item => item.id === id);
+    if (!sword) return;
+    state.activeSword = sword;
+    state.drawerTrigger = trigger || document.activeElement;
+    const index = Math.max(0, state.armory.indexOf(sword));
+    document.getElementById('drawerSwordImage').src = `static/sword-${index % 4 + 1}.png`;
+    document.getElementById('drawerSwordName').textContent = sword.name;
+    document.getElementById('drawerSwordMeta').textContent = `${sword.kind} · ${sword.version} · ${sword.status === 'forged' ? '已转正' : '草稿'}`;
+    document.getElementById('drawerSkill').textContent = swordSkill(sword);
+    document.getElementById('promoteBtn').disabled = sword.status === 'forged';
+    document.getElementById('temperSheet').classList.remove('open');
+    renderWhyLog(sword.why_log);
+    const backdrop = document.getElementById('drawerBackdrop');
+    backdrop.classList.add('open');
+    backdrop.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    window.setTimeout(() => document.getElementById('closeDrawer').focus(), 120);
+  }
+
+  function closeSwordDrawer() {
+    const backdrop = document.getElementById('drawerBackdrop');
+    backdrop.classList.remove('open');
+    backdrop.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    state.drawerTrigger?.focus?.();
+  }
+
+  function openTemperSheet(action) {
+    state.temperAction = action;
+    document.getElementById('temperSheetTitle').textContent = action === 'promote' ? '此剑转正' : '淬火此剑';
+    document.getElementById('confirmTemper').textContent = action === 'promote' ? '转正落印' : '落锤';
+    document.getElementById('temperWhy').value = '';
+    document.getElementById('temperError').textContent = '';
+    document.getElementById('temperSheet').classList.add('open');
+    document.getElementById('temperWhy').focus();
+  }
+
   document.querySelectorAll('.tab-btn').forEach(button => button.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(btn => {
       const active = btn === button;
@@ -594,6 +792,45 @@
     document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
     document.getElementById(`tab-${button.dataset.tab}`).classList.add('active');
   }));
+
+  document.querySelectorAll('[data-go-reflect]').forEach(button => button.addEventListener('click', () => document.querySelector('[data-tab="reflect"]').click()));
+  document.getElementById('closeDrawer').addEventListener('click', closeSwordDrawer);
+  document.getElementById('drawerBackdrop').addEventListener('mousedown', event => { if (event.target === event.currentTarget) closeSwordDrawer(); });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && document.getElementById('drawerBackdrop').classList.contains('open')) {
+      if (document.getElementById('temperSheet').classList.contains('open')) document.getElementById('temperSheet').classList.remove('open');
+      else closeSwordDrawer();
+      event.preventDefault();
+    }
+  });
+  document.getElementById('temperBtn').addEventListener('click', () => openTemperSheet('revise'));
+  document.getElementById('promoteBtn').addEventListener('click', () => openTemperSheet('promote'));
+  document.getElementById('cancelTemper').addEventListener('click', () => document.getElementById('temperSheet').classList.remove('open'));
+  document.getElementById('confirmTemper').addEventListener('click', async () => {
+    const why = document.getElementById('temperWhy').value.trim();
+    if (!why) {
+      document.getElementById('temperError').textContent = 'why 不能为空：动词不够，要写清缘由。';
+      document.getElementById('temperWhy').focus();
+      return;
+    }
+    const button = document.getElementById('confirmTemper');
+    button.disabled = true;
+    button.textContent = '淬炼中…';
+    try {
+      const result = await api('temper', {method: 'POST', body: {sword_id: state.activeSword.id, why, action: state.temperAction}});
+      const today = new Date().toISOString().slice(0, 10);
+      state.activeSword.version = result.version || (state.temperAction === 'promote' ? 'v1.0' : state.activeSword.version);
+      state.activeSword.status = state.temperAction === 'promote' ? 'forged' : state.activeSword.status;
+      state.activeSword.why_log.push({v: state.activeSword.version, why: `${state.temperAction === 'promote' ? '转正' : '淬火'}：${why}`, at: today});
+      renderArmory(state.armory);
+      openSwordDrawer(state.activeSword.id, state.drawerTrigger);
+      showToast(state.temperAction === 'promote' ? '此剑已转正入谱' : `此剑已淬火至 ${state.activeSword.version}`);
+    } catch (error) {
+      document.getElementById('temperError').textContent = error.message || '淬火未成，请再试。';
+    } finally {
+      button.disabled = false;
+    }
+  });
 
   document.querySelectorAll('[data-source]').forEach(button => button.addEventListener('click', () => {
     state.source = button.dataset.source;
@@ -663,6 +900,9 @@
   api('profile').then(renderProfile).catch(error => {
     document.getElementById('profileName').textContent = '档案未载入';
     document.getElementById('profileTitle').textContent = error.message;
+  });
+  api('armory').then(renderArmory).catch(error => {
+    document.getElementById('armoryGrid').innerHTML = `<div class="message show">${escapeHtml(error.message || '兵器架未能载入')}</div>`;
   });
 </script>
 </body></html>
