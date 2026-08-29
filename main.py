@@ -7,7 +7,7 @@
 火 = token
 
 设计权威：docs/DESIGN.md（术语表 §1 / API 契约 §4 / 等级规则 §5）
-跑法：python main.py  → http://localhost:7712
+跑法：python main.py  → http://localhost:7712（FORGE_PORT 可换端口）
 """
 import datetime
 import hashlib
@@ -30,7 +30,7 @@ SWORDS = DATA / "swords"
 PROFILE_FILE = DATA / "profile.json"
 CONFIG_FILE = ROOT / "config.json"
 LOG_FILE = ROOT / "forge.log"
-PORT = 7712  # 7711 归前身 component-forge，两台炉子可同时开
+PORT = int(os.environ.get("FORGE_PORT", "7712"))  # 7711 归前身 component-forge，两台炉子可同时开
 
 for d in (DATA, IRONS, SWORDS):
     d.mkdir(parents=True, exist_ok=True)
