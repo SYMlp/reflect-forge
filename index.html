@@ -245,6 +245,55 @@
     border: 1px solid rgba(206, 166, 85, .08);
   }
 
+  /* 观剑模式：公网观众看到的是真品陈列，不是半成品。常驻横幅 + 开屏徽标，
+     两处都只在 body.demo-mode 时现身——normal 模式下连 DOM 都不占视线 */
+  .demo-banner { display: none; }
+  body.demo-mode .demo-banner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 14px;
+    padding: 13px 24px;
+    border: 1px solid rgba(201, 164, 87, .5);
+    border-left: 3px solid var(--ember);
+    background: linear-gradient(100deg, rgba(229, 138, 53, .13), rgba(35, 31, 24, .82));
+    box-shadow: inset 0 1px rgba(255, 232, 177, .08);
+    color: var(--paper-200);
+    font-size: 15px;
+    line-height: 1.66;
+  }
+  .demo-banner-mark {
+    flex: none;
+    color: var(--ember-hot);
+    font-size: 15px;
+    letter-spacing: .2em;
+    white-space: nowrap;
+  }
+  .demo-banner-text { min-width: 0; }
+  .demo-banner a {
+    color: var(--ember-hot);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(255, 176, 82, .55);
+    white-space: nowrap;
+  }
+  .demo-banner a:hover { color: #ffc87a; border-bottom-color: #ffc87a; }
+
+  .hero-demo-badge { display: none; }
+  body.demo-mode .hero-demo-badge {
+    display: block;
+    position: absolute;
+    top: clamp(28px, 4vh, 48px);
+    right: clamp(32px, 4vw, 72px);
+    z-index: 2;
+    padding: 8px calc(18px - .3em) 8px 18px;  /* 抵掉末字的 letter-spacing 拖尾，视觉才居中 */
+    border: 1px solid var(--gold);
+    background: rgba(16, 15, 12, .72);
+    color: var(--ember-hot);
+    font-size: 13px;
+    letter-spacing: .3em;
+    animation: hero-rise .8s .05s both;
+  }
+
   .brand {
     display: flex;
     align-items: center;
@@ -645,6 +694,7 @@
 <body class="hero-active">
   <section class="hero" id="hero" aria-labelledby="heroTitle">
     <div class="hero-smoke" aria-hidden="true"></div>
+    <p class="hero-demo-badge">观剑模式</p>
     <div class="hero-content">
       <p class="hero-eyebrow">Reflect Forge · 今日开炉</p>
       <div class="hero-title-wrap"><h1 id="heroTitle">反思锻造台</h1></div>
@@ -682,6 +732,11 @@
         </div>
       </section>
     </header>
+
+    <aside class="demo-banner" role="note" aria-label="观剑模式说明">
+      <span class="demo-banner-mark" aria-hidden="true">⚔️ 观剑模式</span>
+      <span class="demo-banner-text">这是路演现场那座锻造铺的实时镜像：剑是真剑、记录是真记录，炉火在锻造师自己的机器上烧。想开一炉自己的？<a href="https://github.com/SYMlp/reflect-forge" target="_blank" rel="noopener noreferrer">GitHub 五分钟装上 →</a></span>
+    </aside>
 
     <nav class="tabs" aria-label="锻造台功能">
       <button class="tab-btn active" type="button" data-tab="reflect" aria-selected="true"><span class="tab-index">壹</span>反思炉</button>
@@ -992,7 +1047,7 @@
   // 硬闸在后端（所有 POST 一律 403），这里只是免得让人对着一个转圈的按钮等超时
   function demoBlocked() {
     if (!state.demo) return false;
-    showToast('炉火在路演现场，这里只观剑', 3000);
+    showToast('炉火在路演现场，这里只观剑——想自己烧，GitHub 五分钟装一台', 4200);
     return true;
   }
 
@@ -1514,6 +1569,8 @@
   // demo 位跟着档案一起到——它是后端唯一告诉前端"这台炉子在路演现场"的地方
   api('profile').then(profile => {
     state.demo = Boolean(profile?.demo);
+    // 观剑模式的门面开关：横幅与开屏徽标都挂在这个 class 上，只此一处
+    document.body.classList.toggle('demo-mode', state.demo);
     renderProfile(profile);
   }).catch(error => {
     document.getElementById('profileName').textContent = '档案未载入';
