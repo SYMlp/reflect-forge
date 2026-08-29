@@ -142,3 +142,4 @@ flowchart TD
 - 总设计稿：[docs/DESIGN.md](docs/DESIGN.md)
 - 视觉线任务书（Codex）：[prompts/codex-visual.md](prompts/codex-visual.md)
 - 逻辑线任务书（Claude Code）：[prompts/claude-backend.md](prompts/claude-backend.md)
+- License: MIT（见 [LICENSE](LICENSE)）
