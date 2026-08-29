@@ -1042,8 +1042,19 @@
   ];
 
   // 真接口统一入口：合同资源全部走 /api/*，不在这里混入展示用 mock。
+  // 静态模式（GitHub Pages 快照站）：开关 window.STATIC_MODE 只由 scripts/export_static.py
+  // 在导出产物 site/index.html 里注入——本源文件没有这个全局量，7712/7713 真炉行为不变。
+  // GET 改读同目录快照 api/<name>.json（相对路径：自定义域生效前 Pages 挂在 /reflect-forge/ 子路径，
+  // 以 / 开头会打到 symlp.github.io 根上）；POST 兜底拦死（第一道闸是快照 profile.demo=true 走 demoBlocked）。
   async function api(resource, options = {}) {
     const method = options.method || 'GET';
+    if (window.STATIC_MODE) {
+      if (method !== 'GET') throw new Error('这里是快照站，炉火不在——想自己烧，GitHub 五分钟装一台');
+      const snap = await fetch(`api/${resource}.json`);
+      const snapPayload = await snap.json().catch(() => ({}));
+      if (!snap.ok) throw new Error(snapPayload.error || `快照缺页（${snap.status}）`);
+      return snapPayload;
+    }
     const response = await fetch(`/api/${resource}`, {
       method,
       headers: {'Content-Type': 'application/json'},
