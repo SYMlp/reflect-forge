@@ -44,9 +44,10 @@
 
 ```json
 {
-  "profile": {"name": "石锻造", "title": "中级锻造师", "level": 3,
-    "exp": {"reflect_sessions": 12, "swords_forged": 5, "temper_rate": 0.6, "works_slain": 23},
-    "next_level_req": {"reflect_sessions": 30, "swords_forged": 8, "temper_rate": 0.5, "works_slain": 40}},
+  "profile": {"name": "石锻造", "title": "百炼始成", "level": "中级锻造师",
+    "exp": {"reflect_sessions": 12, "swords_forged": 5, "swords_promoted": 3, "works_slain": 90},
+    "temper_rate": 0.6,
+    "next_level_req": {"level": "高级锻造师", "reflect_sessions": 30, "swords_forged": 8, "swords_promoted": 4, "works_slain": 150}},
   "armory": [{"id": "sw1", "name": "日报剑", "kind": "剑", "status": "forged", "version": "v1.2",
     "why_log": [{"v": "v0.1", "why": "初锻", "at": "2026-08-28"},
                  {"v": "v1.0", "why": "转正：真跑三天日报无返工", "at": "2026-08-28"},

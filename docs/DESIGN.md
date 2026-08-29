@@ -76,7 +76,11 @@ reflect-forge/
 ## 4. API 契约（两线并行的合同，谁也别改，要改先喊）
 
 ```
-GET  /api/profile   → {name, title, level, exp:{reflect_sessions, swords_forged, temper_rate, works_slain}, next_level_req}
+GET  /api/profile   → {name, title, level, exp:{reflect_sessions, swords_forged, swords_promoted, works_slain}, temper_rate, next_level_req:{level, ...四维门槛, met, current}}
+                      修正 2026-08-29：晋升四维全部用单调计数（swords_promoted=转正把数，对 §5 表第三维）；
+                      temper_rate（转正率）降为档案卡"质量"展示读数，不参与晋升判定。
+                      level=§5 等级名（"见习锻造师"），title=称号（"初见炉火"等，后端定）。
+                      iron id 格式 <session_hash8>-i<n>，跨 session 唯一。
 GET  /api/armory    → [{id, name, kind:"剑", status:"draft|forged", version, why_log:[{v, why, at}], skill_path}]
 POST /api/reflect   → 入 {source:"paste"|"file", content|path} 出 {irons:[{id, text, anchor, kind:"判断|经验|流程", grade:"上品|中品|下品", cite?:{name, kind:"剑|秘籍"}}]}
                       cite 为可选字段：这块铁的判断引用了已有的剑/秘籍时标注（demo 预跑数据保证至少 1-2 块铁带 cite，体系实证闭环的露点）
