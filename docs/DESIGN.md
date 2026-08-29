@@ -107,6 +107,11 @@ POST /api/bestow    → 入 {sword_id} 出 {bestowed_to, name, version, triggers
                       重复授剑 = 覆盖更新（淬火出新版本后重授是正路）。
                       副作用：meta.json 写入 bestowed / bestowed_to / bestowed_at / bestowed_version。
 GET  /api/armory    → 追加两个字段（增量，旧字段一个没动）：bestowed:bool, bestowed_to:str
+GET  /api/armory    → 再追加一个字段（增量，旧字段一个没动）：skill_md:str
+                      = data/swords/<id>/SKILL.md 的真实全文（换行归一为 \n）。
+                      文件缺失或读失败 → 空串，后端不编假内容；前端据此自行决定怎么退。
+                      为什么加：兵器架抽屉本来靠前端硬编模板兜底（sword.skill_md || swordSkill(sword)），
+                      展示的是假剑谱；抽屉里必须亮真身，否则这条回路的证据链在最后一屏断掉。
 ```
 
 为什么这条出口是回路的最后一环：剑锻好了不装到侠客身上，它就只是仓库里一个 md 文件。

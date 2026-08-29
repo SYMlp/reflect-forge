@@ -661,6 +661,19 @@ def bestow(sword_id):
 
 # ── 兵器架 ────────────────────────────────────────────────────────
 
+def read_skill_md(sword_id):
+    """兵器架抽屉要亮的是真身。读不到就给空串——前端自己决定怎么退，别在这儿编一份假的。"""
+    if not SAFE_ID.match((sword_id or "").strip()):
+        return ""
+    f = SWORDS / sword_id / "SKILL.md"
+    if not f.exists():
+        return ""
+    try:
+        return f.read_text(encoding="utf-8")
+    except Exception:
+        return ""
+
+
 def armory():
     """why_log 全量给出去——前端画的那条时间线就是这个产品的核心证据。"""
     out = []
@@ -673,6 +686,8 @@ def armory():
             "version": m.get("version", "v0.1"),
             "why_log": m.get("why_log") or [],
             "skill_path": m.get("skill_path") or "data/swords/{}/SKILL.md".format(m.get("id")),
+            # 抽屉里展开的就是这份原文，前端不必再拿硬编模板兜底
+            "skill_md": read_skill_md(m.get("id")),
             "description": m.get("description", ""),
             "iron_ids": m.get("iron_ids") or [],
             "created": m.get("created", ""),
