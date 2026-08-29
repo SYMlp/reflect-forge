@@ -41,6 +41,8 @@ python main.py
 
 **认自己的门**（可选）：根目录 `config.json` 四个字段——`forge_master` 锻造师名号、`works_slain_base` 斩活底账、`session_dir` 寻料时翻哪个卷宗目录（默认 `~/.claude/projects/`）、`featured_scroll` 秘籍阁那卷实藏。改完重启即生效。
 
+**只观剑不开炉**（公网展示用）：`FORGE_DEMO=1 python main.py` 起演示模式——所有 POST 一律 403（反思 / 锻剑 / 淬火 / 转正 / 授剑 / 重锻 / 验矿全不开），寻料页不扫本机 `~/.claude/projects`，只端 `static/demo-prospect.json` 里的预置样例。页面照常能逛：五个 tab、剑详情、谱系、重锻记都在，按钮点得下去，只弹一句「炉火在路演现场，这里只观剑」。也可以在 `config.json` 里写 `"demo_mode": true`——环境变量压过配置文件，临时开一台演示服务不必去动仓库里的配置。
+
 **产物落在哪**：`data/irons/` 是出的铁，`data/swords/` 是锻成的剑（真身文件 + 版本 / why 链 / 状态），`data/profile.json` 只存算不出来的那点东西——四维经验值一律现数真实产物，不落盘，因为这产品的整个立论就是「经验值来自真实锻造记录」。炉火留痕在 `forge.log`。
 
 **第一炉怎么跑**：反思炉 →「粘贴」页把今天一段和侠客协作的完整会话贴进去 →「入炉」（真炉约候半炷香，30–120 秒）→ 出铁后勾几块 →「锻剑」→ 去兵器架看它，试过手再转正 / 淬火。

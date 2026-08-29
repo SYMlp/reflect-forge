@@ -61,6 +61,8 @@ DEFAULT_CONFIG = {
     "featured_scroll": {},
     # 外来名剑：别人锻好的开源 SKILL.md，重锻炉的进料口。登记在册的才认（见 find_foreign_scroll）
     "foreign_scrolls": [],
+    # 演示模式：公网扫码只观剑，不开炉。默认关，路演现场用 FORGE_DEMO=1 起
+    "demo_mode": False,
 }
 
 
@@ -72,6 +74,39 @@ def read_config():
         except Exception as e:
             log("config.json 读不动（{}），先用默认值跑".format(e))
     return cfg
+
+
+# ── 演示模式（公网扫码只观剑） ─────────────────────────────────────
+
+DEMO_PROSPECT_FILE = STATIC / "demo-prospect.json"
+DEMO_BLOCK = {"error": "演示模式——炉火在路演现场，这里只观剑", "stage": "demo_readonly"}
+
+
+def resolve_demo_mode():
+    """演示模式在进程启动那一刻定死，之后不再随 config.json 改动漂移。
+
+    环境变量压过配置文件：路演临时开一台只观剑的服务，不该去改仓库里的
+    config.json——改了就容易忘了改回来，下次本机开炉发现炉门是锁的。
+    """
+    env = (os.environ.get("FORGE_DEMO") or "").strip().lower()
+    if env:
+        return env not in ("0", "false", "no", "off")
+    return bool(read_config().get("demo_mode"))
+
+
+DEMO_MODE = resolve_demo_mode()
+
+
+def demo_prospect():
+    """演示模式的矿场是一份预置卷宗，绝不去扫真实的 ~/.claude/projects。
+
+    真实矿场的目录名是用户所有项目的磁盘路径压出来的——那是扫码的人最不该看见的东西。
+    """
+    try:
+        return json.loads(DEMO_PROSPECT_FILE.read_text(encoding="utf-8"))
+    except Exception as e:
+        log("demo-prospect.json 读不动（{}），演示矿场先空着".format(e))
+        return []
 
 
 def read_profile():
@@ -184,6 +219,8 @@ def build_profile():
         },
         # 转正率平级单列：它是质量读数，不是经验值，前端画在档案卡上而不是经验条上
         "temper_rate": exp["temper_rate"],
+        # 前端靠这一位知道自己身处路演现场：开炉类按钮改成敬酒不吃、只弹一句话
+        "demo": DEMO_MODE,
         "next_level_req": None,
     }
     if nxt:
@@ -577,7 +614,13 @@ REFORGE_TEMPLATE = PROMPTS / "reforge.md"
 
 
 def foreign_scrolls():
-    return [s for s in (read_config().get("foreign_scrolls") or []) if s.get("path")]
+    out = [s for s in (read_config().get("foreign_scrolls") or []) if s.get("path")]
+    if DEMO_MODE:
+        # 卡片上那行路径是要原样上屏的，而本机真实路径里带着用户名和目录结构。
+        # 演示模式换成一个形状对得上的示意路径——重锻按钮本来也被 403 挡着，不影响观感
+        out = [dict(s, path="~/.claude/skills/{}/SKILL.md".format(s.get("id") or "foreign"))
+               for s in out]
+    return out
 
 
 def find_foreign_scroll(path):
@@ -822,7 +865,9 @@ def armory():
             "created": m.get("created", ""),
             # 佩剑标记：兵器架上要一眼看得出哪把剑已经在侠客身上
             "bestowed": bool(m.get("bestowed")),
-            "bestowed_to": m.get("bestowed_to", ""),
+            # 落鞘处是本机绝对路径，带着用户名。前端只用「已佩」这个布尔位，
+            # 演示模式下这串路径纯属白送出去的信息——不发
+            "bestowed_to": "" if DEMO_MODE else m.get("bestowed_to", ""),
         })
     # 新锻的排前面，demo 时刚出炉那把一眼就在顶上
     out.sort(key=lambda s: s.get("created") or "", reverse=True)
@@ -1077,6 +1122,9 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(all_irons())
 
             if path == "/api/prospect":
+                # 演示模式不碰真实矿场：dir 参数一律不认，只端预置样例
+                if DEMO_MODE:
+                    return self._json(demo_prospect())
                 q = parse_qs(urlparse(self.path).query)
                 return self._json(prospect((q.get("dir") or [""])[0]))
 
@@ -1110,6 +1158,16 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         path = urlparse(self.path).path
+        # 演示模式的总闸：所有写口一律不开，包括没登记过的路由。
+        # 挡在读 body 之前 —— 一个字节的料都不进来，也就没有"某个分支忘了判"的可能
+        if DEMO_MODE:
+            try:
+                # 先把 body 抽干再回话：keep-alive 连接上残留的字节会被当成下一个请求行
+                self.rfile.read(int(self.headers.get("Content-Length") or 0))
+            except Exception:
+                pass
+            log("演示模式挡下投料：{}".format(path))
+            return self._json(dict(DEMO_BLOCK), 403)
         try:
             data = self._read_body()
 
@@ -1154,5 +1212,7 @@ if __name__ == "__main__":
     log("反思锻造台开炉 · 锻造师「{}」· {}（{}）· 铁 {} 场 / 剑 {} 把".format(
         p["name"], p["level"], p["title"],
         p["exp"]["reflect_sessions"], p["exp"]["swords_forged"]))
+    if DEMO_MODE:
+        log("演示模式已开：只观剑不开炉 —— 全部 POST 一律 403，寻料只端 static/demo-prospect.json")
     log("→ http://localhost:{}".format(PORT))
     ThreadingHTTPServer(("0.0.0.0", PORT), Handler).serve_forever()

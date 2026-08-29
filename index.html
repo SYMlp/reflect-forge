@@ -958,7 +958,9 @@
     prospectPath: '',
     charge: null,
     // 重锻态：{path, name}。置上之后「锻剑」按钮改走 /api/reforge，选的铁融进那把外来名剑
-    reforge: null
+    reforge: null,
+    // 演示模式：由 /api/profile 的 demo 位置上。真身在后端，这里只是让手感提前一步
+    demo: false
   };
 
   const forgeSayings = [
@@ -984,6 +986,15 @@
   }
 
   const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+
+  // 演示模式的软闸：开炉类按钮点下去只弹一句话。
+  // 按钮**不禁用**——路演现场要让人点得下去，手感留着，只是炉门不开。
+  // 硬闸在后端（所有 POST 一律 403），这里只是免得让人对着一个转圈的按钮等超时
+  function demoBlocked() {
+    if (!state.demo) return false;
+    showToast('炉火在路演现场，这里只观剑', 3000);
+    return true;
+  }
 
   function showToast(message, duration = 2600) {
     const toast = document.getElementById('toast');
@@ -1289,8 +1300,10 @@
         </div>
       </div>
     </article>`).join('');
-    box.querySelectorAll('[data-reforge-path]').forEach(button => button.addEventListener('click', () =>
-      enterReforge(button.dataset.reforgePath, button.dataset.reforgeName)));
+    box.querySelectorAll('[data-reforge-path]').forEach(button => button.addEventListener('click', () => {
+      if (demoBlocked()) return;
+      enterReforge(button.dataset.reforgePath, button.dataset.reforgeName);
+    }));
   }
 
   async function enterReforge(path, name) {
@@ -1359,6 +1372,7 @@
     }
   });
   document.getElementById('bestowBtn').addEventListener('click', async () => {
+    if (demoBlocked()) return;
     const button = document.getElementById('bestowBtn');
     const sword = state.activeSword;
     if (!sword) return;
@@ -1378,10 +1392,11 @@
       showToast(error.message || '此剑未能出鞘，请再试。', 4000);
     }
   });
-  document.getElementById('temperBtn').addEventListener('click', () => openTemperSheet('revise'));
-  document.getElementById('promoteBtn').addEventListener('click', () => openTemperSheet('promote'));
+  document.getElementById('temperBtn').addEventListener('click', () => { if (!demoBlocked()) openTemperSheet('revise'); });
+  document.getElementById('promoteBtn').addEventListener('click', () => { if (!demoBlocked()) openTemperSheet('promote'); });
   document.getElementById('cancelTemper').addEventListener('click', () => document.getElementById('temperSheet').classList.remove('open'));
   document.getElementById('confirmTemper').addEventListener('click', async () => {
+    if (demoBlocked()) return;
     const why = document.getElementById('temperWhy').value.trim();
     if (!why) {
       document.getElementById('temperError').textContent = 'why 不能为空：说不清为什么改，这一炉不开。';
@@ -1420,6 +1435,7 @@
   });
 
   document.getElementById('reflectBtn').addEventListener('click', async () => {
+    if (demoBlocked()) return;
     const input = document.getElementById('sessionInput');
     const file = document.getElementById('sessionFile').files[0];
     const body = state.source === 'paste'
@@ -1453,6 +1469,7 @@
   });
 
   document.getElementById('forgeBtn').addEventListener('click', async () => {
+    if (demoBlocked()) return;
     if (!state.selectedIrons.size) return;
     const button = document.getElementById('forgeBtn');
     const reforging = Boolean(state.reforge);
@@ -1494,7 +1511,11 @@
     }
   });
 
-  api('profile').then(renderProfile).catch(error => {
+  // demo 位跟着档案一起到——它是后端唯一告诉前端"这台炉子在路演现场"的地方
+  api('profile').then(profile => {
+    state.demo = Boolean(profile?.demo);
+    renderProfile(profile);
+  }).catch(error => {
     document.getElementById('profileName').textContent = '档案未载入';
     document.getElementById('profileTitle').textContent = error.message;
   });
