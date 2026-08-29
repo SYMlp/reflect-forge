@@ -47,6 +47,178 @@
       linear-gradient(180deg, rgba(11, 10, 8, .24), rgba(11, 10, 8, .74) 64%, rgba(11, 10, 8, .92));
   }
 
+  body.hero-active { overflow: hidden; }
+  body:not(.forge-entered) .app-shell { display: none; }
+
+  .hero {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    overflow: hidden;
+    display: grid;
+    align-items: center;
+    min-width: 1100px;
+    min-height: 680px;
+    background: var(--coal-950) url("static/bg-forge.png") center / cover no-repeat;
+    isolation: isolate;
+    transition: opacity .7s ease, visibility .7s ease, filter .7s ease, transform .9s cubic-bezier(.2,.8,.2,1);
+  }
+
+  .hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    background:
+      linear-gradient(90deg, rgba(13,12,10,.9) 0%, rgba(13,12,10,.68) 42%, rgba(13,12,10,.08) 75%, rgba(13,12,10,.14) 100%),
+      linear-gradient(180deg, rgba(12,11,9,.22), transparent 55%, rgba(12,11,9,.56));
+  }
+
+  .hero::after {
+    content: "";
+    position: absolute;
+    inset: 20px;
+    z-index: 2;
+    pointer-events: none;
+    border: 1px solid rgba(224, 189, 119, .23);
+    box-shadow: inset 0 0 0 7px rgba(13,12,10,.22);
+  }
+
+  .hero.opening {
+    opacity: 0;
+    visibility: hidden;
+    filter: brightness(1.32) saturate(1.18);
+    transform: scale(1.025);
+    pointer-events: none;
+  }
+
+  .forge-entered .hero { display: none; }
+  .forge-entered .app-shell { animation: app-arrive .7s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes app-arrive { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+
+  .hero-smoke {
+    position: absolute;
+    inset: -20%;
+    z-index: -1;
+    pointer-events: none;
+    opacity: .34;
+    background:
+      radial-gradient(ellipse at 42% 48%, rgba(205,182,139,.13), transparent 28%),
+      radial-gradient(ellipse at 66% 35%, rgba(205,182,139,.09), transparent 24%);
+    filter: blur(28px);
+    animation: hero-smoke 12s ease-in-out infinite alternate;
+  }
+  @keyframes hero-smoke { to { transform: translate3d(4%, -3%, 0) scale(1.08); opacity: .48; } }
+
+  .hero-content {
+    width: min(820px, 54vw);
+    margin-left: clamp(72px, 8vw, 156px);
+    padding: 54px 0 80px;
+  }
+
+  .hero-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 0 0 20px;
+    color: var(--ember-hot);
+    font-size: 13px;
+    letter-spacing: .34em;
+    text-transform: uppercase;
+    animation: hero-rise .8s .05s both;
+  }
+  .hero-eyebrow::before { content: ""; width: 52px; height: 1px; background: var(--ember); box-shadow: 0 0 12px rgba(229,138,53,.6); }
+
+  .hero-title-wrap { position: relative; display: inline-block; }
+  .hero-title-wrap::after {
+    content: "锻";
+    position: absolute;
+    right: -92px;
+    top: -24px;
+    display: grid;
+    place-items: center;
+    width: 62px;
+    height: 62px;
+    border: 2px solid #c85a43;
+    color: #dc735a;
+    font: 700 25px/1 var(--display);
+    transform: rotate(4deg);
+    box-shadow: inset 0 0 0 4px rgba(168,55,40,.18), 0 0 28px rgba(168,55,40,.15);
+    animation: hero-seal .7s .55s cubic-bezier(.17,.88,.32,1.3) both;
+  }
+  @keyframes hero-seal { from { opacity: 0; transform: rotate(14deg) scale(1.35); } to { opacity: 1; transform: rotate(4deg) scale(1); } }
+
+  .hero h1 {
+    margin: 0;
+    color: #f2dfac;
+    font: 700 clamp(64px, 5.8vw, 96px)/1.08 var(--display);
+    letter-spacing: .11em;
+    text-shadow: 0 5px 36px rgba(0,0,0,.7), 0 0 32px rgba(219,123,37,.11);
+    animation: hero-rise .9s .12s both;
+  }
+
+  .hero-english {
+    margin: 10px 0 0;
+    color: #a99b7e;
+    font: 15px/1.5 Georgia, serif;
+    letter-spacing: .38em;
+    text-transform: uppercase;
+    animation: hero-rise .9s .2s both;
+  }
+
+  .hero-slogan {
+    max-width: 760px;
+    margin: 44px 0 0;
+    color: #ead9b4;
+    font: 600 clamp(28px, 2.1vw, 38px)/1.65 var(--display);
+    letter-spacing: .055em;
+    text-wrap: balance;
+    animation: hero-rise .9s .3s both;
+  }
+  .hero-slogan strong { color: var(--ember-hot); font-weight: 700; }
+
+  .hero-action-row { display: flex; align-items: center; gap: 28px; margin-top: 42px; animation: hero-rise .9s .42s both; }
+  .open-forge-btn {
+    position: relative;
+    width: 196px;
+    min-height: 64px;
+    overflow: hidden;
+    border: 1px solid #e2ad63;
+    border-radius: 0;
+    color: #25170b;
+    background: linear-gradient(180deg, #f1bc70, #cf772e);
+    box-shadow: 0 14px 34px rgba(209,94,24,.28), inset 0 1px #ffe5b3;
+    cursor: pointer;
+    font: 700 23px/1 var(--display);
+    letter-spacing: .22em;
+    text-indent: .22em;
+    transition: transform .2s ease, filter .2s ease, box-shadow .2s ease;
+  }
+  .open-forge-btn::after { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 25%, rgba(255,244,210,.45) 48%, transparent 70%); transform: translateX(-120%); transition: transform .55s ease; }
+  .open-forge-btn:hover { transform: translateY(-3px); filter: brightness(1.08); box-shadow: 0 20px 42px rgba(209,94,24,.38), inset 0 1px #ffe5b3; }
+  .open-forge-btn:hover::after { transform: translateX(120%); }
+  .hero-action-note { margin: 0; color: #8e826c; font-size: 14px; letter-spacing: .12em; }
+  @keyframes hero-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+
+  .hero-burn {
+    position: absolute;
+    left: 50%;
+    bottom: 42px;
+    z-index: 3;
+    min-width: 310px;
+    margin: 0;
+    padding: 10px 24px;
+    border-top: 1px solid rgba(213,166,85,.33);
+    color: #ad9e82;
+    background: linear-gradient(90deg, transparent, rgba(17,15,12,.56), transparent);
+    font-size: 13px;
+    letter-spacing: .14em;
+    text-align: center;
+    transform: translateX(-50%);
+    animation: hero-rise .9s .62s both;
+  }
+  .hero-burn strong { color: #e2b462; font-size: 17px; font-variant-numeric: tabular-nums; }
+
   button, textarea, input { font: inherit; }
   button { color: inherit; }
   button:focus-visible, textarea:focus-visible, input:focus-visible, summary:focus-visible {
@@ -428,7 +600,21 @@
     *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
   }
 </style></head>
-<body>
+<body class="hero-active">
+  <section class="hero" id="hero" aria-labelledby="heroTitle">
+    <div class="hero-smoke" aria-hidden="true"></div>
+    <div class="hero-content">
+      <p class="hero-eyebrow">Reflect Forge · 今日开炉</p>
+      <div class="hero-title-wrap"><h1 id="heroTitle">反思锻造台</h1></div>
+      <p class="hero-english">Turn sessions into your own craft</p>
+      <p class="hero-slogan">发下去的是<strong>通用件</strong>，用回来的是<strong>你的件</strong></p>
+      <div class="hero-action-row">
+        <button class="open-forge-btn" id="openForgeBtn" type="button">开炉</button>
+        <p class="hero-action-note">以完整过程为铁 · 以 token 为火</p>
+      </div>
+    </div>
+    <p class="hero-burn">炉火 · 今日已烧 <strong id="heroTokenBurned">—</strong> 万 token</p>
+  </section>
   <div class="app-shell">
     <header class="topbar">
       <div class="brand">
@@ -766,6 +952,14 @@
     showToast.timer = window.setTimeout(() => toast.classList.remove('show'), 2600);
   }
 
+  function renderTokenBurned(value) {
+    const raw = Number(value);
+    const wan = Number.isFinite(raw) ? raw / 10000 : 0;
+    document.getElementById('heroTokenBurned').textContent = wan >= 10
+      ? wan.toFixed(1).replace(/\.0$/, '')
+      : wan.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+  }
+
   function setError(message = '') {
     const box = document.getElementById('reflectError');
     box.textContent = message;
@@ -1002,6 +1196,18 @@
     window.scrollTo({top: 0, left: 0, behavior: 'instant'});
   }));
 
+  document.getElementById('openForgeBtn').addEventListener('click', () => {
+    const hero = document.getElementById('hero');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    hero.classList.add('opening');
+    window.setTimeout(() => {
+      document.body.classList.remove('hero-active');
+      document.body.classList.add('forge-entered');
+      hero.setAttribute('aria-hidden', 'true');
+      document.querySelector('.tab-btn.active')?.focus({preventScroll: true});
+    }, reducedMotion ? 0 : 680);
+  });
+
   document.querySelectorAll('[data-go-reflect]').forEach(button => button.addEventListener('click', () => document.querySelector('[data-tab="reflect"]').click()));
   document.getElementById('closeDrawer').addEventListener('click', closeSwordDrawer);
   document.getElementById('drawerBackdrop').addEventListener('mousedown', event => { if (event.target === event.currentTarget) closeSwordDrawer(); });
@@ -1110,6 +1316,7 @@
     document.getElementById('profileName').textContent = '档案未载入';
     document.getElementById('profileTitle').textContent = error.message;
   });
+  api('token_burned').then(renderTokenBurned).catch(() => renderTokenBurned(0));
   api('armory').then(renderArmory).catch(error => {
     document.getElementById('armoryGrid').innerHTML = `<div class="message show">${escapeHtml(error.message || '兵器架未能载入')}</div>`;
   });
