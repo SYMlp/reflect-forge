@@ -1,0 +1,153 @@
+{
+  "token_burned": 128400,
+  "profile": {
+    "name": "石锻造",
+    "title": "百炼始成",
+    "level": "中级锻造师",
+    "exp": {
+      "reflect_sessions": 12,
+      "swords_forged": 5,
+      "swords_promoted": 3,
+      "works_slain": 90
+    },
+    "temper_rate": 0.6,
+    "next_level_req": {
+      "level": "高级锻造师",
+      "title": "剑气渐盈",
+      "reflect_sessions": 30,
+      "swords_forged": 8,
+      "swords_promoted": 4,
+      "works_slain": 40,
+      "met": {
+        "reflect_sessions": false,
+        "swords_forged": false,
+        "swords_promoted": false,
+        "works_slain": true
+      },
+      "current": {
+        "reflect_sessions": 12,
+        "swords_forged": 5,
+        "swords_promoted": 3,
+        "works_slain": 90
+      }
+    }
+  },
+  "armory": [
+    {
+      "id": "sw1",
+      "name": "日报剑",
+      "kind": "剑",
+      "status": "forged",
+      "version": "v1.2",
+      "why_log": [
+        {"v": "v0.1", "why": "初锻", "at": "2026-08-28"},
+        {"v": "v1.0", "why": "转正：真跑三天日报无返工", "at": "2026-08-28"},
+        {"v": "v1.2", "why": "淬火：加了周汇总视角，因为周五要的是趋势不是流水", "at": "2026-08-29"}
+      ],
+      "skill_path": "swords/sw1/SKILL.md"
+    },
+    {
+      "id": "sw2",
+      "name": "周报剑",
+      "kind": "剑",
+      "status": "forged",
+      "version": "v1.0",
+      "why_log": [
+        {"v": "v0.1", "why": "初锻：把零散日报聚成趋势", "at": "2026-08-26"},
+        {"v": "v1.0", "why": "转正：连续两周直接用于团队周会", "at": "2026-08-29"}
+      ],
+      "skill_path": "swords/sw2/SKILL.md"
+    },
+    {
+      "id": "sw3",
+      "name": "述职剑",
+      "kind": "剑",
+      "status": "draft",
+      "version": "v0.1",
+      "why_log": [
+        {"v": "v0.1", "why": "初锻：让工作影响不再散落在聊天记录里", "at": "2026-08-29"}
+      ],
+      "skill_path": "swords/sw3/SKILL.md"
+    },
+    {
+      "id": "sw4",
+      "name": "复盘剑",
+      "kind": "剑",
+      "status": "forged",
+      "version": "v1.1",
+      "why_log": [
+        {"v": "v0.1", "why": "初锻：把踩坑过程留下来", "at": "2026-08-22"},
+        {"v": "v1.0", "why": "转正：同类排障复用后节省四十分钟", "at": "2026-08-25"},
+        {"v": "v1.1", "why": "淬火：补失败分支，因为顺利路径不足以防重踩", "at": "2026-08-27"}
+      ],
+      "skill_path": "swords/sw4/SKILL.md"
+    }
+  ],
+  "irons": [
+    {
+      "id": "f03a9c21-i1",
+      "text": "报错先看堆栈最底层的 caused by，别从上往下猜",
+      "anchor": "「你先看最底下那个 caused by」",
+      "kind": "判断",
+      "grade": "上品"
+    },
+    {
+      "id": "f03a9c21-i2",
+      "text": "产品的 why 必须是描述性状态，不能是动词",
+      "anchor": "「动词就不是 why」",
+      "kind": "判断",
+      "grade": "上品",
+      "cite": {"name": "前辈剑谱·why 三问", "kind": "秘籍"}
+    },
+    {
+      "id": "f03a9c21-i3",
+      "text": "汇报先给变化和影响，再补做了什么",
+      "anchor": "「老板问的是今天和昨天有什么不一样」",
+      "kind": "经验",
+      "grade": "中品",
+      "cite": {"name": "日报剑", "kind": "剑"}
+    },
+    {
+      "id": "f03a9c21-i4",
+      "text": "先列证据、再下判断、最后补一行可复用动作",
+      "anchor": "「别把复盘写成情绪日记」",
+      "kind": "流程",
+      "grade": "中品"
+    }
+  ],
+  "prospect": [
+    {"file": "2026-07-15-session.jsonl", "date": "2026-07-15", "size_kb": 482, "assay": "富矿", "note": "含一次完整排障链路"},
+    {"file": "2026-08-03-weekly-review.jsonl", "date": "2026-08-03", "size_kb": 316, "assay": "富矿", "note": "含日报到周报的结构演进"},
+    {"file": "2026-08-18-ui-polish.jsonl", "date": "2026-08-18", "size_kb": 188, "assay": "贫矿", "note": "过程短，仍有两条视觉判断"},
+    {"file": "2026-08-28-why-dialogue.jsonl", "date": "2026-08-28", "size_kb": 721, "assay": "未验", "note": "三小时深谈，待入炉验矿"}
+  ],
+  "prospect_banner": "上月回捞历史会话 76 场，挖出 900+ 条可复用判断",
+  "manifest": {
+    "weapons": [
+      {"name": "剑", "live": true},
+      {"name": "刀", "live": false},
+      {"name": "枪", "live": false},
+      {"name": "棍", "live": false},
+      {"name": "斧", "live": false},
+      {"name": "钺", "live": false},
+      {"name": "钩", "live": false},
+      {"name": "叉", "live": false},
+      {"name": "鞭", "live": false},
+      {"name": "锏", "live": false},
+      {"name": "锤", "live": false},
+      {"name": "抓", "live": false},
+      {"name": "镋", "live": false},
+      {"name": "棒", "live": false},
+      {"name": "槊", "live": false},
+      {"name": "戟", "live": false},
+      {"name": "弓", "live": false},
+      {"name": "盾", "live": false}
+    ],
+    "featured_scroll": {
+      "name": "前辈剑谱·why 三问",
+      "desc": "一位带 AI 团队的前辈三小时深谈提炼",
+      "cited": "今晨为本产品定 why 时引用——动词不是 why，why 一定是描述性的"
+    },
+    "scrolls_locked_rest": true
+  }
+}

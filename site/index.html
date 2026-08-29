@@ -1,0 +1,1631 @@
+<!doctype html><html lang="zh-Hans"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><script>window.STATIC_MODE = true;</script>
+<script
+  defer
+  src="https://vibecafe.ai/telemetry/v1.js"
+  data-vc-product-id="cmtedk3bh00000ajcyxbc04x3"
+  data-vc-auth-key="vc_web_tEEqbX8I5-8JMmVheXlvo7zo0bpf3zIIuvJxfxUPOgg"
+></script>
+<title>反思锻造台 · Reflect Forge</title>
+<style>
+  :root {
+    --coal-950: #100f0c;
+    --coal-900: #171612;
+    --iron-850: #23211c;
+    --iron-800: #2c2922;
+    --iron-700: #464138;
+    --iron-500: #756d5f;
+    --paper-100: #f1e5c7;
+    --paper-200: #dfcfaa;
+    --paper-300: #c8b589;
+    --ink: #272219;
+    --muted: #a99c80;
+    --ember: #e58a35;
+    --ember-hot: #ffb052;
+    --gold: #c9a457;
+    --cinnabar: #a83728;
+    --cinnabar-hot: #cc4935;
+    --line: rgba(220, 195, 143, .2);
+    --display: "LXGW WenKai", "STKaiti", "KaiTi", "Noto Serif SC", serif;
+    --body: "Noto Serif SC", "Songti SC", "SimSun", serif;
+    --shadow-deep: 0 24px 60px rgba(0, 0, 0, .44);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { min-width: 1100px; background: var(--coal-950); }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    color: var(--paper-100);
+    background: var(--coal-950) url("static/bg-forge.png") center top / cover fixed no-repeat;
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.72;
+    text-rendering: optimizeLegibility;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(circle at 84% 48%, rgba(220, 105, 25, .13), transparent 30%),
+      linear-gradient(180deg, rgba(11, 10, 8, .24), rgba(11, 10, 8, .74) 64%, rgba(11, 10, 8, .92));
+  }
+
+  body.hero-active { overflow: hidden; }
+  body:not(.forge-entered) .app-shell { display: none; }
+
+  .hero {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    overflow: hidden;
+    display: grid;
+    align-items: center;
+    min-width: 1100px;
+    min-height: 680px;
+    background: var(--coal-950) url("static/bg-forge.png") center / cover no-repeat;
+    isolation: isolate;
+    transition: opacity .7s ease, visibility .7s ease, filter .7s ease, transform .9s cubic-bezier(.2,.8,.2,1);
+  }
+
+  .hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    background:
+      linear-gradient(90deg, rgba(13,12,10,.9) 0%, rgba(13,12,10,.68) 42%, rgba(13,12,10,.08) 75%, rgba(13,12,10,.14) 100%),
+      linear-gradient(180deg, rgba(12,11,9,.22), transparent 55%, rgba(12,11,9,.56));
+  }
+
+  .hero::after {
+    content: "";
+    position: absolute;
+    inset: 20px;
+    z-index: 2;
+    pointer-events: none;
+    border: 1px solid rgba(224, 189, 119, .23);
+    box-shadow: inset 0 0 0 7px rgba(13,12,10,.22);
+  }
+
+  .hero.opening {
+    opacity: 0;
+    visibility: hidden;
+    filter: brightness(1.32) saturate(1.18);
+    transform: scale(1.025);
+    pointer-events: none;
+  }
+
+  .forge-entered .hero { display: none; }
+  .forge-entered .app-shell { animation: app-arrive .7s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes app-arrive { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+
+  .hero-smoke {
+    position: absolute;
+    inset: -20%;
+    z-index: -1;
+    pointer-events: none;
+    opacity: .34;
+    background:
+      radial-gradient(ellipse at 42% 48%, rgba(205,182,139,.13), transparent 28%),
+      radial-gradient(ellipse at 66% 35%, rgba(205,182,139,.09), transparent 24%);
+    filter: blur(28px);
+    animation: hero-smoke 12s ease-in-out infinite alternate;
+  }
+  @keyframes hero-smoke { to { transform: translate3d(4%, -3%, 0) scale(1.08); opacity: .48; } }
+
+  .hero-content {
+    width: min(820px, 54vw);
+    margin-left: clamp(72px, 8vw, 156px);
+    padding: 54px 0 80px;
+  }
+
+  .hero-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 0 0 20px;
+    color: var(--ember-hot);
+    font-size: 13px;
+    letter-spacing: .34em;
+    text-transform: uppercase;
+    animation: hero-rise .8s .05s both;
+  }
+  .hero-eyebrow::before { content: ""; width: 52px; height: 1px; background: var(--ember); box-shadow: 0 0 12px rgba(229,138,53,.6); }
+
+  .hero-title-wrap { position: relative; display: inline-block; }
+  .hero-title-wrap::after {
+    content: "锻";
+    position: absolute;
+    right: -92px;
+    top: -24px;
+    display: grid;
+    place-items: center;
+    width: 62px;
+    height: 62px;
+    border: 2px solid #c85a43;
+    color: #dc735a;
+    font: 700 25px/1 var(--display);
+    transform: rotate(4deg);
+    box-shadow: inset 0 0 0 4px rgba(168,55,40,.18), 0 0 28px rgba(168,55,40,.15);
+    animation: hero-seal .7s .55s cubic-bezier(.17,.88,.32,1.3) both;
+  }
+  @keyframes hero-seal { from { opacity: 0; transform: rotate(14deg) scale(1.35); } to { opacity: 1; transform: rotate(4deg) scale(1); } }
+
+  .hero h1 {
+    margin: 0;
+    color: #f2dfac;
+    font: 700 clamp(64px, 5.8vw, 96px)/1.08 var(--display);
+    letter-spacing: .11em;
+    text-shadow: 0 5px 36px rgba(0,0,0,.7), 0 0 32px rgba(219,123,37,.11);
+    animation: hero-rise .9s .12s both;
+  }
+
+  .hero-english {
+    margin: 10px 0 0;
+    color: #a99b7e;
+    font: 15px/1.5 Georgia, serif;
+    letter-spacing: .38em;
+    text-transform: uppercase;
+    animation: hero-rise .9s .2s both;
+  }
+
+  .hero-slogan {
+    max-width: 760px;
+    margin: 44px 0 0;
+    color: #ead9b4;
+    font: 600 clamp(28px, 2.1vw, 38px)/1.65 var(--display);
+    letter-spacing: .055em;
+    text-wrap: balance;
+    animation: hero-rise .9s .3s both;
+  }
+  .hero-slogan strong { color: var(--ember-hot); font-weight: 700; }
+
+  .hero-action-row { display: flex; align-items: center; gap: 28px; margin-top: 42px; animation: hero-rise .9s .42s both; }
+  .open-forge-btn {
+    position: relative;
+    width: 196px;
+    min-height: 64px;
+    overflow: hidden;
+    border: 1px solid #e2ad63;
+    border-radius: 0;
+    color: #25170b;
+    background: linear-gradient(180deg, #f1bc70, #cf772e);
+    box-shadow: 0 14px 34px rgba(209,94,24,.28), inset 0 1px #ffe5b3;
+    cursor: pointer;
+    font: 700 23px/1 var(--display);
+    letter-spacing: .22em;
+    text-indent: .22em;
+    transition: transform .2s ease, filter .2s ease, box-shadow .2s ease;
+  }
+  .open-forge-btn::after { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 25%, rgba(255,244,210,.45) 48%, transparent 70%); transform: translateX(-120%); transition: transform .55s ease; }
+  .open-forge-btn:hover { transform: translateY(-3px); filter: brightness(1.08); box-shadow: 0 20px 42px rgba(209,94,24,.38), inset 0 1px #ffe5b3; }
+  .open-forge-btn:hover::after { transform: translateX(120%); }
+  .hero-action-note { margin: 0; color: #8e826c; font-size: 14px; letter-spacing: .12em; }
+  @keyframes hero-rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+
+  .hero-burn {
+    position: absolute;
+    left: 50%;
+    bottom: 42px;
+    z-index: 3;
+    min-width: 310px;
+    margin: 0;
+    padding: 10px 24px;
+    border-top: 1px solid rgba(213,166,85,.33);
+    color: #ad9e82;
+    background: linear-gradient(90deg, transparent, rgba(17,15,12,.56), transparent);
+    font-size: 13px;
+    letter-spacing: .14em;
+    text-align: center;
+    transform: translateX(-50%);
+    animation: hero-rise .9s .62s both;
+  }
+  .hero-burn strong { color: #e2b462; font-size: 17px; font-variant-numeric: tabular-nums; }
+
+  button, textarea, input { font: inherit; }
+  button { color: inherit; }
+  button:focus-visible, textarea:focus-visible, input:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--ember-hot);
+    outline-offset: 3px;
+  }
+
+  .app-shell { width: min(1720px, calc(100vw - 64px)); margin: 0 auto; padding: 24px 0 54px; }
+  .topbar {
+    position: relative;
+    display: grid;
+    grid-template-columns: 360px minmax(0, 1fr);
+    min-height: 124px;
+    border: 1px solid var(--line);
+    background: linear-gradient(105deg, rgba(19, 18, 15, .96), rgba(35, 31, 24, .86));
+    box-shadow: var(--shadow-deep), inset 0 1px rgba(255, 232, 177, .08);
+  }
+
+  .topbar::after, .panel::after {
+    content: "";
+    position: absolute;
+    inset: 7px;
+    pointer-events: none;
+    border: 1px solid rgba(206, 166, 85, .08);
+  }
+
+  /* 观剑模式：公网观众看到的是真品陈列，不是半成品。常驻横幅 + 开屏徽标，
+     两处都只在 body.demo-mode 时现身——normal 模式下连 DOM 都不占视线 */
+  .demo-banner { display: none; }
+  body.demo-mode .demo-banner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 14px;
+    padding: 13px 24px;
+    border: 1px solid rgba(201, 164, 87, .5);
+    border-left: 3px solid var(--ember);
+    background: linear-gradient(100deg, rgba(229, 138, 53, .13), rgba(35, 31, 24, .82));
+    box-shadow: inset 0 1px rgba(255, 232, 177, .08);
+    color: var(--paper-200);
+    font-size: 15px;
+    line-height: 1.66;
+  }
+  .demo-banner-mark {
+    flex: none;
+    color: var(--ember-hot);
+    font-size: 15px;
+    letter-spacing: .2em;
+    white-space: nowrap;
+  }
+  .demo-banner-text { min-width: 0; }
+  .demo-banner a {
+    color: var(--ember-hot);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(255, 176, 82, .55);
+    white-space: nowrap;
+  }
+  .demo-banner a:hover { color: #ffc87a; border-bottom-color: #ffc87a; }
+
+  .hero-demo-badge { display: none; }
+  body.demo-mode .hero-demo-badge {
+    display: block;
+    position: absolute;
+    top: clamp(28px, 4vh, 48px);
+    right: clamp(32px, 4vw, 72px);
+    z-index: 2;
+    padding: 8px calc(18px - .3em) 8px 18px;  /* 抵掉末字的 letter-spacing 拖尾，视觉才居中 */
+    border: 1px solid var(--gold);
+    background: rgba(16, 15, 12, .72);
+    color: var(--ember-hot);
+    font-size: 13px;
+    letter-spacing: .3em;
+    animation: hero-rise .8s .05s both;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    min-width: 0;
+    padding: 20px 28px;
+    border-right: 1px solid var(--line);
+  }
+
+  .brand-seal {
+    display: grid;
+    place-items: center;
+    width: 72px;
+    height: 72px;
+    flex: 0 0 auto;
+    border: 2px solid #d46345;
+    color: #e18668;
+    font: 700 25px/1 var(--display);
+    letter-spacing: .08em;
+    transform: rotate(-2deg);
+    box-shadow: inset 0 0 0 4px rgba(168, 55, 40, .2), 0 0 22px rgba(168, 55, 40, .16);
+  }
+
+  .brand h1 {
+    margin: 0;
+    font: 700 36px/1.15 var(--display);
+    letter-spacing: .08em;
+    color: #f3dfad;
+    text-shadow: 0 2px 18px rgba(225, 128, 43, .22);
+  }
+
+  .brand p { margin: 6px 0 0; color: var(--muted); font-size: 14px; letter-spacing: .17em; text-transform: uppercase; }
+  .profile-strip { display: grid; grid-template-columns: 272px minmax(0, 1fr) 106px; gap: 26px; align-items: center; padding: 20px 28px; }
+  .profile-id { display: flex; gap: 14px; align-items: center; min-width: 0; }
+  .profile-id img { width: 70px; height: 70px; object-fit: contain; filter: drop-shadow(0 7px 10px rgba(0, 0, 0, .48)); }
+  .profile-kicker { margin: 0; color: var(--ember); font-size: 13px; letter-spacing: .2em; }
+  .profile-name { margin: 1px 0; font: 700 25px/1.2 var(--display); color: var(--paper-100); }
+  .profile-title { margin: 0; color: var(--paper-300); font-size: 14px; }
+  .exp-grid { display: grid; grid-template-columns: repeat(4, minmax(106px, 1fr)); gap: 18px; }
+  .exp-item { min-width: 0; }
+  .exp-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 7px; color: var(--muted); font-size: 13px; white-space: nowrap; }
+  .exp-head strong { color: var(--paper-100); font-size: 16px; font-variant-numeric: tabular-nums; }
+  /* 已达维度只报数不报分母：门槛已成往事，留着分母只会让人算除法 */
+  .exp-item.met .exp-head strong { color: var(--gold); }
+  .exp-flag { margin-left: 5px; font-style: normal; font-size: 12px; letter-spacing: .04em; }
+  .exp-item.met .exp-flag { color: var(--gold); }
+  /* 未达维度是瓶颈位：火星色把"还差多少"顶到眼前 */
+  .exp-item.gap .exp-flag { color: var(--ember-hot); font-weight: 600; font-size: 13px; }
+  .exp-track { position: relative; height: 5px; overflow: hidden; background: #0c0b09; border: 1px solid rgba(255, 255, 255, .05); }
+  .exp-item.met .exp-track { border-color: rgba(201, 164, 87, .35); }
+  .exp-fill { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #8d4b25, var(--ember-hot)); box-shadow: 0 0 12px rgba(239, 142, 55, .5); transition: width 900ms cubic-bezier(.2,.8,.2,1); }
+  .exp-item.met .exp-fill { background: linear-gradient(90deg, #8a6a2c, var(--gold)); box-shadow: 0 0 12px rgba(201, 164, 87, .55); }
+  .quality-readout { text-align: center; border-left: 1px solid var(--line); padding-left: 22px; }
+  .quality-readout span { display: block; color: var(--muted); font-size: 13px; letter-spacing: .12em; }
+  .quality-readout strong { display: block; margin-top: 2px; color: var(--gold); font: 700 27px/1.2 var(--display); font-variant-numeric: tabular-nums; }
+
+  .tabs {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    margin-top: 14px;
+    border: 1px solid var(--line);
+    background: rgba(14, 13, 11, .92);
+    box-shadow: 0 14px 30px rgba(0,0,0,.26);
+  }
+
+  .tab-btn {
+    position: relative;
+    min-height: 66px;
+    border: 0;
+    border-right: 1px solid var(--line);
+    background: transparent;
+    cursor: pointer;
+    color: #b7aa8d;
+    font: 600 21px/1 var(--display);
+    letter-spacing: .12em;
+    transition: color .2s ease, background .2s ease;
+  }
+
+  .tab-btn:last-child { border-right: 0; }
+  .tab-btn::after { content: ""; position: absolute; left: 22%; right: 22%; bottom: 0; height: 3px; background: var(--ember); transform: scaleX(0); transition: transform .25s ease; }
+  .tab-btn:hover { color: var(--paper-100); background: rgba(229, 138, 53, .05); }
+  .tab-btn.active { color: var(--ember-hot); background: linear-gradient(180deg, rgba(229, 138, 53, .08), transparent); }
+  .tab-btn.active::after { transform: scaleX(1); }
+  .tab-index { margin-right: 12px; color: var(--iron-500); font: 12px/1 Georgia, serif; letter-spacing: 0; }
+  .tab-btn.active .tab-index { color: var(--cinnabar-hot); }
+
+  main { margin-top: 20px; }
+  .tab-panel { display: none; animation: panel-in .45s ease both; }
+  .tab-panel.active { display: block; }
+  @keyframes panel-in { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: none; } }
+
+  .stage-head { display: flex; align-items: end; justify-content: space-between; gap: 30px; margin: 0 2px 18px; }
+  .stage-kicker { margin: 0 0 2px; color: var(--ember); font-size: 13px; letter-spacing: .26em; }
+  .stage-head h2 { margin: 0; font: 700 34px/1.25 var(--display); letter-spacing: .08em; color: #f0ddb0; }
+  .stage-desc { max-width: 640px; margin: 0; color: #b8ad96; text-align: right; }
+  .stage-desc strong { color: var(--paper-100); font-weight: 600; }
+
+  .forge-grid { display: grid; grid-template-columns: minmax(620px, 1.12fr) minmax(440px, .88fr); gap: 20px; align-items: stretch; }
+  .panel {
+    position: relative;
+    border: 1px solid var(--line);
+    background: linear-gradient(145deg, rgba(25, 23, 19, .96), rgba(18, 17, 14, .93));
+    box-shadow: var(--shadow-deep), inset 0 1px rgba(255,255,255,.04);
+  }
+  .panel-inner { position: relative; z-index: 1; padding: 30px 32px; }
+  .panel-title-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 20px; }
+  .panel-title-row h3 { margin: 0; font: 700 24px/1.3 var(--display); color: var(--paper-100); letter-spacing: .08em; }
+  .panel-title-row p { margin: 0; color: var(--muted); font-size: 14px; }
+
+  .source-switch { display: flex; gap: 6px; padding: 4px; border: 1px solid var(--line); background: rgba(0,0,0,.2); }
+  .source-switch button { border: 0; padding: 7px 14px; background: transparent; color: var(--muted); cursor: pointer; font-size: 14px; }
+  .source-switch button.active { background: rgba(229,138,53,.14); color: var(--ember-hot); }
+  .session-input {
+    width: 100%;
+    height: 270px;
+    resize: none;
+    padding: 22px 24px;
+    border: 1px solid #8c7d5e;
+    border-radius: 0;
+    color: var(--ink);
+    background:
+      linear-gradient(rgba(232, 215, 175, .93), rgba(232, 215, 175, .93)),
+      repeating-linear-gradient(0deg, transparent 0 29px, rgba(80, 61, 34, .1) 29px 30px);
+    box-shadow: inset 0 0 38px rgba(83, 56, 24, .16), 0 10px 22px rgba(0,0,0,.22);
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.78;
+  }
+  .session-input::placeholder { color: #776c59; opacity: .78; }
+  .file-source { display: none; height: 270px; place-items: center; border: 1px dashed #8c7d5e; background: rgba(229, 216, 184, .08); text-align: center; }
+  .file-source.active { display: grid; }
+  .drop-glyph { display: block; width: 56px; height: 66px; margin: 0 auto 14px; border: 2px solid var(--gold); position: relative; }
+  .drop-glyph::before, .drop-glyph::after { content: ""; position: absolute; background: var(--gold); }
+  .drop-glyph::before { width: 23px; height: 2px; top: 22px; left: 15px; }
+  .drop-glyph::after { width: 2px; height: 23px; top: 12px; left: 26px; }
+  .file-source label { display: inline-block; padding: 9px 18px; border: 1px solid var(--gold); color: var(--paper-200); cursor: pointer; }
+  .file-source input { position: absolute; opacity: 0; pointer-events: none; }
+  .file-note { margin: 10px 0 0; color: var(--muted); font-size: 14px; }
+  .file-source.charged { height: 150px; }
+  .charge-card { display: none; align-items: center; gap: 18px; margin-top: 14px; padding: 18px 22px; border: 1px solid var(--gold); background: rgba(229,138,53,.09); }
+  .charge-card.show { display: flex; }
+  .charge-body { flex: 1; min-width: 0; }
+  .charge-body strong { display: block; overflow: hidden; color: var(--paper-100); font: 600 22px/1.4 var(--body); text-overflow: ellipsis; white-space: nowrap; }
+  .charge-body span { color: var(--iron-500); font-size: 15px; }
+  .charge-badge { flex: none; padding: 8px 16px; border: 1px solid #a57b35; color: #edbd63; font: 700 17px/1.2 var(--display); letter-spacing: .14em; }
+  .charge-badge.burning { border-color: var(--ember-hot); color: var(--ember-hot); background: rgba(229,138,53,.18); }
+
+  .action-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-top: 20px; }
+  .fire-cost { margin: 0; color: var(--muted); font-size: 14px; }
+  .fire-cost b { color: var(--ember); font-weight: 600; }
+  .primary-btn, .secondary-btn, .danger-btn {
+    position: relative;
+    min-width: 148px;
+    min-height: 52px;
+    border: 1px solid #d19a50;
+    border-radius: 0;
+    cursor: pointer;
+    font: 700 18px/1 var(--display);
+    letter-spacing: .14em;
+    transition: transform .18s ease, filter .18s ease, opacity .18s ease;
+  }
+  .primary-btn { color: #25170b; background: linear-gradient(180deg, #f0b35c, #c8732c); box-shadow: 0 8px 22px rgba(210, 102, 27, .25), inset 0 1px #ffe0a4; }
+  .secondary-btn { color: var(--paper-100); background: rgba(91, 75, 51, .28); border-color: #8b7858; }
+  .danger-btn { color: #f3d6c5; background: var(--cinnabar); border-color: #d06a55; }
+  .primary-btn:hover, .secondary-btn:hover, .danger-btn:hover { transform: translateY(-2px); filter: brightness(1.08); }
+  button:disabled { cursor: not-allowed; opacity: .42; filter: grayscale(.5); transform: none !important; }
+
+  .furnace-stage { min-height: 495px; overflow: hidden; background: radial-gradient(circle at 52% 66%, rgba(219, 105, 27, .13), transparent 31%); }
+  .furnace-stage .panel-inner { height: 100%; min-height: 495px; display: grid; grid-template-rows: auto 1fr auto; }
+  .furnace-visual { position: relative; display: grid; place-items: center; min-height: 315px; }
+  .furnace-img { width: min(92%, 500px); max-height: 345px; object-fit: contain; filter: drop-shadow(0 23px 18px rgba(0,0,0,.52)) drop-shadow(0 0 20px rgba(226,106,22,.2)); transition: filter .4s ease, transform .4s ease; }
+  .furnace-glow { position: absolute; width: 230px; height: 160px; border-radius: 50%; background: rgba(255,113,24,.14); filter: blur(35px); transform: translateY(40px); animation: breathe 2.1s ease-in-out infinite; }
+  .spark-layer { position: absolute; inset: 3% 8% 8%; background: url("static/spark.png") center / contain no-repeat; opacity: 0; transform-origin: 50% 76%; pointer-events: none; }
+  .furnace-stage.loading .furnace-img { transform: scale(1.025); filter: drop-shadow(0 23px 18px rgba(0,0,0,.52)) drop-shadow(0 0 42px rgba(255,106,16,.68)) saturate(1.18); }
+  .furnace-stage.loading .spark-layer { opacity: .8; animation: sparks 1.2s linear infinite; }
+  .furnace-stage.loading .furnace-glow { background: rgba(255,103,20,.35); animation-duration: .7s; }
+  @keyframes breathe { 50% { opacity: .55; transform: translateY(40px) scale(1.12); } }
+  @keyframes sparks { from { transform: translateY(16px) scale(.9); opacity: 0; } 35% { opacity: .9; } to { transform: translateY(-32px) scale(1.08); opacity: 0; } }
+  .forge-status { position: relative; min-height: 84px; padding: 16px 18px 14px; border-top: 1px solid var(--line); text-align: center; }
+  .forge-status strong { display: block; color: var(--paper-100); font: 700 19px/1.4 var(--display); letter-spacing: .08em; }
+  .forge-status span { display: block; color: var(--muted); font-size: 14px; margin-top: 4px; }
+  .forge-status .status-line { position: absolute; left: 12%; right: 12%; top: -1px; height: 1px; background: var(--ember); transform: scaleX(0); }
+  .furnace-stage.loading .status-line { animation: status-sweep 2.7s ease-in-out infinite; }
+  @keyframes status-sweep { 0%,100% { transform: scaleX(.05); opacity: .3; } 50% { transform: scaleX(1); opacity: 1; } }
+
+  .message { display: none; margin-top: 16px; padding: 10px 14px; border-left: 3px solid var(--cinnabar-hot); color: #e8c8b7; background: rgba(157, 52, 37, .16); font-size: 14px; }
+  .message.show { display: block; }
+
+  .iron-section, .sword-result { display: none; margin-top: 20px; }
+  .iron-section.show, .sword-result.show { display: block; animation: panel-in .45s ease both; }
+  .section-ribbon { display: flex; align-items: center; gap: 18px; margin: 0 0 14px; }
+  .section-ribbon::after { content: ""; height: 1px; flex: 1; background: linear-gradient(90deg, var(--line), transparent); }
+  .section-ribbon h3 { margin: 0; font: 700 24px/1.3 var(--display); letter-spacing: .1em; color: var(--paper-100); white-space: nowrap; }
+  .section-ribbon p { margin: 0; color: var(--muted); font-size: 14px; white-space: nowrap; }
+  .iron-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  .iron-card { position: relative; min-height: 228px; padding: 22px 20px 20px; border: 1px solid #655d50; background: linear-gradient(155deg, rgba(56,52,45,.97), rgba(31,29,25,.98)); box-shadow: inset 0 1px rgba(255,255,255,.04), 0 12px 28px rgba(0,0,0,.24); cursor: pointer; transition: transform .18s ease, border-color .18s ease, background .18s ease; }
+  .iron-card:hover { transform: translateY(-3px); border-color: #9b835d; }
+  .iron-card.selected { border-color: var(--ember); background: linear-gradient(155deg, rgba(76,59,41,.98), rgba(35,30,24,.98)); box-shadow: inset 0 0 0 1px rgba(235,145,61,.18), 0 12px 32px rgba(0,0,0,.3); }
+  .iron-check { position: absolute; opacity: 0; }
+  .iron-top { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; }
+  .iron-kind, .iron-grade { padding: 3px 9px; border: 1px solid #7b705e; color: #c6b89b; font-size: 12px; letter-spacing: .12em; }
+  .iron-grade.top { color: #edbd63; border-color: #a57b35; }
+  .iron-card h4 { margin: 0 0 12px; color: #efe1c4; font: 600 17px/1.7 var(--body); }
+  .iron-anchor { margin: 0; color: #a99d87; font-size: 14px; line-height: 1.65; }
+  .cite-seal { position: absolute; right: 14px; top: 14px; max-width: 112px; padding: 5px 7px; border: 1px solid #c65b46; color: #df7962; font: 600 11px/1.35 var(--display); letter-spacing: .06em; text-align: center; transform: rotate(2deg); background: rgba(108,27,22,.18); }
+  .selected-mark { position: absolute; right: 15px; bottom: 14px; display: grid; place-items: center; width: 26px; height: 26px; border: 1px solid #776e5d; color: transparent; font: 700 17px/1 serif; }
+  .iron-card.selected .selected-mark { color: #2b190d; border-color: var(--ember); background: var(--ember); }
+  .forge-selection { display: flex; align-items: center; justify-content: flex-end; gap: 18px; margin-top: 16px; }
+  .forge-selection p { margin: 0; color: var(--muted); }
+  .forge-selection b { color: var(--ember-hot); font-variant-numeric: tabular-nums; }
+
+  .sword-card { display: grid; grid-template-columns: 240px 1fr; min-height: 290px; overflow: hidden; border: 1px solid #a2824d; background: linear-gradient(125deg, rgba(44,36,26,.98), rgba(21,19,16,.99)); box-shadow: 0 22px 44px rgba(0,0,0,.36), inset 0 1px rgba(255,229,172,.08); }
+  .sword-portrait { position: relative; display: grid; place-items: center; background: radial-gradient(circle, rgba(219,129,45,.18), transparent 62%); border-right: 1px solid var(--line); overflow: hidden; }
+  .sword-portrait::before { content: "新\A 剑"; white-space: pre; position: absolute; left: 18px; top: 18px; width: 40px; padding: 6px 1px; border: 1px solid #c75c45; color: #df735a; font: 700 16px/1.2 var(--display); text-align: center; }
+  .sword-portrait img { width: 92%; height: 255px; object-fit: contain; transform: rotate(-6deg); filter: drop-shadow(0 14px 13px rgba(0,0,0,.55)); }
+  .sword-copy { padding: 28px 30px; }
+  .sword-meta { display: flex; align-items: center; gap: 12px; color: var(--gold); font-size: 13px; letter-spacing: .12em; }
+  .sword-copy h3 { margin: 3px 0 12px; color: #f2dfae; font: 700 30px/1.25 var(--display); letter-spacing: .08em; }
+  .sword-copy > p { margin: 0 0 16px; color: #bbae95; }
+  details.skill-preview { border-top: 1px solid var(--line); padding-top: 13px; }
+  details.skill-preview summary { color: var(--paper-200); cursor: pointer; font-size: 15px; }
+  details.skill-preview pre { max-height: 260px; overflow: auto; margin: 14px 0 0; padding: 16px 18px; background: #11100d; color: #d7c9ad; border: 1px solid rgba(255,255,255,.07); font: 13px/1.65 "Cascadia Code", Consolas, monospace; white-space: pre-wrap; }
+
+  .armory-headline { display: flex; align-items: end; justify-content: space-between; gap: 30px; margin-bottom: 20px; }
+  .armory-count { min-width: 230px; padding: 12px 18px; border-left: 3px solid var(--cinnabar); background: rgba(27,24,20,.78); color: var(--muted); text-align: right; }
+  .armory-count strong { color: var(--gold); font: 700 25px/1 var(--display); font-variant-numeric: tabular-nums; }
+  .armory-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+  .armory-card { position: relative; min-height: 420px; overflow: hidden; border: 1px solid #5b5448; background: linear-gradient(155deg, rgba(48,44,37,.96), rgba(22,21,18,.98)); box-shadow: 0 16px 34px rgba(0,0,0,.3), inset 0 1px rgba(255,255,255,.04); cursor: pointer; transition: transform .22s ease, border-color .22s ease, box-shadow .22s ease; }
+  .armory-card:hover { transform: translateY(-6px); border-color: #a48452; box-shadow: 0 23px 42px rgba(0,0,0,.4), inset 0 1px rgba(255,255,255,.05); }
+  .armory-art { position: relative; height: 276px; overflow: hidden; background: radial-gradient(circle at 50% 58%, rgba(206,118,46,.15), transparent 50%); }
+  .armory-art::after { content: ""; position: absolute; left: 18px; right: 18px; bottom: 0; height: 1px; background: linear-gradient(90deg, transparent, #8a7049, transparent); }
+  .armory-art img { width: 100%; height: 100%; object-fit: contain; padding: 14px 26px; transform: rotate(-7deg) scale(.94); filter: drop-shadow(0 18px 12px rgba(0,0,0,.64)); transition: transform .3s ease; }
+  .armory-card:hover .armory-art img { transform: rotate(-4deg) scale(1.01); }
+  .weapon-status { position: absolute; top: 17px; right: 16px; z-index: 1; padding: 5px 10px; border: 1px solid #766b59; color: #b9ad95; background: rgba(16,15,12,.75); font-size: 12px; letter-spacing: .12em; }
+  .weapon-status.forged { color: #edbd69; border-color: #a87d3c; }
+  .weapon-status.draft { color: #c0b8a8; border-style: dashed; }
+  .weapon-worn { position: absolute; top: 17px; left: 16px; z-index: 1; padding: 5px 10px; border: 1px solid #c25a43; color: #de7359; background: rgba(112,31,22,.18); font-size: 12px; letter-spacing: .12em; transform: rotate(-2deg); }
+  .armory-copy { padding: 18px 22px 22px; }
+  .armory-copy h3 { margin: 0; color: var(--paper-100); font: 700 25px/1.3 var(--display); letter-spacing: .08em; }
+  .armory-meta { display: flex; justify-content: space-between; gap: 16px; margin-top: 7px; color: var(--muted); font-size: 14px; }
+  .armory-meta b { color: var(--gold); font-weight: 500; }
+  .why-preview { margin: 14px 0 0; color: #a99d87; font-size: 13px; line-height: 1.65; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .empty-armory { display: none; min-height: 430px; place-items: center; border: 1px dashed #685f50; background: rgba(20,19,16,.82); text-align: center; }
+  .empty-armory.show { display: grid; }
+  .empty-armory img { width: 150px; height: 150px; object-fit: contain; filter: grayscale(.8) opacity(.5); }
+  .empty-armory h3 { margin: 5px 0 4px; font: 700 27px/1.3 var(--display); color: var(--paper-200); }
+  .empty-armory p { margin: 0 0 18px; color: var(--muted); }
+
+  .drawer-backdrop { position: fixed; inset: 0; z-index: 80; display: flex; justify-content: flex-end; visibility: hidden; background: rgba(8,7,6,.66); opacity: 0; transition: opacity .25s ease, visibility .25s ease; }
+  .drawer-backdrop.open { visibility: visible; opacity: 1; }
+  .detail-drawer { width: min(680px, 48vw); height: 100%; display: flex; flex-direction: column; border-left: 1px solid #8c7248; background: linear-gradient(150deg, #25221c, #141310 72%); box-shadow: -24px 0 58px rgba(0,0,0,.48); transform: translateX(100%); transition: transform .32s cubic-bezier(.2,.8,.2,1); }
+  .drawer-backdrop.open .detail-drawer { transform: none; }
+  .drawer-head { flex: 0 0 auto; display: flex; align-items: center; gap: 18px; padding: 22px 26px; border-bottom: 1px solid var(--line); background: rgba(14,13,11,.58); }
+  .drawer-head img { width: 62px; height: 62px; object-fit: contain; }
+  .drawer-head-copy { min-width: 0; flex: 1; }
+  .drawer-head-copy p { margin: 0; color: var(--ember); font-size: 12px; letter-spacing: .18em; }
+  .drawer-head-copy h2 { margin: 0; color: #f0dcab; font: 700 29px/1.25 var(--display); letter-spacing: .08em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .close-btn { width: 42px; height: 42px; border: 1px solid #6d6455; background: transparent; color: var(--paper-200); cursor: pointer; font: 26px/1 Georgia, serif; }
+  .drawer-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 25px 28px 38px; }
+  .drawer-section { margin-bottom: 30px; }
+  .drawer-section h3 { margin: 0 0 13px; color: var(--paper-200); font: 700 20px/1.4 var(--display); letter-spacing: .08em; }
+  .drawer-skill { margin: 0; max-height: 310px; overflow: auto; padding: 17px 19px; border: 1px solid rgba(255,255,255,.07); background: #0f0e0c; color: #d4c6aa; font: 13px/1.7 "Cascadia Code", Consolas, monospace; white-space: pre-wrap; }
+  /* 用料清单：复用铁卡那套记号（类型/品级/朱砂印/原话），只把版型压成一行一块 */
+  .stock-section { display: none; }
+  .stock-section.show { display: block; }
+  .stock-row { position: relative; padding: 13px 16px; border: 1px solid #655d50; background: linear-gradient(155deg, rgba(56,52,45,.97), rgba(31,29,25,.98)); }
+  .stock-row + .stock-row { margin-top: 10px; }
+  .stock-row .iron-top { margin-bottom: 8px; }
+  .stock-row .cite-seal { position: static; display: inline-block; max-width: none; padding: 3px 8px; transform: none; }
+  .stock-row .stock-text { margin: 0 0 6px; color: #efe1c4; font: 600 15px/1.6 var(--body); }
+  .stock-row .iron-anchor { color: #cbbb9b; }
+  .why-timeline { position: relative; margin-left: 7px; padding-left: 25px; }
+  .why-timeline::before { content: ""; position: absolute; left: 4px; top: 6px; bottom: 9px; width: 1px; background: #66583f; }
+  .why-entry { position: relative; padding: 0 0 20px; }
+  .why-entry:last-child { padding-bottom: 0; }
+  .why-entry::before { content: ""; position: absolute; left: -25px; top: 7px; width: 9px; height: 9px; border: 2px solid var(--ember); background: #201c16; transform: rotate(45deg); }
+  .why-version { display: flex; gap: 12px; align-items: baseline; color: var(--gold); font-size: 13px; }
+  .why-version time { color: var(--iron-500); font-variant-numeric: tabular-nums; }
+  .why-entry p { margin: 3px 0 0; color: #c4b79e; font-size: 14px; }
+  .drawer-actions { flex: 0 0 auto; display: flex; justify-content: flex-end; gap: 12px; padding: 18px 26px; border-top: 1px solid var(--line); background: #141310; }
+  .drawer-actions button { min-width: 120px; }
+  .temper-sheet { display: none; margin: 4px 0 28px; padding: 19px 20px; border: 1px solid #8f5a46; background: rgba(112,41,29,.14); }
+  .temper-sheet.open { display: block; animation: panel-in .25s ease both; }
+  .temper-sheet h3 { margin: 0 0 5px; color: #edc4ad; }
+  .temper-sheet p { margin: 0 0 12px; color: #bca99f; font-size: 13px; }
+  .temper-sheet textarea { width: 100%; min-height: 96px; resize: vertical; padding: 12px 14px; border: 1px solid #826f5b; border-radius: 0; color: var(--paper-100); background: #171411; line-height: 1.65; }
+  .temper-actions { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 12px; }
+  .temper-error { color: #e78770; font-size: 13px; }
+  .temper-actions button { min-height: 42px; min-width: 108px; font-size: 15px; }
+
+  .prospect-banner { position: relative; display: grid; grid-template-columns: 260px 1fr 300px; gap: 28px; align-items: center; min-height: 180px; margin-bottom: 20px; padding: 26px 34px; overflow: hidden; border: 1px solid #896e43; background: linear-gradient(110deg, rgba(62,43,26,.98), rgba(29,26,21,.96) 58%, rgba(19,18,15,.97)); box-shadow: var(--shadow-deep), inset 0 1px rgba(255,226,164,.08); }
+  .prospect-banner::before { content: ""; position: absolute; inset: 0; opacity: .12; background: repeating-linear-gradient(115deg, transparent 0 20px, #d8b36a 21px, transparent 22px 42px); mask-image: linear-gradient(90deg, transparent, #000 50%, transparent); }
+  .prospect-stat { position: relative; text-align: center; border-right: 1px solid var(--line); }
+  .prospect-stat strong { display: block; color: var(--ember-hot); font: 700 55px/.95 Georgia, var(--display); font-variant-numeric: tabular-nums; text-shadow: 0 0 28px rgba(230,121,41,.22); }
+  .prospect-stat span { display: block; margin-top: 8px; color: var(--paper-300); font-size: 14px; letter-spacing: .15em; }
+  .prospect-claim { position: relative; }
+  .prospect-claim p { margin: 0; color: var(--muted); font-size: 14px; letter-spacing: .16em; }
+  .prospect-claim h3 { margin: 4px 0 0; max-width: 720px; color: #f2dfb0; font: 700 29px/1.55 var(--display); letter-spacing: .04em; }
+  .mine-mark { position: relative; justify-self: end; width: 240px; padding: 14px 18px; border: 1px solid #a64c3b; color: #d36f57; font: 700 18px/1.5 var(--display); letter-spacing: .12em; text-align: center; transform: rotate(-2deg); background: rgba(104,29,22,.12); }
+  .mine-list { border: 1px solid var(--line); background: rgba(20,19,16,.94); box-shadow: 0 18px 42px rgba(0,0,0,.32); }
+  .mine-list-head, .mine-row { display: grid; grid-template-columns: minmax(330px, 1.55fr) 170px 130px 120px minmax(260px, 1fr) 120px; gap: 18px; align-items: center; }
+  .mine-list-head { min-height: 52px; padding: 0 24px; border-bottom: 1px solid #665d4e; color: #8f8572; background: rgba(255,255,255,.025); font-size: 12px; letter-spacing: .16em; }
+  .mine-row { min-height: 88px; padding: 12px 24px; border-bottom: 1px solid rgba(220,195,143,.1); transition: background .18s ease; }
+  .mine-row:last-child { border-bottom: 0; }
+  .mine-row:hover { background: rgba(229,138,53,.055); }
+  .mine-file { min-width: 0; }
+  .mine-file strong { display: block; overflow: hidden; color: var(--paper-100); font: 600 16px/1.45 var(--body); text-overflow: ellipsis; white-space: nowrap; }
+  .mine-file span { color: var(--iron-500); font-size: 12px; }
+  .mine-date, .mine-size { color: #b2a68e; font-variant-numeric: tabular-nums; }
+  .assay-stamp { display: inline-block; width: 66px; padding: 4px 3px; border: 1px solid #787064; color: #9e9689; font: 700 13px/1.2 var(--display); text-align: center; transform: rotate(-2deg); }
+  .assay-stamp.rich { border-color: #aa7b38; color: #e0af5a; background: rgba(166,103,36,.1); }
+  .assay-stamp.poor { color: #aaa193; }
+  .assay-stamp.unknown { border-style: dashed; color: #a47869; }
+  .mine-note { color: #a99d87; font-size: 14px; }
+  .mine-action { min-width: 98px; min-height: 40px; padding: 0 14px; border: 1px solid #77684e; background: rgba(103,83,54,.17); color: var(--paper-200); cursor: pointer; font: 600 14px/1 var(--display); letter-spacing: .08em; }
+  .prospect-error, .prospect-empty { display: none; min-height: 230px; place-items: center; color: var(--muted); text-align: center; }
+  .prospect-error.show, .prospect-empty.show { display: grid; }
+
+  .weapons-ledger { position: relative; padding: 24px; border: 1px solid #6f624e; background: linear-gradient(rgba(15,14,12,.72), rgba(15,14,12,.88)), url("static/bg-forge.png") center / cover; box-shadow: var(--shadow-deep), inset 0 0 0 7px rgba(184,139,69,.035); }
+  .weapons-ledger::before, .weapons-ledger::after { content: ""; position: absolute; width: 44px; height: 44px; border-color: #8b724b; opacity: .8; pointer-events: none; }
+  .weapons-ledger::before { left: 11px; top: 11px; border-left: 1px solid; border-top: 1px solid; }
+  .weapons-ledger::after { right: 11px; bottom: 11px; border-right: 1px solid; border-bottom: 1px solid; }
+  .weapons-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+  .weapon-tile { position: relative; min-height: 198px; overflow: hidden; border: 1px solid rgba(175,158,126,.17); background: #191816; box-shadow: inset 0 0 32px rgba(0,0,0,.35); }
+  .weapon-figure { position: absolute; inset: 0; background-image: linear-gradient(rgba(19,18,16,.34), rgba(19,18,16,.62)), url("static/weapons-manifest.png"); background-size: 600% 300%, 600% 300%; background-position: center, var(--weapon-x) var(--weapon-y); filter: grayscale(1) sepia(.12) brightness(.48); transform: scale(1.012); transition: filter .25s ease, transform .25s ease; }
+  .weapon-tile::after { content: ""; position: absolute; inset: 8px; border: 1px solid rgba(218,190,137,.07); pointer-events: none; }
+  .weapon-tile.live { cursor: pointer; border-color: #a77b3f; box-shadow: inset 0 0 44px rgba(203,104,28,.15), 0 0 30px rgba(186,89,25,.11); }
+  .weapon-tile.live .weapon-figure { background-image: linear-gradient(rgba(72,37,17,.1), rgba(24,18,12,.32)), url("static/weapons-manifest.png"); filter: saturate(.82) brightness(1.04); }
+  .weapon-tile.live:hover .weapon-figure { filter: saturate(1.05) brightness(1.16); transform: scale(1.045); }
+  .weapon-name { position: absolute; left: 16px; bottom: 14px; z-index: 1; color: #877f70; font: 700 25px/1 var(--display); text-shadow: 0 2px 8px #000; }
+  .weapon-tile.live .weapon-name { color: #f1daa5; }
+  .weapon-state { position: absolute; right: 14px; top: 13px; z-index: 1; min-width: 54px; padding: 4px 6px; border: 1px solid #6c6254; color: #777064; font: 700 12px/1.2 var(--display); letter-spacing: .1em; text-align: center; transform: rotate(5deg); }
+  .weapon-tile.live .weapon-state { border-color: #c25a43; color: #de7359; background: rgba(112,31,22,.18); transform: rotate(-3deg); }
+  .ledger-note { display: flex; align-items: center; justify-content: space-between; gap: 30px; margin-top: 18px; padding: 13px 16px; border-left: 3px solid var(--ember); color: var(--muted); background: rgba(24,22,18,.84); font-size: 14px; }
+  .ledger-note strong { color: var(--paper-200); font-weight: 600; }
+
+  /* 外来名剑区：别人锻的剑，和自家剑卡同一套语言——只是刃上盖「外来」印、色偏灰，等着融你的铁重锻 */
+  .foreign-vault { margin-bottom: 26px; }
+  .foreign-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); gap: 18px; }
+  .foreign-card { position: relative; display: grid; grid-template-columns: 200px 1fr; overflow: hidden; border: 1px solid #6c6252; background: linear-gradient(125deg, rgba(44,41,34,.97), rgba(22,21,18,.98) 62%); box-shadow: var(--shadow-deep), inset 0 1px rgba(255,229,174,.05); }
+  .foreign-portrait { position: relative; display: grid; place-items: center; overflow: hidden; border-right: 1px solid var(--line); background: radial-gradient(circle, rgba(174,166,148,.12), transparent 60%); }
+  .foreign-portrait::before { content: "外\A 来"; white-space: pre; position: absolute; left: 16px; top: 16px; z-index: 1; width: 40px; padding: 6px 1px; border: 1px solid #7f7666; color: #a89d88; font: 700 16px/1.2 var(--display); text-align: center; }
+  .foreign-portrait img { width: 88%; height: 218px; object-fit: contain; transform: rotate(-6deg); filter: grayscale(.85) brightness(.92) drop-shadow(0 16px 13px rgba(0,0,0,.55)); }
+  .foreign-content { display: flex; min-width: 0; flex-direction: column; padding: 26px 26px 22px; }
+  .foreign-label { margin: 0; color: #a89d88; font-size: 13px; letter-spacing: .18em; }
+  .foreign-card h3 { margin: 4px 0 10px; color: #e6d8b8; font: 700 27px/1.3 var(--display); letter-spacing: .06em; }
+  .foreign-desc { margin: 0 0 12px; color: #b3a68e; font-size: 14px; line-height: 1.7; }
+  .foreign-path { margin: 0; overflow: hidden; color: #7e7563; font: 12px/1.6 "Cascadia Code", Consolas, monospace; text-overflow: ellipsis; white-space: nowrap; }
+  .foreign-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: auto; padding-top: 16px; }
+  .foreign-actions .foreign-hint { color: var(--muted); font-size: 13px; }
+
+  .reforge-banner { display: none; align-items: center; gap: 18px; margin-bottom: 18px; padding: 16px 22px; border: 1px solid #a2824d; background: linear-gradient(110deg, rgba(70,48,26,.96), rgba(28,25,20,.96)); box-shadow: inset 0 1px rgba(255,226,164,.08); }
+  .reforge-banner.show { display: flex; animation: panel-in .3s ease both; }
+  .reforge-mark { color: var(--ember-hot); font-size: 30px; line-height: 1; }
+  .reforge-copy { flex: 1; min-width: 0; }
+  .reforge-copy p { margin: 0; color: #f2dfae; font: 700 19px/1.4 var(--display); letter-spacing: .06em; }
+  .reforge-copy b { color: var(--ember-hot); font-weight: 700; }
+  .reforge-copy span { color: var(--muted); font-size: 13px; }
+
+  .scroll-vault { display: grid; grid-template-columns: minmax(550px, .95fr) minmax(620px, 1.05fr); gap: 20px; min-height: 590px; }
+  .featured-scroll { position: relative; display: grid; grid-template-columns: 245px 1fr; overflow: hidden; border: 1px solid #9a7b47; background: linear-gradient(130deg, rgba(56,43,28,.97), rgba(24,22,18,.98) 62%); box-shadow: var(--shadow-deep), inset 0 1px rgba(255,229,174,.08); }
+  .featured-scroll::before { content: "真\A 传"; white-space: pre; position: absolute; left: 20px; top: 19px; z-index: 2; width: 46px; padding: 7px 0; border: 1px solid #cb5f47; color: #df765d; font: 700 18px/1.15 var(--display); text-align: center; transform: rotate(-3deg); }
+  .scroll-art { position: relative; display: grid; place-items: center; overflow: hidden; border-right: 1px solid var(--line); background: radial-gradient(circle, rgba(226,144,54,.17), transparent 57%); }
+  .scroll-art img { width: 92%; object-fit: contain; transform: rotate(-9deg); filter: drop-shadow(0 22px 16px rgba(0,0,0,.55)); }
+  .scroll-art::after { content: ""; position: absolute; width: 150px; height: 150px; border: 1px solid rgba(212,169,93,.14); transform: rotate(45deg); }
+  .scroll-content { display: flex; flex-direction: column; padding: 42px 34px 34px; }
+  .scroll-label { margin: 0; color: var(--ember); font-size: 13px; letter-spacing: .2em; }
+  .scroll-content h3 { margin: 4px 0 8px; color: #f4e0ad; font: 700 32px/1.42 var(--display); letter-spacing: .05em; }
+  .scroll-desc { margin: 0; color: #c1b394; font-size: 16px; }
+  .cited-today { align-self: flex-end; margin: 18px 0 10px; padding: 7px 10px; border: 1px solid #c65b46; color: #dd725a; font: 700 13px/1.2 var(--display); letter-spacing: .08em; transform: rotate(2deg); background: rgba(116,30,23,.17); }
+  .scroll-quote { position: relative; margin: auto 0 0; padding: 24px 22px 20px; border-top: 1px solid #8e754e; border-bottom: 1px solid rgba(142,117,78,.45); color: #eadbbb; font: 600 20px/1.85 var(--display); }
+  .scroll-quote::before { content: "“"; position: absolute; left: -2px; top: -5px; color: rgba(229,138,53,.35); font: 70px/1 Georgia, serif; }
+  .scroll-source { margin: 12px 0 0; color: #8f8471; font-size: 13px; }
+  .locked-vault { position: relative; display: grid; place-items: center; overflow: hidden; border: 1px solid #504b43; background: linear-gradient(rgba(17,16,14,.74), rgba(17,16,14,.91)), url("static/bg-forge.png") 15% center / cover; box-shadow: inset 0 0 80px rgba(0,0,0,.5); text-align: center; }
+  .locked-vault::before { content: ""; position: absolute; inset: 18px; border: 1px dashed rgba(188,173,142,.13); }
+  .vault-lock { position: relative; width: 84px; height: 70px; margin: 0 auto 24px; border: 2px solid #6f6658; }
+  .vault-lock::before { content: ""; position: absolute; width: 48px; height: 44px; left: 16px; top: -38px; border: 2px solid #6f6658; border-bottom: 0; border-radius: 28px 28px 0 0; }
+  .vault-lock::after { content: ""; position: absolute; left: 37px; top: 24px; width: 7px; height: 17px; background: #6f6658; }
+  .locked-copy { position: relative; z-index: 1; max-width: 570px; padding: 48px; }
+  .locked-copy h3 { margin: 0; color: #a9a08e; font: 700 32px/1.4 var(--display); letter-spacing: .12em; }
+  .locked-copy p { margin: 9px auto 26px; color: #736d62; }
+  .future-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .future-actions button { min-height: 48px; border: 1px solid #4f4b44; background: rgba(55,52,47,.22); color: #6f6a61; font: 600 15px/1.3 var(--display); cursor: not-allowed; }
+  .future-note { display: block; margin-top: 16px; color: #5f5a52; font-size: 12px; letter-spacing: .1em; }
+
+  .placeholder-pane { min-height: 520px; display: grid; place-items: center; border: 1px solid var(--line); background: rgba(17,16,13,.88); color: var(--muted); text-align: center; }
+  .placeholder-pane strong { display: block; color: var(--paper-200); font: 700 26px/1.5 var(--display); }
+  .placeholder-pane p { margin: 5px 0 0; }
+
+  /* z-index 高过抽屉遮罩（80）：授剑成功那条落鞘路径是要被读的，不能压在蒙层底下 */
+  .toast { position: fixed; right: 34px; bottom: 34px; z-index: 300; max-width: 420px; padding: 14px 18px; border: 1px solid #987349; color: var(--paper-100); background: rgba(28,24,18,.97); box-shadow: 0 14px 38px rgba(0,0,0,.44); transform: translateY(20px); opacity: 0; pointer-events: none; transition: .25s ease; }
+  .toast.show { transform: none; opacity: 1; }
+
+  @media (max-width: 1320px) {
+    .app-shell { width: calc(100vw - 36px); }
+    .topbar { grid-template-columns: 320px 1fr; }
+    .profile-strip { grid-template-columns: 230px 1fr 90px; gap: 16px; padding-inline: 20px; }
+    .exp-grid { gap: 11px; }
+    .forge-grid { grid-template-columns: minmax(590px, 1.15fr) minmax(390px, .85fr); }
+    .iron-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  }
+</style></head>
+<body class="hero-active">
+  <section class="hero" id="hero" aria-labelledby="heroTitle">
+    <div class="hero-smoke" aria-hidden="true"></div>
+    <p class="hero-demo-badge">观剑模式</p>
+    <div class="hero-content">
+      <p class="hero-eyebrow">Reflect Forge · 今日开炉</p>
+      <div class="hero-title-wrap"><h1 id="heroTitle">反思锻造台</h1></div>
+      <p class="hero-english">Turn sessions into your own craft</p>
+      <p class="hero-slogan">没有一份活，该<strong>白干</strong></p>
+      <div class="hero-action-row">
+        <button class="open-forge-btn" id="openForgeBtn" type="button">开炉</button>
+        <p class="hero-action-note">以完整过程为铁 · 以 token 为火</p>
+      </div>
+    </div>
+    <p class="hero-burn">炉火 · 今日已烧 <strong id="heroTokenBurned">—</strong> 万 token</p>
+  </section>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-seal" aria-hidden="true">反思</div>
+        <div>
+          <h1>反思锻造台</h1>
+          <p>Reflect Forge · 以铁铸剑</p>
+        </div>
+      </div>
+      <section class="profile-strip" aria-label="锻造师档案">
+        <div class="profile-id">
+          <img id="profileBadge" src="static/badge-3.png" alt="锻造师等级徽章">
+          <div>
+            <p class="profile-kicker">锻造师档案</p>
+            <p class="profile-name" id="profileName">载入中</p>
+            <p class="profile-title" id="profileTitle">炉火正在辨认来客</p>
+          </div>
+        </div>
+        <div class="exp-grid" id="expGrid" aria-label="四维经验"></div>
+        <div class="quality-readout" title="转正率是成色读数，不参与等级晋升">
+          <span>剑器成色</span>
+          <strong id="temperRate">—</strong>
+        </div>
+      </section>
+    </header>
+
+    <aside class="demo-banner" role="note" aria-label="观剑模式说明">
+      <span class="demo-banner-mark" aria-hidden="true">⚔️ 观剑模式</span>
+      <span class="demo-banner-text">这是路演现场那座锻造铺的实时镜像：剑是真剑、记录是真记录，炉火在锻造师自己的机器上烧。想开一炉自己的？<a href="https://github.com/SYMlp/reflect-forge" target="_blank" rel="noopener noreferrer">GitHub 五分钟装上 →</a></span>
+    </aside>
+
+    <nav class="tabs" aria-label="锻造台功能">
+      <button class="tab-btn active" type="button" data-tab="reflect" aria-selected="true"><span class="tab-index">壹</span>反思炉</button>
+      <button class="tab-btn" type="button" data-tab="armory" aria-selected="false"><span class="tab-index">贰</span>兵器架</button>
+      <button class="tab-btn" type="button" data-tab="prospect" aria-selected="false"><span class="tab-index">叁</span>寻料</button>
+      <button class="tab-btn" type="button" data-tab="weapons" aria-selected="false"><span class="tab-index">肆</span>兵器谱</button>
+      <button class="tab-btn" type="button" data-tab="scrolls" aria-selected="false"><span class="tab-index">伍</span>秘籍阁</button>
+    </nav>
+
+    <main>
+      <section class="tab-panel active" id="tab-reflect" aria-labelledby="reflectTitle">
+        <header class="stage-head">
+          <div>
+            <p class="stage-kicker">一炉一得 · 过程不白走</p>
+            <h2 id="reflectTitle">把会话里的铁，锻成侠客可用的剑</h2>
+          </div>
+          <p class="stage-desc">完整记录是矿脉，<strong>反思炉不靠记忆猜</strong>。入炉捞出你当时的判断、踩过的坑、改过的流程——择好铁，锻成下件活还能用的剑。</p>
+        </header>
+
+        <section class="reforge-banner" id="reforgeBanner" role="status">
+          <span class="reforge-mark" aria-hidden="true">⚒</span>
+          <div class="reforge-copy">
+            <p>重锻《<b id="reforgeScrollName">—</b>》——择你的铁融入这把借来的剑</p>
+            <span>别人的骨架保留，你的判断嵌进它的判据、步骤与反例。</span>
+          </div>
+          <button class="secondary-btn" id="exitReforge" type="button">退出重锻</button>
+        </section>
+
+        <div class="forge-grid">
+          <section class="panel input-panel">
+            <div class="panel-inner">
+              <div class="panel-title-row">
+                <div>
+                  <h3>投料口</h3>
+                  <p>粘贴一段你与侠客协作的完整过程</p>
+                </div>
+                <div class="source-switch" role="group" aria-label="材料来源">
+                  <button class="active" type="button" data-source="paste">粘贴</button>
+                  <button type="button" data-source="file">选卷宗</button>
+                </div>
+              </div>
+              <textarea class="session-input" id="sessionInput" aria-label="Session 文本" placeholder="把今日与 Claude Code / Codex 的会话贴在这里……&#10;&#10;真正值钱的往往不是最后那段代码，而是你中途作出的判断、踩过的坑和改过的流程。"></textarea>
+              <div class="file-source" id="fileSource">
+                <div>
+                  <span class="drop-glyph" aria-hidden="true"></span>
+                  <label for="sessionFile">择一册 jsonl 卷宗</label>
+                  <input id="sessionFile" type="file" accept=".jsonl,.txt,.md">
+                  <p class="file-note" id="fileName">本机卷宗只取路径，不上传远端</p>
+                </div>
+              </div>
+              <div class="charge-card" id="chargeCard">
+                <div class="charge-body">
+                  <strong id="chargeFile"></strong>
+                  <span id="chargeMeta"></span>
+                </div>
+                <span class="charge-badge" id="chargeBadge">炉内待烧</span>
+              </div>
+              <div class="message" id="reflectError" role="alert"></div>
+              <div class="action-row">
+                <p class="fire-cost">此炉需烧一簇<b>火</b> · 真炉约候半炷香</p>
+                <button class="primary-btn" id="reflectBtn" type="button">入炉</button>
+              </div>
+            </div>
+          </section>
+
+          <aside class="panel furnace-stage" id="furnaceStage" aria-live="polite">
+            <div class="panel-inner">
+              <div class="panel-title-row">
+                <div>
+                  <h3>反思炉</h3>
+                  <p>以完整过程照见可复用之物</p>
+                </div>
+                <span class="iron-grade top">炉温 · 待燃</span>
+              </div>
+              <div class="furnace-visual">
+                <div class="furnace-glow"></div>
+                <img class="furnace-img" src="static/furnace.png" alt="燃着炉火的反思炉">
+                <div class="spark-layer" aria-hidden="true"></div>
+              </div>
+              <div class="forge-status">
+                <i class="status-line" aria-hidden="true"></i>
+                <strong id="forgeStatusTitle">炉门未启</strong>
+                <span id="forgeStatusLine">好铁不怕火，真判断经得起回看</span>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <section class="iron-section" id="ironSection" aria-labelledby="ironTitle">
+          <div class="section-ribbon">
+            <h3 id="ironTitle">出铁</h3>
+            <p>择其精者，方可成剑</p>
+          </div>
+          <div class="iron-grid" id="ironGrid"></div>
+          <div class="forge-selection">
+            <p>已择 <b id="selectedCount">0</b> 块铁</p>
+            <button class="primary-btn" id="forgeBtn" type="button" disabled>锻剑</button>
+          </div>
+        </section>
+
+        <section class="sword-result" id="swordResult" aria-labelledby="swordResultTitle">
+          <div class="section-ribbon">
+            <h3 id="swordResultTitle">剑成</h3>
+            <p>草稿先试锋，斩过活再转正</p>
+          </div>
+          <div class="sword-card">
+            <div class="sword-portrait">
+              <img src="static/sword-2.png" alt="新锻成的长剑">
+            </div>
+            <div class="sword-copy">
+              <div class="sword-meta"><span>剑 · 草稿</span><span id="newSwordVersion">v0.1</span></div>
+              <h3 id="newSwordName">新剑</h3>
+              <p>这把剑能带去下件活直接用。锻造师不挥剑，挥剑的是侠客。</p>
+              <details class="skill-preview">
+                <summary>展开查看 SKILL.md</summary>
+                <pre id="skillPreview"></pre>
+              </details>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <section class="tab-panel" id="tab-armory" aria-labelledby="armoryTitle">
+        <header class="stage-head armory-headline">
+          <div>
+            <p class="stage-kicker">剑不在多 · 贵在真斩过活</p>
+            <h2 id="armoryTitle">兵器架</h2>
+          </div>
+          <p class="stage-desc">草稿先试锋，斩活后转正；每次淬火都留一行 why，剑的来路与长法因此可追。</p>
+          <div class="armory-count"><strong id="armoryCount">—</strong><br>把剑已归架</div>
+        </header>
+        <section class="foreign-vault" aria-label="外来名剑">
+          <div class="section-ribbon">
+            <h3>外来名剑 · 可重锻</h3>
+            <p>别人锻的剑 + 你的铁 = 你的版本</p>
+          </div>
+          <div class="foreign-grid" id="foreignScrolls"></div>
+        </section>
+        <div class="armory-grid" id="armoryGrid"></div>
+        <div class="empty-armory" id="emptyArmory">
+          <div>
+            <img src="static/sword-1.png" alt="尚未开锋的短剑">
+            <h3>尚无兵刃</h3>
+            <p>过程已经在手，只差开一炉。</p>
+            <button class="primary-btn" type="button" data-go-reflect>去反思炉锻一把</button>
+          </div>
+        </div>
+      </section>
+      <section class="tab-panel" id="tab-prospect" aria-labelledby="prospectTitle">
+        <header class="stage-head">
+          <div>
+            <p class="stage-kicker">旧账不是废纸 · 是未开采的矿</p>
+            <h2 id="prospectTitle">寻料</h2>
+          </div>
+          <p class="stage-desc">侠客做过的每场活都留下过程卷宗。先看矿脉，再把值得回捞的旧 session 送进反思炉。<strong>此处皆是原石</strong>——未加工的过程记录；铁在炉中出，剑在架上看。</p>
+        </header>
+        <section class="prospect-banner" aria-label="历史回捞战绩">
+          <div class="prospect-stat"><strong>76</strong><span>场历史会话</span></div>
+          <div class="prospect-claim"><p>上月回捞战绩</p><h3 id="prospectBanner">正在翻检旧卷宗……</h3></div>
+          <div class="mine-mark">九百余条判断<br>重见炉火</div>
+        </section>
+        <section class="mine-list" aria-label="矿脉列表">
+          <header class="mine-list-head"><span>卷宗</span><span>日期</span><span>大小</span><span>品级</span><span>快评</span><span>动作</span></header>
+          <div id="mineRows"></div>
+          <div class="prospect-empty" id="prospectEmpty"><p>此处尚无矿脉。先让侠客斩几场活，过程自然会留下铁。</p></div>
+          <div class="prospect-error" id="prospectError"><p>矿灯熄了，暂未照见历史卷宗。</p></div>
+        </section>
+      </section>
+      <section class="tab-panel" id="tab-weapons" aria-labelledby="weaponsTitle">
+        <header class="stage-head">
+          <div>
+            <p class="stage-kicker">十八般兵器 · 一谱尽览</p>
+            <h2 id="weaponsTitle">兵器谱</h2>
+          </div>
+          <p class="stage-desc">江湖的目标形态先完整铺开，今日的实现切片只亮一格：<strong>一套述职剑法</strong>。其余兵器不是删掉，只是尚待开炉。</p>
+        </header>
+        <section class="weapons-ledger">
+          <div class="weapons-grid" id="weaponsGrid"></div>
+        </section>
+        <div class="ledger-note"><span><strong>剑已实装</strong> · 每把剑都有带得走的真身</span><span>余十七器 · 待锻</span></div>
+      </section>
+      <section class="tab-panel" id="tab-scrolls" aria-labelledby="scrollsTitle">
+        <header class="stage-head">
+          <div>
+            <p class="stage-kicker">借前人火种 · 锻自己的剑</p>
+            <h2 id="scrollsTitle">秘籍阁</h2>
+          </div>
+          <p class="stage-desc">反思不只回看自己，也要让前辈经验进入判断链。<strong>秘籍只读、不进炉</strong>——它被引用，在铁上留下朱砂小印，来路不再隐身；能重锻的是剑，在兵器架。</p>
+        </header>
+        <div class="scroll-vault">
+          <article class="featured-scroll">
+            <div class="scroll-art"><img src="static/scroll.png" alt="卷起的前辈剑谱"></div>
+            <div class="scroll-content">
+              <p class="scroll-label">本阁实藏 · 壹卷</p>
+              <h3 id="featuredScrollName">载入秘籍中</h3>
+              <p class="scroll-desc" id="featuredScrollDesc"></p>
+              <span class="cited-today">今晨被引用</span>
+              <blockquote class="scroll-quote" id="featuredScrollQuote">炉火正在显字……</blockquote>
+              <p class="scroll-source">此句已在反思炉出铁时留下“引·前辈剑谱”印</p>
+            </div>
+          </article>
+          <section class="locked-vault" aria-label="锁定的秘籍与社交能力">
+            <div class="locked-copy">
+              <span class="vault-lock" aria-hidden="true"></span>
+              <h3>江湖尚远，敬请期待</h3>
+              <p>等更多锻造师带着自己的真剑与真秘籍相逢。今日先把自己的经验，锻成带得走的剑。</p>
+              <div class="future-actions">
+                <button type="button" disabled>交友</button>
+                <button type="button" disabled>换秘籍</button>
+                <button type="button" disabled>赠剑（需重铸）</button>
+              </div>
+              <span class="future-note">此区域为锁定态 · 本期不实装社交</span>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <div class="drawer-backdrop" id="drawerBackdrop" role="dialog" aria-modal="true" aria-labelledby="drawerSwordName" aria-hidden="true">
+    <aside class="detail-drawer" id="detailDrawer">
+      <header class="drawer-head">
+        <img id="drawerSwordImage" src="static/sword-2.png" alt="剑器图">
+        <div class="drawer-head-copy">
+          <p id="drawerSwordMeta">剑 · v0.1</p>
+          <h2 id="drawerSwordName">剑名</h2>
+        </div>
+        <button class="close-btn" id="closeDrawer" type="button" aria-label="关闭兵器详情">×</button>
+      </header>
+      <div class="drawer-body">
+        <section class="temper-sheet" id="temperSheet" aria-labelledby="temperSheetTitle">
+          <h3 id="temperSheetTitle">淬火此剑</h3>
+          <p>一行 why 是剑的黑匣子：说清触发了什么、为何值得改。</p>
+          <textarea id="temperWhy" placeholder="例如：补上失败分支，因为顺利路径不足以防重踩" aria-label="淬火原因"></textarea>
+          <div class="temper-actions">
+            <span class="temper-error" id="temperError"></span>
+            <div>
+              <button class="secondary-btn" id="cancelTemper" type="button">收起</button>
+              <button class="danger-btn" id="confirmTemper" type="button">落锤</button>
+            </div>
+          </div>
+        </section>
+        <section class="drawer-section">
+          <h3>SKILL.md</h3>
+          <pre class="drawer-skill" id="drawerSkill"></pre>
+        </section>
+        <section class="drawer-section stock-section" id="stockSection">
+          <h3>用料清单 · 这把剑拿什么锻的</h3>
+          <div id="stockList"></div>
+        </section>
+        <section class="drawer-section">
+          <h3>淬火记录 · why 链</h3>
+          <div class="why-timeline" id="whyTimeline"></div>
+        </section>
+      </div>
+      <footer class="drawer-actions">
+        <button class="secondary-btn" id="promoteBtn" type="button">转正</button>
+        <button class="danger-btn" id="temperBtn" type="button">淬火</button>
+        <button class="primary-btn" id="bestowBtn" type="button">授予侠客</button>
+      </footer>
+    </aside>
+  </div>
+
+<script>
+  const state = {
+    source: 'paste',
+    irons: [],
+    selectedIrons: new Set(),
+    loadingTimer: null,
+    armory: [],
+    activeSword: null,
+    temperAction: 'revise',
+    drawerTrigger: null,
+    prospectPath: '',
+    charge: null,
+    // 重锻态：{path, name}。置上之后「锻剑」按钮改走 /api/reforge，选的铁融进那把外来名剑
+    reforge: null,
+    // 演示模式：由 /api/profile 的 demo 位置上。真身在后端，这里只是让手感提前一步
+    demo: false
+  };
+
+  const forgeSayings = [
+    '旺火去杂，慢火见真章',
+    '正从原话里寻那一锤定音',
+    '经验若不能复用，只算一缕烟',
+    '先辨判断，再验它从何而来',
+    '火候未到，莫急着给剑起名',
+    '把偶然的灵光，锻成稳定的招式'
+  ];
+
+  // 真接口统一入口：合同资源全部走 /api/*，不在这里混入展示用 mock。
+  // 静态模式（GitHub Pages 快照站）：开关 window.STATIC_MODE 只由 scripts/export_static.py
+  // 在导出产物 site/index.html 里注入——本源文件没有这个全局量，7712/7713 真炉行为不变。
+  // GET 改读同目录快照 api/<name>.json（相对路径：自定义域生效前 Pages 挂在 /reflect-forge/ 子路径，
+  // 以 / 开头会打到 symlp.github.io 根上）；POST 兜底拦死（第一道闸是快照 profile.demo=true 走 demoBlocked）。
+  async function api(resource, options = {}) {
+    const method = options.method || 'GET';
+    if (window.STATIC_MODE) {
+      if (method !== 'GET') throw new Error('这里是快照站，炉火不在——想自己烧，GitHub 五分钟装一台');
+      const snap = await fetch(`api/${resource}.json`);
+      const snapPayload = await snap.json().catch(() => ({}));
+      if (!snap.ok) throw new Error(snapPayload.error || `快照缺页（${snap.status}）`);
+      return snapPayload;
+    }
+    const response = await fetch(`/api/${resource}`, {
+      method,
+      headers: {'Content-Type': 'application/json'},
+      body: method === 'GET' ? undefined : JSON.stringify(options.body || {})
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || `炉火失控（${response.status}）`);
+    return payload;
+  }
+
+  const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+
+  // 演示模式的软闸：开炉类按钮点下去只弹一句话。
+  // 按钮**不禁用**——路演现场要让人点得下去，手感留着，只是炉门不开。
+  // 硬闸在后端（所有 POST 一律 403），这里只是免得让人对着一个转圈的按钮等超时
+  function demoBlocked() {
+    if (!state.demo) return false;
+    showToast('炉火在路演现场，这里只观剑——想自己烧，GitHub 五分钟装一台', 4200);
+    return true;
+  }
+
+  function showToast(message, duration = 2600) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.add('show');
+    window.clearTimeout(showToast.timer);
+    showToast.timer = window.setTimeout(() => toast.classList.remove('show'), duration);
+  }
+
+  function renderTokenBurned(value) {
+    const raw = Number(value);
+    const wan = Number.isFinite(raw) ? raw / 10000 : 0;
+    document.getElementById('heroTokenBurned').textContent = wan >= 10
+      ? wan.toFixed(1).replace(/\.0$/, '')
+      : wan.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+  }
+
+  function setError(message = '') {
+    const box = document.getElementById('reflectError');
+    box.textContent = message;
+    box.classList.toggle('show', Boolean(message));
+  }
+
+  function setForgeLoading(loading, title = '锻造中…') {
+    const stage = document.getElementById('furnaceStage');
+    const titleEl = document.getElementById('forgeStatusTitle');
+    const lineEl = document.getElementById('forgeStatusLine');
+    window.clearInterval(state.loadingTimer);
+    stage.classList.toggle('loading', loading);
+    if (!loading) {
+      titleEl.textContent = title;
+      return;
+    }
+    titleEl.textContent = title;
+    let index = Math.floor(Math.random() * forgeSayings.length);
+    lineEl.textContent = forgeSayings[index];
+    state.loadingTimer = window.setInterval(() => {
+      index = (index + 1) % forgeSayings.length;
+      lineEl.animate([{opacity: 0, transform: 'translateY(4px)'}, {opacity: 1, transform: 'none'}], {duration: 430});
+      lineEl.textContent = forgeSayings[index];
+    }, 2300);
+  }
+
+  function renderProfile(profile) {
+    const req = profile.next_level_req || {};
+    const expLabels = {
+      reflect_sessions: '反思场次',
+      swords_forged: '锻剑数',
+      swords_promoted: '转正剑数',
+      works_slain: '斩活数'
+    };
+    document.getElementById('profileName').textContent = profile.name;
+    document.getElementById('profileTitle').textContent = `${profile.level} · ${profile.title}`;
+    const levelIndex = ['见习锻造师','初级锻造师','中级锻造师','高级锻造师','超级锻造师','锻造之神'].indexOf(profile.level);
+    document.getElementById('profileBadge').src = `static/badge-${Math.max(1, levelIndex + 1)}.png`;
+    document.getElementById('temperRate').textContent = `${Math.round((profile.temper_rate || 0) * 100)}%`;
+    document.getElementById('expGrid').innerHTML = Object.entries(expLabels).map(([key, label]) => {
+      const current = Number(profile.exp[key] || 0);
+      const target = Number(req[key] || current || 1);
+      const maxed = !req.level;
+      const met = maxed || (req.met ? req.met[key] : current >= target);
+      const percent = met ? 100 : Math.min(100, Math.round(current / target * 100));
+      // 已达：只报数 + 金色小徽，分母收进 title；未达：留分母并把差额亮成火星
+      const readout = met ? `${current}` : `${current}<small> / ${target}</small>`;
+      const flag = met ? '<em class="exp-flag">已达</em>' : `<em class="exp-flag">差 ${target - current}</em>`;
+      const hint = maxed ? '已至锻造之神，无上可攀' : `${escapeHtml(req.level)}门槛：${target}`;
+      return `<div class="exp-item ${met ? 'met' : 'gap'}" title="${hint}">
+        <div class="exp-head"><span>${label}${flag}</span><strong>${readout}</strong></div>
+        <div class="exp-track"><i class="exp-fill" data-width="${percent}%"></i></div>
+      </div>`;
+    }).join('');
+    requestAnimationFrame(() => document.querySelectorAll('.exp-fill').forEach(el => { el.style.width = el.dataset.width; }));
+  }
+
+  function renderIrons(irons) {
+    state.irons = irons;
+    state.selectedIrons = new Set(irons.map(iron => iron.id));
+    const grid = document.getElementById('ironGrid');
+    grid.innerHTML = irons.map(iron => `<label class="iron-card selected" data-iron-id="${escapeHtml(iron.id)}">
+      <input class="iron-check" type="checkbox" value="${escapeHtml(iron.id)}" checked>
+      <div class="iron-top">
+        <span class="iron-kind">${escapeHtml(iron.kind)}</span>
+        <span class="iron-grade ${iron.grade === '上品' ? 'top' : ''}">${escapeHtml(iron.grade)}</span>
+      </div>
+      ${iron.cite ? `<span class="cite-seal">引·${escapeHtml(iron.cite.name)}</span>` : ''}
+      <h4>${escapeHtml(iron.text)}</h4>
+      <p class="iron-anchor">${escapeHtml(iron.anchor)}</p>
+      <span class="selected-mark" aria-hidden="true">✓</span>
+    </label>`).join('');
+    grid.querySelectorAll('.iron-check').forEach(input => input.addEventListener('change', event => {
+      const card = event.target.closest('.iron-card');
+      if (event.target.checked) state.selectedIrons.add(event.target.value);
+      else state.selectedIrons.delete(event.target.value);
+      card.classList.toggle('selected', event.target.checked);
+      updateSelectedCount();
+    }));
+    updateSelectedCount();
+    document.getElementById('ironSection').classList.add('show');
+    document.getElementById('ironSection').scrollIntoView({behavior: 'smooth', block: 'start'});
+  }
+
+  function updateSelectedCount() {
+    document.getElementById('selectedCount').textContent = state.selectedIrons.size;
+    document.getElementById('forgeBtn').disabled = state.selectedIrons.size === 0;
+  }
+
+  function swordSkill(sword) {
+    return `---\nname: ${sword.name}\ndescription: 把工作过程锻成稳定、可复用的述职剑招\n---\n\n# ${sword.name}\n\n## 何时出鞘\n当侠客需要从零散工作记录中产出清晰汇报时。\n\n## 剑招\n1. 先找变化与影响，不从流水账起笔。\n2. 每个结论保留证据锚点。\n3. 将风险和下一步分别落成可执行动作。\n\n## 收剑判据\n读者能在三十秒内看见“变了什么、为何重要、接下来做什么”。`;
+  }
+
+  function renderArmory(armory) {
+    state.armory = armory || [];
+    const grid = document.getElementById('armoryGrid');
+    const empty = document.getElementById('emptyArmory');
+    document.getElementById('armoryCount').textContent = state.armory.length;
+    if (!state.armory.length) {
+      grid.innerHTML = '';
+      empty.classList.add('show');
+      return;
+    }
+    empty.classList.remove('show');
+    grid.innerHTML = state.armory.map((sword, index) => {
+      const lastWhy = sword.why_log?.at(-1)?.why || '初锻';
+      return `<article class="armory-card" tabindex="0" role="button" data-sword-id="${escapeHtml(sword.id)}" aria-label="查看${escapeHtml(sword.name)}详情">
+        <div class="armory-art">
+          <span class="weapon-status ${escapeHtml(sword.status)}">${sword.status === 'forged' ? '已转正' : '草稿'}</span>
+          ${sword.bestowed ? '<span class="weapon-worn">已佩</span>' : ''}
+          <img src="static/sword-${index % 4 + 1}.png" alt="${escapeHtml(sword.name)}">
+        </div>
+        <div class="armory-copy">
+          <h3>${escapeHtml(sword.name)}</h3>
+          <div class="armory-meta"><span>${escapeHtml(sword.kind)}</span><b>${escapeHtml(sword.version)}</b></div>
+          <p class="why-preview">${escapeHtml(lastWhy)}</p>
+        </div>
+      </article>`;
+    }).join('');
+    grid.querySelectorAll('.armory-card').forEach(card => {
+      const open = () => openSwordDrawer(card.dataset.swordId, card);
+      card.addEventListener('click', open);
+      card.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); } });
+    });
+  }
+
+  function renderIronStock(irons = []) {
+    const section = document.getElementById('stockSection');
+    const list = document.getElementById('stockList');
+    // 旧剑锻的时候还没有谱系字段：整节收起，不报错也不拿假料顶上
+    if (!irons.length) {
+      list.innerHTML = '';
+      section.classList.remove('show');
+      return;
+    }
+    section.classList.add('show');
+    list.innerHTML = irons.map(iron => `<article class="stock-row">
+      <div class="iron-top">
+        <span class="iron-kind">${escapeHtml(iron.kind)}</span>
+        <span class="iron-grade ${iron.grade === '上品' ? 'top' : ''}">${escapeHtml(iron.grade)}</span>
+        ${iron.cite ? `<span class="cite-seal">引·${escapeHtml(iron.cite.name)}</span>` : ''}
+      </div>
+      <p class="stock-text">${escapeHtml(iron.text)}</p>
+      <p class="iron-anchor">「${escapeHtml(iron.anchor)}」</p>
+    </article>`).join('');
+  }
+
+  function renderWhyLog(log = []) {
+    document.getElementById('whyTimeline').innerHTML = log.map(item => `<article class="why-entry">
+      <div class="why-version"><strong>${escapeHtml(item.v)}</strong><time>${escapeHtml(item.at)}</time></div>
+      <p>${escapeHtml(item.why)}</p>
+    </article>`).join('') || '<p class="iron-anchor">尚无淬火记录。</p>';
+  }
+
+  function openSwordDrawer(id, trigger) {
+    const sword = state.armory.find(item => item.id === id);
+    if (!sword) return;
+    state.activeSword = sword;
+    state.drawerTrigger = trigger || document.activeElement;
+    const index = Math.max(0, state.armory.indexOf(sword));
+    document.getElementById('drawerSwordImage').src = `static/sword-${index % 4 + 1}.png`;
+    document.getElementById('drawerSwordName').textContent = sword.name;
+    document.getElementById('drawerSwordMeta').textContent = `${sword.kind} · ${sword.version} · ${sword.status === 'forged' ? '已转正' : '草稿'}`;
+    document.getElementById('drawerSkill').textContent = sword.skill_md || swordSkill(sword);
+    document.getElementById('promoteBtn').disabled = sword.status === 'forged';
+    // 草稿剑不出鞘：没转正的剑连按钮都不给，别让人点了才吃 400
+    const bestowBtn = document.getElementById('bestowBtn');
+    bestowBtn.style.display = sword.status === 'forged' ? '' : 'none';
+    bestowBtn.disabled = false;
+    bestowBtn.textContent = sword.bestowed ? '重授新版' : '授予侠客';
+    document.getElementById('temperSheet').classList.remove('open');
+    renderIronStock(sword.irons);
+    renderWhyLog(sword.why_log);
+    const backdrop = document.getElementById('drawerBackdrop');
+    backdrop.classList.add('open');
+    backdrop.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    window.setTimeout(() => document.getElementById('closeDrawer').focus(), 120);
+  }
+
+  function closeSwordDrawer() {
+    const backdrop = document.getElementById('drawerBackdrop');
+    backdrop.classList.remove('open');
+    backdrop.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    state.drawerTrigger?.focus?.();
+  }
+
+  function openTemperSheet(action) {
+    state.temperAction = action;
+    document.getElementById('temperSheetTitle').textContent = action === 'promote' ? '此剑转正' : '淬火此剑';
+    document.getElementById('confirmTemper').textContent = action === 'promote' ? '转正落印' : '落锤';
+    document.getElementById('temperWhy').value = '';
+    document.getElementById('temperError').textContent = '';
+    document.getElementById('temperSheet').classList.add('open');
+    document.getElementById('temperWhy').focus();
+  }
+
+  function renderProspect({mines, banner}) {
+    document.getElementById('prospectBanner').textContent = banner || '旧会话仍在，经验不必随下班蒸发';
+    const rows = document.getElementById('mineRows');
+    const empty = document.getElementById('prospectEmpty');
+    if (!mines?.length) {
+      rows.innerHTML = '';
+      empty.classList.add('show');
+      return;
+    }
+    empty.classList.remove('show');
+    rows.innerHTML = mines.map(mine => {
+      const assayClass = mine.assay === '富矿' ? 'rich' : mine.assay === '贫矿' ? 'poor' : 'unknown';
+      return `<article class="mine-row">
+        <div class="mine-file"><strong title="${escapeHtml(mine.file)}">${escapeHtml(mine.file)}</strong><span title="${escapeHtml(mine.project || '')}">${escapeHtml(mine.project || 'session 卷宗')}</span></div>
+        <time class="mine-date">${escapeHtml(mine.date)}</time>
+        <span class="mine-size">${Number(mine.size_kb).toLocaleString('zh-CN')} KB</span>
+        <span class="assay-stamp ${assayClass}">${escapeHtml(mine.assay)}</span>
+        <span class="mine-note">${escapeHtml(mine.note)}</span>
+        <button class="mine-action" type="button" data-mine-path="${escapeHtml(mine.path || mine.file)}" data-mine-file="${escapeHtml(mine.file)}" data-mine-project="${escapeHtml(mine.project || 'session 卷宗')}" data-mine-size="${escapeHtml(String(mine.size_kb))}">投炉</button>
+      </article>`;
+    }).join('');
+    rows.querySelectorAll('[data-mine-path]').forEach(button => button.addEventListener('click', () => {
+      const mine = button.dataset;
+      state.prospectPath = mine.minePath;
+      document.querySelector('[data-tab="reflect"]').click();
+      document.querySelector('[data-source="file"]').click();
+      document.getElementById('fileName').textContent = '本机卷宗只取路径，不上传远端';
+      setCharge(mine.mineFile, `${mine.mineProject} · ${Number(mine.mineSize).toLocaleString('zh-CN')} KB`);
+      showToast('卷宗已送至反思炉投料口');
+    }));
+  }
+
+  function selectSource(source) {
+    state.source = source;
+    document.querySelectorAll('[data-source]').forEach(btn => btn.classList.toggle('active', btn.dataset.source === source));
+    document.getElementById('sessionInput').style.display = source === 'paste' ? 'block' : 'none';
+    document.getElementById('fileSource').classList.toggle('active', source === 'file');
+    document.getElementById('chargeCard').classList.toggle('show', source === 'file' && !!state.charge);
+  }
+
+  function setCharge(file, meta) {
+    state.charge = file;
+    document.getElementById('chargeFile').textContent = file;
+    document.getElementById('chargeMeta').textContent = meta;
+    setChargeState('炉内待烧', false);
+    document.getElementById('fileSource').classList.add('charged');
+    selectSource('file');
+  }
+
+  function setChargeState(text, burning) {
+    const badge = document.getElementById('chargeBadge');
+    badge.textContent = text;
+    badge.classList.toggle('burning', burning);
+  }
+
+  function renderWeapons(manifest) {
+    const weapons = manifest?.weapons || [];
+    document.getElementById('weaponsGrid').innerHTML = weapons.map((weapon, index) => {
+      const column = index % 6;
+      const row = Math.floor(index / 6);
+      const x = `${column * 20}%`;
+      const y = `${row * 50}%`;
+      return `<article class="weapon-tile ${weapon.live ? 'live' : ''}" style="--weapon-x:${x};--weapon-y:${y}" ${weapon.live ? 'tabindex="0" role="button" data-live-weapon="剑" aria-label="查看已实装的剑"' : ''}>
+        <div class="weapon-figure" aria-hidden="true"></div>
+        <span class="weapon-state">${weapon.live ? '实装' : '待锻'}</span>
+        <h3 class="weapon-name">${escapeHtml(weapon.name)}</h3>
+      </article>`;
+    }).join('');
+    document.querySelectorAll('[data-live-weapon]').forEach(tile => {
+      const go = () => document.querySelector('[data-tab="armory"]').click();
+      tile.addEventListener('click', go);
+      tile.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); go(); } });
+    });
+  }
+
+  function renderForeignScrolls(manifest) {
+    const scrolls = manifest?.foreign_scrolls || [];
+    const box = document.getElementById('foreignScrolls');
+    if (!scrolls.length) {
+      box.innerHTML = '<p class="foreign-hint">架上暂无外来名剑。</p>';
+      return;
+    }
+    box.innerHTML = scrolls.map(scroll => `<article class="foreign-card">
+      <div class="foreign-portrait"><img src="static/sword-4.png" alt="外来名剑"></div>
+      <div class="foreign-content">
+        <p class="foreign-label">${escapeHtml(scroll.origin || '外来开源剑')} · ${escapeHtml(String(scroll.lines || '—'))} 行 · 借来的剑</p>
+        <h3>《${escapeHtml(scroll.name)}》</h3>
+        <p class="foreign-desc">${escapeHtml(scroll.desc || '')}</p>
+        <p class="foreign-path" title="${escapeHtml(scroll.path)}">${escapeHtml(scroll.path)}</p>
+        <div class="foreign-actions">
+          <button class="primary-btn" type="button" data-reforge-path="${escapeHtml(scroll.path)}" data-reforge-name="${escapeHtml(scroll.name)}">重锻</button>
+          <span class="foreign-hint">保留它的骨架，嵌进你的判断</span>
+        </div>
+      </div>
+    </article>`).join('');
+    box.querySelectorAll('[data-reforge-path]').forEach(button => button.addEventListener('click', () => {
+      if (demoBlocked()) return;
+      enterReforge(button.dataset.reforgePath, button.dataset.reforgeName);
+    }));
+  }
+
+  async function enterReforge(path, name) {
+    state.reforge = {path, name};
+    document.getElementById('reforgeScrollName').textContent = name;
+    document.getElementById('reforgeBanner').classList.add('show');
+    document.getElementById('forgeBtn').textContent = '重锻';
+    document.querySelector('[data-tab="reflect"]').click();
+    document.getElementById('swordResult').classList.remove('show');
+    try {
+      // 重锻从整堆料里挑，不限于当前这一场反思——旧铁一样能融进别人的剑
+      const irons = await api('irons');
+      if (irons.length) renderIrons(irons);
+      else setError('料堆里还没有铁：先入一炉反思，再来重锻。');
+    } catch (error) {
+      setError(error.message || '料堆没打开，请再试。');
+    }
+  }
+
+  function exitReforge() {
+    state.reforge = null;
+    document.getElementById('reforgeBanner').classList.remove('show');
+    document.getElementById('forgeBtn').textContent = '锻剑';
+  }
+
+  function renderScrolls(manifest) {
+    const scroll = manifest?.featured_scroll;
+    if (!scroll) throw new Error('未找到真秘籍');
+    document.getElementById('featuredScrollName').textContent = scroll.name;
+    document.getElementById('featuredScrollDesc').textContent = scroll.desc;
+    const quoted = String(scroll.cited || '').split('——').at(-1).trim();
+    document.getElementById('featuredScrollQuote').textContent = quoted;
+  }
+
+  document.querySelectorAll('.tab-btn').forEach(button => button.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      const active = btn === button;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-selected', String(active));
+    });
+    document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+    document.getElementById(`tab-${button.dataset.tab}`).classList.add('active');
+    window.scrollTo({top: 0, left: 0, behavior: 'instant'});
+  }));
+
+  document.getElementById('openForgeBtn').addEventListener('click', () => {
+    const hero = document.getElementById('hero');
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    hero.classList.add('opening');
+    window.setTimeout(() => {
+      document.body.classList.remove('hero-active');
+      document.body.classList.add('forge-entered');
+      hero.setAttribute('aria-hidden', 'true');
+      document.querySelector('.tab-btn.active')?.focus({preventScroll: true});
+    }, reducedMotion ? 0 : 680);
+  });
+
+  document.querySelectorAll('[data-go-reflect]').forEach(button => button.addEventListener('click', () => document.querySelector('[data-tab="reflect"]').click()));
+  document.getElementById('closeDrawer').addEventListener('click', closeSwordDrawer);
+  document.getElementById('drawerBackdrop').addEventListener('mousedown', event => { if (event.target === event.currentTarget) closeSwordDrawer(); });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && document.getElementById('drawerBackdrop').classList.contains('open')) {
+      if (document.getElementById('temperSheet').classList.contains('open')) document.getElementById('temperSheet').classList.remove('open');
+      else closeSwordDrawer();
+      event.preventDefault();
+    }
+  });
+  document.getElementById('bestowBtn').addEventListener('click', async () => {
+    if (demoBlocked()) return;
+    const button = document.getElementById('bestowBtn');
+    const sword = state.activeSword;
+    if (!sword) return;
+    button.disabled = true;
+    button.textContent = '出鞘中…';
+    try {
+      const result = await api('bestow', {method: 'POST', body: {sword_id: sword.id}});
+      sword.bestowed = true;
+      sword.bestowed_to = result.bestowed_to;
+      renderArmory(state.armory);
+      button.disabled = false;
+      button.textContent = '重授新版';
+      showToast(`侠客已佩此剑，落鞘于 ${result.bestowed_to}——新开一个 claude 会话即可召出（试一句：帮我出今天的日报）`, 8000);
+    } catch (error) {
+      button.disabled = false;
+      button.textContent = sword.bestowed ? '重授新版' : '授予侠客';
+      showToast(error.message || '此剑未能出鞘，请再试。', 4000);
+    }
+  });
+  document.getElementById('temperBtn').addEventListener('click', () => { if (!demoBlocked()) openTemperSheet('revise'); });
+  document.getElementById('promoteBtn').addEventListener('click', () => { if (!demoBlocked()) openTemperSheet('promote'); });
+  document.getElementById('cancelTemper').addEventListener('click', () => document.getElementById('temperSheet').classList.remove('open'));
+  document.getElementById('confirmTemper').addEventListener('click', async () => {
+    if (demoBlocked()) return;
+    const why = document.getElementById('temperWhy').value.trim();
+    if (!why) {
+      document.getElementById('temperError').textContent = 'why 不能为空：说不清为什么改，这一炉不开。';
+      document.getElementById('temperWhy').focus();
+      return;
+    }
+    const button = document.getElementById('confirmTemper');
+    button.disabled = true;
+    button.textContent = '淬炼中…';
+    try {
+      const result = await api('temper', {method: 'POST', body: {sword_id: state.activeSword.id, why, action: state.temperAction}});
+      state.activeSword.version = result.version || state.activeSword.version;
+      state.activeSword.status = result.status || state.activeSword.status;
+      state.activeSword.why_log = Array.isArray(result.why_log) ? result.why_log : state.activeSword.why_log;
+      if (result.skill_md) state.activeSword.skill_md = result.skill_md;
+      renderArmory(state.armory);
+      openSwordDrawer(state.activeSword.id, state.drawerTrigger);
+      api('profile').then(renderProfile).catch(() => {});
+      showToast(state.temperAction === 'promote' ? '此剑已转正入谱' : `此剑已淬火至 ${state.activeSword.version}`);
+    } catch (error) {
+      document.getElementById('temperError').textContent = error.message || '淬火未成，请再试。';
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  document.querySelectorAll('[data-source]').forEach(button => button.addEventListener('click', () => {
+    selectSource(button.dataset.source);
+    setError('');
+  }));
+
+  document.getElementById('sessionFile').addEventListener('change', event => {
+    const file = event.target.files[0];
+    document.getElementById('fileName').textContent = file?.name || '本机卷宗只取路径，不上传远端';
+    if (file) setCharge(file.name, `本机择取 · ${Math.max(1, Math.round(file.size / 1024)).toLocaleString('zh-CN')} KB`);
+  });
+
+  document.getElementById('reflectBtn').addEventListener('click', async () => {
+    if (demoBlocked()) return;
+    const input = document.getElementById('sessionInput');
+    const file = document.getElementById('sessionFile').files[0];
+    const body = state.source === 'paste'
+      ? {source: 'paste', content: input.value.trim()}
+      : {source: 'file', path: file?.name || state.prospectPath || ''};
+    if ((state.source === 'paste' && !body.content) || (state.source === 'file' && !body.path)) {
+      setError(state.source === 'paste' ? '炉中无料：请先贴入一段完整会话。' : '尚未择卷：请先选一册 jsonl 卷宗。');
+      return;
+    }
+    setError('');
+    const button = document.getElementById('reflectBtn');
+    button.disabled = true;
+    document.getElementById('ironSection').classList.remove('show');
+    document.getElementById('swordResult').classList.remove('show');
+    setForgeLoading(true, '反思中…');
+    if (state.charge) setChargeState('烧炼中', true);
+    try {
+      const result = await api('reflect', {method: 'POST', body});
+      renderIrons(result.irons || []);
+      if (state.charge) setChargeState('已出铁', false);
+      setForgeLoading(false, `出铁 ${result.irons?.length || 0} 块`);
+      document.getElementById('forgeStatusLine').textContent = '原话为锚，品级只论复用价值';
+    } catch (error) {
+      setError(error.message || '反思炉熄火了，请再试一次。');
+      if (state.charge) setChargeState('炉内待烧', false);
+      setForgeLoading(false, '炉火暂熄');
+      document.getElementById('forgeStatusLine').textContent = '材料仍在，可重燃一炉';
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  document.getElementById('forgeBtn').addEventListener('click', async () => {
+    if (demoBlocked()) return;
+    if (!state.selectedIrons.size) return;
+    const button = document.getElementById('forgeBtn');
+    const reforging = Boolean(state.reforge);
+    button.disabled = true;
+    setForgeLoading(true, reforging ? '重锻中…' : '锻造中…');
+    try {
+      const result = reforging
+        ? await api('reforge', {method: 'POST', body: {scroll_path: state.reforge.path, iron_ids: [...state.selectedIrons]}})
+        : await api('forge', {method: 'POST', body: {iron_ids: [...state.selectedIrons]}});
+      document.getElementById('newSwordName').textContent = result.sword.name;
+      document.getElementById('newSwordVersion').textContent = result.sword.version;
+      document.getElementById('skillPreview').textContent = result.sword.skill_md;
+      const newSword = {
+        ...result.sword,
+        kind: '剑',
+        status: 'draft',
+        why_log: [{v: result.sword.version, why: reforging ? `重锻自外来名剑《${state.reforge.name}》` : '初锻', at: new Date().toISOString().slice(0, 10)}]
+      };
+      state.armory = [newSword, ...state.armory.filter(item => item.id !== newSword.id)];
+      renderArmory(state.armory);
+      // 回拉一次兵器架：谱系（铁快照）只有后端有，不回拉的话新剑抽屉里的用料清单是空的
+      api('armory').then(renderArmory).catch(() => {});
+      api('profile').then(renderProfile).catch(() => {});
+      document.getElementById('swordResult').classList.add('show');
+      setForgeLoading(false, '剑成 · 尚待试锋');
+      document.getElementById('forgeStatusLine').textContent = '先以草稿斩活，真跑过再转正';
+      document.getElementById('swordResult').scrollIntoView({behavior: 'smooth', block: 'start'});
+      if (reforging) {
+        showToast(`《${state.reforge.name}》已重锻为你的版本 v0.1——改动点见剑上「重锻记」`, 6000);
+        exitReforge();
+      } else {
+        showToast('新剑 v0.1 已归入草稿架');
+      }
+    } catch (error) {
+      setError(error.message || '这一锤落空了，请重锻。');
+      setForgeLoading(false, '炉火暂熄');
+    } finally {
+      button.disabled = state.selectedIrons.size === 0;
+    }
+  });
+
+  // demo 位跟着档案一起到——它是后端唯一告诉前端"这台炉子在路演现场"的地方
+  api('profile').then(profile => {
+    state.demo = Boolean(profile?.demo);
+    // 观剑模式的门面开关：横幅与开屏徽标都挂在这个 class 上，只此一处
+    document.body.classList.toggle('demo-mode', state.demo);
+    renderProfile(profile);
+  }).catch(error => {
+    document.getElementById('profileName').textContent = '档案未载入';
+    document.getElementById('profileTitle').textContent = error.message;
+  });
+  fetch('static/mock.json')
+    .then(response => response.ok ? response.json() : Promise.reject())
+    .then(mock => renderTokenBurned(mock.token_burned))
+    .catch(() => renderTokenBurned(0));
+  api('armory').then(renderArmory).catch(error => {
+    document.getElementById('armoryGrid').innerHTML = `<div class="message show">${escapeHtml(error.message || '兵器架未能载入')}</div>`;
+  });
+  Promise.all([api('prospect'), api('prospect_banner')])
+    .then(([mines, banner]) => renderProspect({mines, banner}))
+    .catch(() => document.getElementById('prospectError').classList.add('show'));
+  api('manifest').then(renderWeapons).catch(error => {
+    document.getElementById('weaponsGrid').innerHTML = `<div class="message show">${escapeHtml(error.message || '兵器谱未能展开')}</div>`;
+  });
+  document.getElementById('exitReforge').addEventListener('click', exitReforge);
+  api('manifest').then(renderForeignScrolls).catch(() => {
+    document.getElementById('foreignScrolls').innerHTML = '<p class="foreign-hint">外来名剑未能载入。</p>';
+  });
+  api('manifest').then(renderScrolls).catch(error => {
+    document.getElementById('featuredScrollName').textContent = '秘籍未能展开';
+    document.getElementById('featuredScrollQuote').textContent = error.message;
+  });
+</script>
+</body></html>

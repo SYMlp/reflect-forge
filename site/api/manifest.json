@@ -1,0 +1,92 @@
+{
+ "weapons": [
+  {
+   "name": "剑",
+   "live": true
+  },
+  {
+   "name": "刀",
+   "live": false
+  },
+  {
+   "name": "枪",
+   "live": false
+  },
+  {
+   "name": "棍",
+   "live": false
+  },
+  {
+   "name": "斧",
+   "live": false
+  },
+  {
+   "name": "钺",
+   "live": false
+  },
+  {
+   "name": "钩",
+   "live": false
+  },
+  {
+   "name": "叉",
+   "live": false
+  },
+  {
+   "name": "鞭",
+   "live": false
+  },
+  {
+   "name": "锏",
+   "live": false
+  },
+  {
+   "name": "锤",
+   "live": false
+  },
+  {
+   "name": "抓",
+   "live": false
+  },
+  {
+   "name": "镋",
+   "live": false
+  },
+  {
+   "name": "棒",
+   "live": false
+  },
+  {
+   "name": "槊",
+   "live": false
+  },
+  {
+   "name": "戟",
+   "live": false
+  },
+  {
+   "name": "弓",
+   "live": false
+  },
+  {
+   "name": "盾",
+   "live": false
+  }
+ ],
+ "featured_scroll": {
+  "name": "前辈剑谱·why 三问",
+  "desc": "一位带 AI 团队的前辈三小时深谈提炼",
+  "cited": "今晨为本产品定 why 时引用——动词不是 why，why 一定是描述性的"
+ },
+ "foreign_scrolls": [
+  {
+   "id": "drawio-skill",
+   "name": "drawio-skill",
+   "path": "~/.claude/skills/drawio-skill/SKILL.md",
+   "lines": 354,
+   "origin": "外来开源剑",
+   "desc": "Agents365-ai 开源的 draw.io 制图 skill：31 个脚本、完整 XML 作图规约、导出链路俱全。骨架是好东西，缺的是你的判断。"
+  }
+ ],
+ "scrolls_locked_rest": true
+}

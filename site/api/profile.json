@@ -1,0 +1,33 @@
+{
+ "name": "Tim",
+ "title": "初见炉火",
+ "level": "见习锻造师",
+ "exp": {
+  "reflect_sessions": 2,
+  "swords_forged": 3,
+  "swords_promoted": 2,
+  "works_slain": 79
+ },
+ "temper_rate": 0.67,
+ "demo": true,
+ "next_level_req": {
+  "level": "初级锻造师",
+  "title": "铁屑初扬",
+  "reflect_sessions": 3,
+  "swords_forged": 1,
+  "swords_promoted": 0,
+  "works_slain": 3,
+  "met": {
+   "reflect_sessions": false,
+   "swords_forged": true,
+   "swords_promoted": true,
+   "works_slain": true
+  },
+  "current": {
+   "reflect_sessions": 2,
+   "swords_forged": 3,
+   "swords_promoted": 2,
+   "works_slain": 79
+  }
+ }
+}

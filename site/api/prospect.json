@@ -1,0 +1,92 @@
+[
+ {
+  "file": "2026-08-29-build-day.jsonl",
+  "path": "demo/reflect-forge/2026-08-29-build-day.jsonl",
+  "project": "reflect-forge",
+  "date": "2026-08-29",
+  "size_kb": 428.6,
+  "assay": "富矿",
+  "note": "从头搭一台炉子，判断密度最高的一场"
+ },
+ {
+  "file": "2026-08-28-design-review.jsonl",
+  "path": "demo/reflect-forge/2026-08-28-design-review.jsonl",
+  "project": "reflect-forge",
+  "date": "2026-08-28",
+  "size_kb": 212.4,
+  "assay": "富矿",
+  "note": "为什么等级不拿转正率判，掰得很透"
+ },
+ {
+  "file": "2026-08-27-api-contract.jsonl",
+  "path": "demo/demo-workspace/2026-08-27-api-contract.jsonl",
+  "project": "demo-workspace",
+  "date": "2026-08-27",
+  "size_kb": 156.9,
+  "assay": "富矿",
+  "note": "契约先行 vs 边写边定，有一次真返工"
+ },
+ {
+  "file": "2026-08-26-refactor-notes.jsonl",
+  "path": "demo/demo-workspace/2026-08-26-refactor-notes.jsonl",
+  "project": "demo-workspace",
+  "date": "2026-08-26",
+  "size_kb": 98.3,
+  "assay": "贫矿",
+  "note": "大半是改名和挪目录，成不了形"
+ },
+ {
+  "file": "2026-08-25-onboarding-walk.jsonl",
+  "path": "demo/sample-notes/2026-08-25-onboarding-walk.jsonl",
+  "project": "sample-notes",
+  "date": "2026-08-25",
+  "size_kb": 341.2,
+  "assay": "富矿",
+  "note": "带新人读一遍代码，讲法本身就是流程"
+ },
+ {
+  "file": "2026-08-24-bug-hunt.jsonl",
+  "path": "demo/sample-notes/2026-08-24-bug-hunt.jsonl",
+  "project": "sample-notes",
+  "date": "2026-08-24",
+  "size_kb": 187.5,
+  "assay": "未验",
+  "note": ""
+ },
+ {
+  "file": "2026-08-23-weekly-wrap.jsonl",
+  "path": "demo/playground/2026-08-23-weekly-wrap.jsonl",
+  "project": "playground",
+  "date": "2026-08-23",
+  "size_kb": 64.8,
+  "assay": "贫矿",
+  "note": "只是把待办念了一遍"
+ },
+ {
+  "file": "2026-08-22-prompt-tuning.jsonl",
+  "path": "demo/playground/2026-08-22-prompt-tuning.jsonl",
+  "project": "playground",
+  "date": "2026-08-22",
+  "size_kb": 273.1,
+  "assay": "富矿",
+  "note": "锚不在原文里就丢——这条闸门是这儿定的"
+ },
+ {
+  "file": "2026-08-21-demo-rehearsal.jsonl",
+  "path": "demo/reflect-forge/2026-08-21-demo-rehearsal.jsonl",
+  "project": "reflect-forge",
+  "date": "2026-08-21",
+  "size_kb": 119.7,
+  "assay": "未验",
+  "note": ""
+ },
+ {
+  "file": "2026-08-20-scratch-ideas.jsonl",
+  "path": "demo/playground/2026-08-20-scratch-ideas.jsonl",
+  "project": "playground",
+  "date": "2026-08-20",
+  "size_kb": 41.2,
+  "assay": "贫矿",
+  "note": "开头几乎没有内容，成不了形"
+ }
+]
