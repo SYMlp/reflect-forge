@@ -12,6 +12,13 @@ VibeHacks #05 参赛完成（路演被锣截断、核心判断段未讲完，但
 
 **P0.5 · 公网站脱机化（v2 第一单，约 1 小时）**
 0. 静态快照 + GitHub Pages：demo 模式下全站语义已是纯静态——导出脚本抓全部 GET 响应成 api/*.json 快照 + index.html + static/，api() 加静态模式开关（POST 拦截前端已有）；开 Pages、forge.lsrabbit.space DNS 从隧道 CNAME 改指 symlp.github.io（域名不变故 vibecafe 遥测 Origin 白名单继续有效、小红书链接不变）；最后删隧道 forge 路由——站与作者电脑彻底解耦。当前状态：站活在本机 7713 经隧道，电脑关机即死，评选期电脑保持常开。
+   **2026-08-30 升急**：链接已发给真实收件人（效仪哥，锻造台 B 端首个真实场景候选）——站的活性挂在作者电脑上，对方哪天点开撞 1033 第一印象就没了。
+   **同日定位拍板**：B 端「相辅相成/最后一公里」叙事判为**讲法**，why 不换轴（§0 不动）；讲法只进 README/对外介绍层。
+
+   **2026-08-30 前半段已落（快照导出 + 静态模式 + Pages 就绪）**：
+   - 做了什么：① `scripts/export_static.py`——自起 FORGE_DEMO=1 专用实例（随机高位端口，抓完即关，7713 只读实例作兜底数据源）抓全部 6 个 GET（契约 5 个 + 前端真在调的 prospect_banner）存 `site/api/*.json`，复制 index.html（注入 `window.STATIC_MODE=true`）与 static/，写 CNAME + .nojekyll，导出前验 profile.demo=true；② 源 index.html 的 api() 加**休眠**静态分支——置位时 GET 读相对路径 `api/<name>.json`、POST 拒绝（第一道闸仍是快照 demo 位走 demoBlocked），未注入开关时行为不变；③ Pages 开通：分支发布实测只认 `/` 或 `/docs`，选 **build_type=workflow** + `.github/workflows/pages.yml`（零构建纯上传 site/，不挪 docs/），自定义域已在 GitHub 侧登记 forge.lsrabbit.space。
+   - 验证读数：workflow run 33263855407 success；`https://symlp.github.io/reflect-forge/` 首页与 6 份 api json、static 资源全部 200，页面含注入开关；本机回归 7712 profile 200（demo=false）、7713 首页 200（无注入开关，休眠分支不触发）；隧道 forge.lsrabbit.space 仍 200（未动）。设 cname 后 github.io 尚未出 301（DNS 未切、域名健康检查未过），内容验证以 github.io 直读 200 为准。
+   - 遗留点（等用户点头后半段执行）：DNS 把 forge.lsrabbit.space 的 CNAME 从隧道改指 symlp.github.io → 等 GitHub 域名验证过、https_enforced 打开 → 删隧道 forge 路由。切换前公网站继续由隧道承接，零空窗。
 
 **P0 · 可验证性与人工线地基**
 1. **session 标题化 / 人话密度初筛**——料无脸则人工点射线的判断权是空的（"真正病因不是没料，是认不出"）；人话密度=含思考量的天然信号，sonnet 打标第一特征
