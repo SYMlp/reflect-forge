@@ -102,9 +102,9 @@ def bump_works_slain(n=1):
 
 # ── 等级引擎（DESIGN §5，四维全达标才晋升） ──────────────────────────
 
-# 门槛表照抄 DESIGN §5。注意第三维：设计稿写的是「转正剑」（把数），
-# 契约 exp 里给前端的是 temper_rate（转正率）——门槛按把数判，经验条按率画，
-# 两个读数都在 next_level_req 里给全，前端不用自己换算。
+# 门槛表照抄 DESIGN §5。契约修正 2026-08-29：晋升四维**全部是单调计数**，
+# 第三维用 swords_promoted（转正把数）直接对表；temper_rate（转正率）是个比值，
+# 会因为多锻一把草稿而**倒退**，拿它判级会出现"干得越多掉级"——所以降为展示读数。
 LEVELS = [
     {"level": "见习锻造师", "title": "初见炉火",
      "req": {"reflect_sessions": 0, "swords_forged": 0, "swords_promoted": 0, "works_slain": 0}},
@@ -148,11 +148,10 @@ def compute_exp():
     return {
         "reflect_sessions": count_reflect_sessions(),
         "swords_forged": forged,
-        # 一把剑都没锻时转正率是 0 不是 1——没开炉不能算满分
-        "temper_rate": round(promoted / forged, 2) if forged else 0.0,
-        "works_slain": int(cfg["works_slain_base"]) + int(prof.get("works_slain_delta") or 0),
-        # 门槛判定用的把数（契约 exp 四字段之外的内部读数）
         "swords_promoted": promoted,
+        "works_slain": int(cfg["works_slain_base"]) + int(prof.get("works_slain_delta") or 0),
+        # 不判级，只在档案卡上当"质量"读数。一把剑都没锻时是 0 不是 1——没开炉不能算满分
+        "temper_rate": round(promoted / forged, 2) if forged else 0.0,
     }
 
 
@@ -174,12 +173,15 @@ def build_profile():
         "name": read_profile()["name"],
         "title": cur["title"],
         "level": cur["level"],
+        # exp = 晋升四维，四个都是单调计数，和 §5 门槛表逐列对齐
         "exp": {
             "reflect_sessions": exp["reflect_sessions"],
             "swords_forged": exp["swords_forged"],
-            "temper_rate": exp["temper_rate"],
+            "swords_promoted": exp["swords_promoted"],
             "works_slain": exp["works_slain"],
         },
+        # 转正率平级单列：它是质量读数，不是经验值，前端画在档案卡上而不是经验条上
+        "temper_rate": exp["temper_rate"],
         "next_level_req": None,
     }
     if nxt:
@@ -400,7 +402,261 @@ def reflect(source, content="", path=""):
     return {"irons": irons, "session_hash": session_hash, "dropped": len(dropped)}
 
 
+# ── 锻剑炉 ────────────────────────────────────────────────────────
+
+FORGE_TEMPLATE = PROMPTS / "forge.md"
+REVISE_TEMPLATE = PROMPTS / "revise.md"
+SKILL_SPLIT = "=== SKILL.md ==="
+
+
+def load_all_irons():
+    """铁按 session 分文件存，锻剑要按 id 取——这里摊平成一张 id → 铁 的索引。"""
+    index = {}
+    for f in sorted(IRONS.glob("*.json")):
+        try:
+            rec = json.loads(f.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        for it in rec.get("irons") or []:
+            if it.get("id"):
+                index[it["id"]] = it
+    return index
+
+
+def iron_line(it):
+    """喂给锻剑 prompt 的一行铁。原话锚一起带上——它是这把剑判据的骨头。"""
+    line = "- [{}] {}（{}·{}）原话：「{}」".format(
+        it.get("id"), it.get("text", ""), it.get("kind", ""),
+        it.get("grade", ""), it.get("anchor", ""))
+    cite = it.get("cite") or {}
+    if cite.get("name"):
+        line += " ← 引用{}《{}》".format(cite.get("kind", "秘籍"), cite["name"])
+    return line
+
+
+def build_forge_prompt(scene, irons):
+    tpl = FORGE_TEMPLATE.read_text(encoding="utf-8")
+    body = "\n".join(iron_line(i) for i in irons) or "（这一炉没有铁，全凭场景锻）"
+    return (tpl.replace("{scene}", scene or "（锻造师没另说场景，就照这些铁锻）")
+               .replace("{irons}", body))
+
+
+def strip_fence(text):
+    """CLI 爱把整份 markdown 包一层 ```——扒掉，不然 frontmatter 认不出来。"""
+    t = text.strip()
+    m = re.match(r"```[a-zA-Z]*\s*\n(.*?)\n?```\s*$", t, re.S)
+    return m.group(1).strip() if m else t
+
+
+def parse_frontmatter(md):
+    m = re.match(r"---\s*\n(.*?)\n---", md, re.S)
+    if not m:
+        return {}
+    out = {}
+    for line in m.group(1).split("\n"):
+        if ":" in line and not line.startswith(" "):
+            k, v = line.split(":", 1)
+            out[k.strip()] = v.strip().strip('"\'')
+    return out
+
+
+def split_forge_output(raw):
+    """锻剑输出 = 两行元数据 + 分隔线 + 整份 SKILL.md。分隔线丢了就退回找第一个 ---。"""
+    text = strip_fence(raw)
+    if SKILL_SPLIT in text:
+        head, md = text.split(SKILL_SPLIT, 1)
+    else:
+        i = text.find("\n---")
+        if i < 0:
+            raise ForgeError("bad_output", "锻剑炉没吐出 SKILL.md", raw)
+        head, md = text[:i], text[i:]
+    md = strip_fence(md)
+    # 炉子偶尔会把 prompt 尾巴上的铁料清单当成 SKILL.md 的第四节抄下来。
+    # prompt 已经改结构堵过一次，这里再加一道硬闸——剑上不许挂着料单出厂
+    md = re.split(r"\n#+\s*(?:铁料|选中的铁|锻造师给的场景)\s*\n", md)[0].rstrip()
+    if not md.startswith("---"):
+        raise ForgeError("bad_output", "锻出来的东西没有 frontmatter，不是一份合格的 SKILL.md", raw)
+    m = re.search(r"剑名\s*[:：]\s*(.+)", head)
+    sword_name = (m.group(1).strip().strip("<>「」") if m else "").strip()
+    m = re.search(r"选铁\s*[:：]\s*(.+)", head)
+    picked = re.split(r"[,，、\s]+", m.group(1).strip()) if m else []
+    return sword_name, [p for p in picked if p and p != "无"], md
+
+
+SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+
+
+def new_sword_id(skill_name, sword_name):
+    """剑的目录名走 frontmatter 的 kebab name——它将来就是 skill 目录名，一脉相承。"""
+    base = re.sub(r"[^a-z0-9]+", "-", (skill_name or "").lower()).strip("-")
+    if not base:
+        base = "sword-" + hashlib.sha1(sword_name.encode("utf-8")).hexdigest()[:6]
+    sid, n = base, 2
+    while (SWORDS / sid).exists():
+        sid, n = "{}-{}".format(base, n), n + 1
+    return sid
+
+
+def forge(iron_ids=None, scene=""):
+    index = load_all_irons()
+    iron_ids = [i for i in (iron_ids or []) if i]
+    scene = (scene or "").strip()
+
+    if iron_ids:
+        picked = [index[i] for i in iron_ids if i in index]
+        if not picked:
+            raise ForgeError("no_iron", "这些铁不在料堆里：{}".format("、".join(iron_ids)))
+    elif scene:
+        # 一句话场景：把整堆铁当料库摆给炉子，让它自己挑（选件思路，从 component-forge 搬）
+        picked = list(index.values())
+    else:
+        raise ForgeError("bad_request", "锻剑得给料：要么给 iron_ids，要么说一句 scene")
+
+    log("锻剑炉开火：铁 {} 块 / 场景「{}」".format(len(picked), scene[:30]))
+    raw = call_claude(build_forge_prompt(scene, picked), timeout=180)
+    sword_name, chosen, skill_md = split_forge_output(raw)
+
+    fm = parse_frontmatter(skill_md)
+    skill_name = fm.get("name", "")
+    sword_name = sword_name or skill_name or "无名剑"
+    # 明确点了名的铁一定算数；scene 模式才信炉子自己报的选铁
+    used = iron_ids or [c for c in chosen if c in index]
+
+    sid = new_sword_id(skill_name, sword_name)
+    d = SWORDS / sid
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "SKILL.md").write_text(skill_md + "\n", encoding="utf-8")
+    meta = {
+        "id": sid,
+        "name": sword_name,
+        "kind": "剑",
+        "status": "draft",
+        "version": "v0.1",
+        "why_log": [{"v": "v0.1", "why": "初锻", "at": _now()}],
+        "skill_path": "data/swords/{}/SKILL.md".format(sid),
+        "skill_name": skill_name,
+        "description": fm.get("description", ""),
+        "triggers": fm.get("triggers", ""),
+        "iron_ids": used,
+        "scene": scene,
+        "created": _now(),
+    }
+    (d / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2),
+                                 encoding="utf-8")
+    # 锻成一把剑 = 一件活被斩透了。斩活数是四维里唯一"人干的"那一维，只在这里涨
+    bump_works_slain()
+    log("剑成：{}（{}）← 铁 {} 块 → {}".format(sword_name, sid, len(used), meta["skill_path"]))
+    return {"sword": {"id": sid, "name": sword_name, "version": "v0.1",
+                      "skill_md": skill_md, "iron_ids": used,
+                      "description": meta["description"]}}
+
+
+# ── 淬火炉（转正 / 改版） ──────────────────────────────────────────
+
+def read_sword(sword_id):
+    sid = (sword_id or "").strip()
+    # id 直接拼路径，先挡住 ../ 这类越界写法
+    if not SAFE_ID.match(sid):
+        raise ForgeError("bad_request", "剑号不合法：{}".format(sword_id))
+    f = SWORDS / sid / "meta.json"
+    if not f.exists():
+        raise ForgeError("not_found", "兵器架上没有这把剑：{}".format(sid))
+    return SWORDS / sid, json.loads(f.read_text(encoding="utf-8"))
+
+
+def bump_version(v):
+    m = re.match(r"v?(\d+)\.(\d+)", (v or "v0.1").strip())
+    major, minor = (int(m.group(1)), int(m.group(2))) if m else (0, 1)
+    minor += 1
+    if minor >= 10:
+        major, minor = major + 1, 0
+    return "v{}.{}".format(major, minor)
+
+
+def build_revise_prompt(skill_md, why, patch=""):
+    tpl = REVISE_TEMPLATE.read_text(encoding="utf-8")
+    hint = "## 锻造师另外指了改法\n\n{}".format(patch.strip()) if (patch or "").strip() else ""
+    return (tpl.replace("{skill_md}", skill_md)
+               .replace("{why}", why.strip())
+               .replace("{patch}", hint))
+
+
+def temper(sword_id, action, why, patch=""):
+    why = (why or "").strip()
+    # 产品红线：淬火必带一行 why。没有 why 的版本变更 = 一条断掉的推导链，
+    # 而这个产品卖的就是"每把剑为什么长成这样都留得下来"
+    if not why:
+        raise ForgeError("no_why", "淬火必带一行 why——说不出为什么改，这一炉就不开")
+    if action not in ("promote", "revise"):
+        raise ForgeError("bad_request", "action 只认 promote 或 revise")
+
+    d, meta = read_sword(sword_id)
+    md_file = d / "SKILL.md"
+    meta.setdefault("why_log", [])
+
+    if action == "promote":
+        meta["status"] = "forged"
+        meta["why_log"].append({"v": meta.get("version", "v0.1"), "why": why, "at": _now()})
+        log("转正：{}（{}）— {}".format(meta.get("name"), meta.get("version"), why[:40]))
+    else:
+        old = md_file.read_text(encoding="utf-8") if md_file.exists() else ""
+        if not old.strip():
+            raise ForgeError("not_found", "这把剑的 SKILL.md 不见了，改不动")
+        log("淬火：{} 按 why 改写 — {}".format(meta.get("name"), why[:40]))
+        new_md = strip_fence(call_claude(build_revise_prompt(old, why, patch), timeout=180))
+        if not new_md.startswith("---"):
+            raise ForgeError("bad_output", "淬火炉吐的不是完整 SKILL.md", new_md[:400])
+        meta["version"] = bump_version(meta.get("version"))
+        md_file.write_text(new_md + "\n", encoding="utf-8")
+        fm = parse_frontmatter(new_md)
+        if fm.get("description"):
+            meta["description"] = fm["description"]
+        meta["why_log"].append({"v": meta["version"], "why": why, "at": _now()})
+
+    (d / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2),
+                                 encoding="utf-8")
+    out = {"version": meta.get("version"), "why_log": meta["why_log"],
+           "status": meta.get("status")}
+    if action == "revise":
+        out["skill_md"] = md_file.read_text(encoding="utf-8")
+    return out
+
+
+# ── 兵器架 ────────────────────────────────────────────────────────
+
+def armory():
+    """why_log 全量给出去——前端画的那条时间线就是这个产品的核心证据。"""
+    out = []
+    for m in list_sword_metas():
+        out.append({
+            "id": m.get("id"),
+            "name": m.get("name"),
+            "kind": "剑",
+            "status": m.get("status", "draft"),
+            "version": m.get("version", "v0.1"),
+            "why_log": m.get("why_log") or [],
+            "skill_path": m.get("skill_path") or "data/swords/{}/SKILL.md".format(m.get("id")),
+            "description": m.get("description", ""),
+            "iron_ids": m.get("iron_ids") or [],
+            "created": m.get("created", ""),
+        })
+    # 新锻的排前面，demo 时刚出炉那把一眼就在顶上
+    out.sort(key=lambda s: s.get("created") or "", reverse=True)
+    return out
+
+
 # ── HTTP ─────────────────────────────────────────────────────────
+
+# 料不对 → 4xx（前端提示用户改输入）；炉子出问题 → 502（前端提示重试/看日志）
+STAGE_CODES = {
+    "bad_request": 400,
+    "too_short": 400,
+    "no_file": 400,
+    "no_iron": 400,
+    "no_why": 400,   # 产品红线走的就是这一条
+    "not_found": 404,
+}
+
 
 class Handler(BaseHTTPRequestHandler):
     server_version = "ReflectForge/0.1"
@@ -450,6 +706,9 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/profile":
                 return self._json(build_profile())
 
+            if path == "/api/armory":
+                return self._json(armory())
+
             if path in ("/", "/index.html"):
                 f = ROOT / "index.html"
                 if not f.exists():
@@ -481,12 +740,20 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(reflect(source, data.get("content") or "",
                                           data.get("path") or ""))
 
+            if path == "/api/forge":
+                return self._json(forge(data.get("iron_ids"), data.get("scene") or ""))
+
+            if path == "/api/temper":
+                return self._json(temper(data.get("sword_id") or "",
+                                         data.get("action") or "promote",
+                                         data.get("why") or "",
+                                         data.get("patch") or ""))
+
             return self._json({"error": "unknown route: " + path}, 404)
         except ForgeError as e:
             log("烧糊了[{}]：{}".format(e.stage, e.message))
             # 4xx = 你给的料不对，5xx = 炉子自己出问题。前端要按这个分错误态
-            code = 400 if e.stage in ("bad_request", "too_short", "no_file") else 502
-            return self._err(e, code)
+            return self._err(e, STAGE_CODES.get(e.stage, 502))
         except Exception as e:
             log("意外炸炉：{}: {}".format(type(e).__name__, e))
             return self._err(e)
