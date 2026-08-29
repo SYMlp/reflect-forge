@@ -336,8 +336,16 @@
   .exp-item { min-width: 0; }
   .exp-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 7px; color: var(--muted); font-size: 13px; white-space: nowrap; }
   .exp-head strong { color: var(--paper-100); font-size: 16px; font-variant-numeric: tabular-nums; }
+  /* 已达维度只报数不报分母：门槛已成往事，留着分母只会让人算除法 */
+  .exp-item.met .exp-head strong { color: var(--gold); }
+  .exp-flag { margin-left: 5px; font-style: normal; font-size: 12px; letter-spacing: .04em; }
+  .exp-item.met .exp-flag { color: var(--gold); }
+  /* 未达维度是瓶颈位：火星色把"还差多少"顶到眼前 */
+  .exp-item.gap .exp-flag { color: var(--ember-hot); font-weight: 600; font-size: 13px; }
   .exp-track { position: relative; height: 5px; overflow: hidden; background: #0c0b09; border: 1px solid rgba(255, 255, 255, .05); }
+  .exp-item.met .exp-track { border-color: rgba(201, 164, 87, .35); }
   .exp-fill { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #8d4b25, var(--ember-hot)); box-shadow: 0 0 12px rgba(239, 142, 55, .5); transition: width 900ms cubic-bezier(.2,.8,.2,1); }
+  .exp-item.met .exp-fill { background: linear-gradient(90deg, #8a6a2c, var(--gold)); box-shadow: 0 0 12px rgba(201, 164, 87, .55); }
   .quality-readout { text-align: center; border-left: 1px solid var(--line); padding-left: 22px; }
   .quality-readout span { display: block; color: var(--muted); font-size: 13px; letter-spacing: .12em; }
   .quality-readout strong { display: block; margin-top: 2px; color: var(--gold); font: 700 27px/1.2 var(--display); font-variant-numeric: tabular-nums; }
@@ -1109,10 +1117,15 @@
     document.getElementById('expGrid').innerHTML = Object.entries(expLabels).map(([key, label]) => {
       const current = Number(profile.exp[key] || 0);
       const target = Number(req[key] || current || 1);
-      const percent = Math.min(100, Math.round(current / target * 100));
-      const met = req.met ? req.met[key] : current >= target;
-      return `<div class="exp-item" title="${escapeHtml(req.level || profile.level)}门槛：${target}">
-        <div class="exp-head"><span>${label}${met ? ' · 已达' : ''}</span><strong>${current}<small> / ${target}</small></strong></div>
+      const maxed = !req.level;
+      const met = maxed || (req.met ? req.met[key] : current >= target);
+      const percent = met ? 100 : Math.min(100, Math.round(current / target * 100));
+      // 已达：只报数 + 金色小徽，分母收进 title；未达：留分母并把差额亮成火星
+      const readout = met ? `${current}` : `${current}<small> / ${target}</small>`;
+      const flag = met ? '<em class="exp-flag">已达</em>' : `<em class="exp-flag">差 ${target - current}</em>`;
+      const hint = maxed ? '已至锻造之神，无上可攀' : `${escapeHtml(req.level)}门槛：${target}`;
+      return `<div class="exp-item ${met ? 'met' : 'gap'}" title="${hint}">
+        <div class="exp-head"><span>${label}${flag}</span><strong>${readout}</strong></div>
         <div class="exp-track"><i class="exp-fill" data-width="${percent}%"></i></div>
       </div>`;
     }).join('');
