@@ -375,6 +375,14 @@
   .file-source label { display: inline-block; padding: 9px 18px; border: 1px solid var(--gold); color: var(--paper-200); cursor: pointer; }
   .file-source input { position: absolute; opacity: 0; pointer-events: none; }
   .file-note { margin: 10px 0 0; color: var(--muted); font-size: 14px; }
+  .file-source.charged { height: 150px; }
+  .charge-card { display: none; align-items: center; gap: 18px; margin-top: 14px; padding: 18px 22px; border: 1px solid var(--gold); background: rgba(229,138,53,.09); }
+  .charge-card.show { display: flex; }
+  .charge-body { flex: 1; min-width: 0; }
+  .charge-body strong { display: block; overflow: hidden; color: var(--paper-100); font: 600 22px/1.4 var(--body); text-overflow: ellipsis; white-space: nowrap; }
+  .charge-body span { color: var(--iron-500); font-size: 15px; }
+  .charge-badge { flex: none; padding: 8px 16px; border: 1px solid #a57b35; color: #edbd63; font: 700 17px/1.2 var(--display); letter-spacing: .14em; }
+  .charge-badge.burning { border-color: var(--ember-hot); color: var(--ember-hot); background: rgba(229,138,53,.18); }
 
   .action-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-top: 20px; }
   .fire-cost { margin: 0; color: var(--muted); font-size: 14px; }
@@ -683,6 +691,13 @@
                   <p class="file-note" id="fileName">本机卷宗只取路径，不上传远端</p>
                 </div>
               </div>
+              <div class="charge-card" id="chargeCard">
+                <div class="charge-body">
+                  <strong id="chargeFile"></strong>
+                  <span id="chargeMeta"></span>
+                </div>
+                <span class="charge-badge" id="chargeBadge">炉内待烧</span>
+              </div>
               <div class="message" id="reflectError" role="alert"></div>
               <div class="action-row">
                 <p class="fire-cost">此炉需烧一簇<b>火</b> · 真炉约候半炷香</p>
@@ -888,7 +903,8 @@
     activeSword: null,
     temperAction: 'revise',
     drawerTrigger: null,
-    prospectPath: ''
+    prospectPath: '',
+    charge: null
   };
 
   const forgeSayings = [
@@ -1120,17 +1136,41 @@
         <span class="mine-size">${Number(mine.size_kb).toLocaleString('zh-CN')} KB</span>
         <span class="assay-stamp ${assayClass}">${escapeHtml(mine.assay)}</span>
         <span class="mine-note">${escapeHtml(mine.note)}</span>
-        <button class="mine-action" type="button" data-mine-path="${escapeHtml(mine.path || mine.file)}">投炉</button>
+        <button class="mine-action" type="button" data-mine-path="${escapeHtml(mine.path || mine.file)}" data-mine-file="${escapeHtml(mine.file)}" data-mine-project="${escapeHtml(mine.project || 'session 卷宗')}" data-mine-size="${escapeHtml(String(mine.size_kb))}">投炉</button>
       </article>`;
     }).join('');
     rows.querySelectorAll('[data-mine-path]').forEach(button => button.addEventListener('click', () => {
-      state.prospectPath = button.dataset.minePath;
-      state.source = 'file';
+      const mine = button.dataset;
+      state.prospectPath = mine.minePath;
       document.querySelector('[data-tab="reflect"]').click();
       document.querySelector('[data-source="file"]').click();
-      document.getElementById('fileName').textContent = `已从矿脉择取：${state.prospectPath}`;
+      document.getElementById('fileName').textContent = '本机卷宗只取路径，不上传远端';
+      setCharge(mine.mineFile, `${mine.mineProject} · ${Number(mine.mineSize).toLocaleString('zh-CN')} KB`);
       showToast('卷宗已送至反思炉投料口');
     }));
+  }
+
+  function selectSource(source) {
+    state.source = source;
+    document.querySelectorAll('[data-source]').forEach(btn => btn.classList.toggle('active', btn.dataset.source === source));
+    document.getElementById('sessionInput').style.display = source === 'paste' ? 'block' : 'none';
+    document.getElementById('fileSource').classList.toggle('active', source === 'file');
+    document.getElementById('chargeCard').classList.toggle('show', source === 'file' && !!state.charge);
+  }
+
+  function setCharge(file, meta) {
+    state.charge = file;
+    document.getElementById('chargeFile').textContent = file;
+    document.getElementById('chargeMeta').textContent = meta;
+    setChargeState('炉内待烧', false);
+    document.getElementById('fileSource').classList.add('charged');
+    selectSource('file');
+  }
+
+  function setChargeState(text, burning) {
+    const badge = document.getElementById('chargeBadge');
+    badge.textContent = text;
+    badge.classList.toggle('burning', burning);
   }
 
   function renderWeapons(manifest) {
@@ -1246,15 +1286,14 @@
   });
 
   document.querySelectorAll('[data-source]').forEach(button => button.addEventListener('click', () => {
-    state.source = button.dataset.source;
-    document.querySelectorAll('[data-source]').forEach(btn => btn.classList.toggle('active', btn === button));
-    document.getElementById('sessionInput').style.display = state.source === 'paste' ? 'block' : 'none';
-    document.getElementById('fileSource').classList.toggle('active', state.source === 'file');
+    selectSource(button.dataset.source);
     setError('');
   }));
 
   document.getElementById('sessionFile').addEventListener('change', event => {
-    document.getElementById('fileName').textContent = event.target.files[0]?.name || '本机卷宗只取路径，不上传远端';
+    const file = event.target.files[0];
+    document.getElementById('fileName').textContent = file?.name || '本机卷宗只取路径，不上传远端';
+    if (file) setCharge(file.name, `本机择取 · ${Math.max(1, Math.round(file.size / 1024)).toLocaleString('zh-CN')} KB`);
   });
 
   document.getElementById('reflectBtn').addEventListener('click', async () => {
@@ -1273,13 +1312,16 @@
     document.getElementById('ironSection').classList.remove('show');
     document.getElementById('swordResult').classList.remove('show');
     setForgeLoading(true, '反思中…');
+    if (state.charge) setChargeState('烧炼中', true);
     try {
       const result = await api('reflect', {method: 'POST', body});
       renderIrons(result.irons || []);
+      if (state.charge) setChargeState('已出铁', false);
       setForgeLoading(false, `出铁 ${result.irons?.length || 0} 块`);
       document.getElementById('forgeStatusLine').textContent = '原话为锚，品级只论复用价值';
     } catch (error) {
       setError(error.message || '反思炉熄火了，请再试一次。');
+      if (state.charge) setChargeState('炉内待烧', false);
       setForgeLoading(false, '炉火暂熄');
       document.getElementById('forgeStatusLine').textContent = '材料仍在，可重燃一炉';
     } finally {
