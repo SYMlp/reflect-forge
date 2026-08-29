@@ -37,7 +37,8 @@
 - **兵器架**：剑卡网格（剑图+名+版本+状态徽标[草稿/已转正]），点开侧滑详情：SKILL.md 内容 + 淬火记录时间线（每条一行 why）+ 两个按钮「转正」「淬火」（淬火弹窗必填一行 why）
 - **寻料**：矿脉列表（文件名/日期/大小/品级评注），顶部放一行战绩文案（从 mock 读）
 - **兵器谱**：18 般兵器网格，只有"剑"是亮的（实装），其余灰态带"待锻"印章
-- **秘籍阁**：锁定态页面，一句"江湖尚远，敬请期待"+ 卷轴素材，再放"交友/换秘籍/赠剑（需重铸）"三个灰按钮
+- **秘籍阁**：**一本真秘籍实卡** + 其余锁定态。实卡：《前辈剑谱·why 三问》，卷轴素材做封面，desc 一句简介，右上角盖一枚朱砂印「今晨被引用」，卡内引一句"动词不是 why，why 一定是描述性的"（数据从 manifest.featured_scroll 读）。其余区域锁定态："江湖尚远，敬请期待"+"交友/换秘籍/赠剑（需重铸）"三个灰按钮
+- **铁卡引用印**：irons 条目带可选 cite 字段时，铁卡角落渲染一枚小印「引·<cite.name>」（如"引·前辈剑谱"）——这是路演的关键露点，要显眼但不喧宾，朱砂色小方印即可；无 cite 字段则不渲染
 
 ### C. `static/mock.json`（你先造假数据渲染，结构如下，一个字段都不能改）
 
@@ -51,10 +52,13 @@
                  {"v": "v1.0", "why": "转正：真跑三天日报无返工", "at": "2026-08-28"},
                  {"v": "v1.2", "why": "淬火：加了周汇总视角，因为周五要的是趋势不是流水", "at": "2026-08-29"}],
     "skill_path": "swords/sw1/SKILL.md"}],
-  "irons": [{"id": "i1", "text": "报错先看堆栈最底层的 caused by，别从上往下猜", "anchor": "「你先看最底下那个 caused by」", "kind": "判断", "grade": "上品"}],
+  "irons": [{"id": "i1", "text": "报错先看堆栈最底层的 caused by，别从上往下猜", "anchor": "「你先看最底下那个 caused by」", "kind": "判断", "grade": "上品"},
+             {"id": "i2", "text": "产品的 why 必须是描述性状态，不能是动词", "anchor": "「动词就不是 why」", "kind": "判断", "grade": "上品", "cite": {"name": "前辈剑谱·why 三问", "kind": "秘籍"}}],
   "prospect": [{"file": "2026-07-15-session.jsonl", "date": "2026-07-15", "size_kb": 482, "assay": "富矿", "note": "含一次完整排障链路"}],
   "prospect_banner": "上月回捞历史会话 76 场，挖出 900+ 条可复用判断",
-  "manifest": {"weapons": [{"name": "剑", "live": true}, {"name": "刀", "live": false}, {"name": "枪", "live": false}, {"name": "棍", "live": false}, {"name": "斧", "live": false}, {"name": "钺", "live": false}, {"name": "钩", "live": false}, {"name": "叉", "live": false}, {"name": "鞭", "live": false}, {"name": "锏", "live": false}, {"name": "锤", "live": false}, {"name": "抓", "live": false}, {"name": "镋", "live": false}, {"name": "棒", "live": false}, {"name": "槊", "live": false}, {"name": "戟", "live": false}, {"name": "弓", "live": false}, {"name": "盾", "live": false}], "scrolls_locked": true}
+  "manifest": {"weapons": [{"name": "剑", "live": true}, {"name": "刀", "live": false}, {"name": "枪", "live": false}, {"name": "棍", "live": false}, {"name": "斧", "live": false}, {"name": "钺", "live": false}, {"name": "钩", "live": false}, {"name": "叉", "live": false}, {"name": "鞭", "live": false}, {"name": "锏", "live": false}, {"name": "锤", "live": false}, {"name": "抓", "live": false}, {"name": "镋", "live": false}, {"name": "棒", "live": false}, {"name": "槊", "live": false}, {"name": "戟", "live": false}, {"name": "弓", "live": false}, {"name": "盾", "live": false}],
+    "featured_scroll": {"name": "前辈剑谱·why 三问", "desc": "一位带 AI 团队的前辈三小时深谈提炼", "cited": "今晨为本产品定 why 时引用——动词不是 why，why 一定是描述性的"},
+    "scrolls_locked_rest": true}
 }
 ```
 

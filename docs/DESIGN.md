@@ -78,11 +78,15 @@ reflect-forge/
 ```
 GET  /api/profile   → {name, title, level, exp:{reflect_sessions, swords_forged, temper_rate, works_slain}, next_level_req}
 GET  /api/armory    → [{id, name, kind:"剑", status:"draft|forged", version, why_log:[{v, why, at}], skill_path}]
-POST /api/reflect   → 入 {source:"paste"|"file", content|path} 出 {irons:[{id, text, anchor, kind:"判断|经验|流程", grade:"上品|中品|下品"}]}
+POST /api/reflect   → 入 {source:"paste"|"file", content|path} 出 {irons:[{id, text, anchor, kind:"判断|经验|流程", grade:"上品|中品|下品", cite?:{name, kind:"剑|秘籍"}}]}
+                      cite 为可选字段：这块铁的判断引用了已有的剑/秘籍时标注（demo 预跑数据保证至少 1-2 块铁带 cite，体系实证闭环的露点）
 POST /api/forge     → 入 {iron_ids:[..]} 或 {scene:"一句话场景"} 出 {sword:{id, name, version:"v0.1", skill_md}}
 POST /api/temper    → 入 {sword_id, why, action:"promote"|"revise", patch?} 出 {version, why_log}
 GET  /api/prospect  → [{file, date, size_kb, assay:"富矿|贫矿|未验", note}]
-GET  /api/manifest  → {weapons:[{name:"剑", live:true}, {name:"刀", live:false}, ...共18], scrolls_locked:true}
+GET  /api/manifest  → {weapons:[{name:"剑", live:true}, {name:"刀", live:false}, ...共18],
+                      featured_scroll:{name:"前辈剑谱·why 三问", desc:"一位带 AI 团队的前辈三小时深谈提炼", cited:"今晨为本产品定 why 时引用——动词不是 why，why 一定是描述性的"},
+                      scrolls_locked_rest:true}
+                      秘籍阁 = 一本真秘籍实卡（带"今晨被引用"印）+ 其余锁定态
 ```
 
 - 联调前 Codex 前端只吃 `static/mock.json`（同结构假数据），T2 换真接口，改一个 fetch 前缀即可。

@@ -59,7 +59,14 @@ data/profile.json    # 锻造师档案
 - `prospect_banner` 从 config.json 读（真实战绩文案）
 
 ### 7. `GET /api/manifest`
-- 静态返回十八般兵器表（只有剑 live:true）+ scrolls_locked:true，直接抄 mock.json 结构
+- 静态返回十八般兵器表（只有剑 live:true）+ featured_scroll（真秘籍卡数据，从 config.json 读）+ scrolls_locked_rest:true，结构见 DESIGN.md §4 契约
+
+### 8. 契约补充：irons 的 cite 可选字段
+- reflect 的提炼 prompt 里加一条：若某块铁的判断明显引用/延续了已有的剑或秘籍（prompt 里附上兵器架清单+秘籍名），输出 cite:{name, kind}；拿不准就不输出——**宁缺勿滥，假引用比没引用糟**
+- demo 预跑数据（T4）人工保证至少 1-2 块铁带真实 cite——今天上午的 session 里"用冷式 why 判据定 why"就是现成的真引用
+
+### 9. 寻料默认目录
+- config.json 的 session 目录默认指向本项目的 Claude Code 会话记录目录（`~/.claude/projects/d--Project-personal-reflect-forge/`），demo 时寻料列表里躺着的就是今天 build 本产品的 session——自举演示素材
 
 ## 验收（T1 结束时全过）
 
