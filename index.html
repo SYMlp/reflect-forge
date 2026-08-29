@@ -607,7 +607,7 @@
       <p class="hero-eyebrow">Reflect Forge · 今日开炉</p>
       <div class="hero-title-wrap"><h1 id="heroTitle">反思锻造台</h1></div>
       <p class="hero-english">Turn sessions into your own craft</p>
-      <p class="hero-slogan">发下去的是<strong>通用件</strong>，用回来的是<strong>你的件</strong></p>
+      <p class="hero-slogan">没有一份活，该<strong>白干</strong></p>
       <div class="hero-action-row">
         <button class="open-forge-btn" id="openForgeBtn" type="button">开炉</button>
         <p class="hero-action-note">以完整过程为铁 · 以 token 为火</p>
@@ -656,7 +656,7 @@
             <p class="stage-kicker">一炉一得 · 过程不白走</p>
             <h2 id="reflectTitle">把会话里的铁，锻成侠客可用的剑</h2>
           </div>
-          <p class="stage-desc">完整 session 是矿脉，<strong>反思炉不靠记忆猜</strong>。入炉析出判断、经验与流程，再择铁锻成可带走的 SKILL.md。</p>
+          <p class="stage-desc">完整记录是矿脉，<strong>反思炉不靠记忆猜</strong>。入炉捞出你当时的判断、踩过的坑、改过的流程——择好铁，锻成下件活还能用的剑。</p>
         </header>
 
         <div class="forge-grid">
@@ -736,7 +736,7 @@
             <div class="sword-copy">
               <div class="sword-meta"><span>剑 · 草稿</span><span id="newSwordVersion">v0.1</span></div>
               <h3 id="newSwordName">新剑</h3>
-              <p>一把剑是一份可复用的 SKILL.md。锻造师不挥剑，挥剑的是侠客。</p>
+              <p>这把剑能带去下件活直接用。锻造师不挥剑，挥剑的是侠客。</p>
               <details class="skill-preview">
                 <summary>展开查看 SKILL.md</summary>
                 <pre id="skillPreview"></pre>
@@ -796,7 +796,7 @@
         <section class="weapons-ledger">
           <div class="weapons-grid" id="weaponsGrid"></div>
         </section>
-        <div class="ledger-note"><span><strong>剑已实装</strong> · 一把剑对应一个可带走的 SKILL.md</span><span>余十七器 · 待锻</span></div>
+        <div class="ledger-note"><span><strong>剑已实装</strong> · 每把剑都有带得走的真身</span><span>余十七器 · 待锻</span></div>
       </section>
       <section class="tab-panel" id="tab-scrolls" aria-labelledby="scrollsTitle">
         <header class="stage-head">
@@ -822,7 +822,7 @@
             <div class="locked-copy">
               <span class="vault-lock" aria-hidden="true"></span>
               <h3>江湖尚远，敬请期待</h3>
-              <p>等更多锻造师带着自己的真剑与真秘籍相逢。今日先把经验锻成自己带得走的资产。</p>
+              <p>等更多锻造师带着自己的真剑与真秘籍相逢。今日先把自己的经验，锻成带得走的剑。</p>
               <div class="future-actions">
                 <button type="button" disabled>交友</button>
                 <button type="button" disabled>换秘籍</button>
@@ -1192,7 +1192,7 @@
   document.getElementById('confirmTemper').addEventListener('click', async () => {
     const why = document.getElementById('temperWhy').value.trim();
     if (!why) {
-      document.getElementById('temperError').textContent = 'why 不能为空：动词不够，要写清缘由。';
+      document.getElementById('temperError').textContent = 'why 不能为空：说不清为什么改，这一炉不开。';
       document.getElementById('temperWhy').focus();
       return;
     }
