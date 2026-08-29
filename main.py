@@ -727,28 +727,66 @@ def session_dir(dirname=""):
     return d
 
 
+def prettify_slug(slug):
+    """矿脉出身。~/.claude/projects 下的目录名是把真实路径的分隔符压成 '-' 得来的
+    （D:\\Project\\personal\\toys → d--Project-personal-toys）。这个压缩有损——
+    项目名自带的连字符也变成了 '-'，光看字符串还不回去（reflect-forge 会被劈成两截）。
+    所以照着磁盘贪心还原：每一层取「能对上真实目录的最长名字」。还原不上就退回粗切分，
+    出身写歪一点也比没有强。"""
+    m = re.match(r"^([a-zA-Z])--(.+)$", slug)
+    if not m:
+        return slug.strip("-").replace("-", "/") or slug
+    parts = m.group(2).split("-")
+    cur, out, i = Path(m.group(1).upper() + ":\\"), [], 0
+    while i < len(parts):
+        for j in range(len(parts), i, -1):
+            cand = "-".join(parts[i:j])
+            if (cur / cand).is_dir():
+                out.append(cand)
+                cur, i = cur / cand, j
+                break
+        else:
+            out.extend(parts[i:])
+            break
+    return "/".join(out)
+
+
+# 全盘上千份卷宗，列表一次吃不下也不该吃下——只端最近的这些上来
+PROSPECT_LIMIT = 100
+
+
 def prospect(dirname=""):
-    d = session_dir(dirname)
+    """矿场是整座江湖：~/.claude/projects 下一层是各项目的 slug 目录，jsonl 躺在里面。
+    翻一层子目录把所有卷宗收齐，每份标出身。"""
+    root = session_dir(dirname)
     assays = read_assays()
     out = []
-    for f in d.glob("*.jsonl"):
-        try:
-            st = f.stat()
-        except OSError:
+    for sub in root.iterdir():
+        if not sub.is_dir():
             continue
-        cached = assays.get(str(f.resolve())) or {}
-        out.append({
-            "file": f.name,
-            # 前端要拿这个去 /api/reflect {source:"file"}——列表里点一下就能直接入炉
-            "path": str(f),
-            "date": datetime.datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d"),
-            "size_kb": round(st.st_size / 1024, 1),
-            "assay": cached.get("assay") or "未验",
-            "note": cached.get("note") or "",
-        })
-    # 新的排前面：最近的会话最可能还记得，也最可能有铁
-    out.sort(key=lambda x: (x["date"], x["size_kb"]), reverse=True)
-    return out
+        project = prettify_slug(sub.name)
+        for f in sub.glob("*.jsonl"):
+            try:
+                st = f.stat()
+            except OSError:
+                continue
+            cached = assays.get(str(f.resolve())) or {}
+            out.append({
+                "file": f.name,
+                # 前端要拿这个去 /api/reflect {source:"file"}——列表里点一下就能直接入炉
+                "path": str(f),
+                "project": project,
+                "date": datetime.datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d"),
+                "size_kb": round(st.st_size / 1024, 1),
+                "assay": cached.get("assay") or "未验",
+                "note": cached.get("note") or "",
+                "_mtime": st.st_mtime,
+            })
+    # 新的排前面：最近的会话最可能还记得，也最可能有铁。日期只到天，排序按 mtime 才不糊
+    out.sort(key=lambda x: x["_mtime"], reverse=True)
+    for item in out:
+        item.pop("_mtime", None)
+    return out[:PROSPECT_LIMIT]
 
 
 def head_lines(path, n=200):
@@ -797,8 +835,11 @@ def assay(file="", dirname=""):
     name = (file or "").strip()
     if not name:
         raise ForgeError("bad_request", "验矿得指一份记录：给 file")
-    # 只在矿场目录里找，不许用 ../ 把手伸到别处去
-    f = (d / Path(name).name).resolve()
+    # 矿场分了项目巷道，光给个文件名得先摸出它在哪条巷子里
+    p = Path(name)
+    f = p.resolve() if p.is_absolute() else next(
+        (c for c in sorted(d.glob("*/" + p.name)) if c.is_file()), d / p.name).resolve()
+    # 认矿场这道门：不许用 ../ 或外部绝对路径把手伸到别处去
     if not str(f).startswith(str(d.resolve())) or not f.exists():
         raise ForgeError("no_file", "矿场里没有这份记录：{}".format(name))
 

@@ -1115,12 +1115,12 @@
     rows.innerHTML = mines.map(mine => {
       const assayClass = mine.assay === '富矿' ? 'rich' : mine.assay === '贫矿' ? 'poor' : 'unknown';
       return `<article class="mine-row">
-        <div class="mine-file"><strong title="${escapeHtml(mine.file)}">${escapeHtml(mine.file)}</strong><span>session 卷宗</span></div>
+        <div class="mine-file"><strong title="${escapeHtml(mine.file)}">${escapeHtml(mine.file)}</strong><span title="${escapeHtml(mine.project || '')}">${escapeHtml(mine.project || 'session 卷宗')}</span></div>
         <time class="mine-date">${escapeHtml(mine.date)}</time>
         <span class="mine-size">${Number(mine.size_kb).toLocaleString('zh-CN')} KB</span>
         <span class="assay-stamp ${assayClass}">${escapeHtml(mine.assay)}</span>
         <span class="mine-note">${escapeHtml(mine.note)}</span>
-        <button class="mine-action" type="button" data-mine-path="${escapeHtml(mine.file)}">投炉</button>
+        <button class="mine-action" type="button" data-mine-path="${escapeHtml(mine.path || mine.file)}">投炉</button>
       </article>`;
     }).join('');
     rows.querySelectorAll('[data-mine-path]').forEach(button => button.addEventListener('click', () => {
