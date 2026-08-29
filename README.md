@@ -11,6 +11,9 @@
 🔥 黑客松 build day 进行中（2026-08-29，VibeFriends × 原点学堂「Vibe Coding for 准点下班」）。
 完整安装说明与演示今晚前到位。
 
+**来源声明**：本仓前身是同作者赛前一日的探索原型 component-forge（2026-08-28，选件 / 草稿转正 / 带 why 改版机制）。
+本仓在其机制上重组，新增反思炉内核与武侠世界观，全程 Vibe Coding 完成——commit 历史即完整过程记录，不 squash 不改写。
+
 - 总设计稿：[docs/DESIGN.md](docs/DESIGN.md)
 - 视觉线任务书（Codex）：[prompts/codex-visual.md](prompts/codex-visual.md)
 - 逻辑线任务书（Claude Code）：[prompts/claude-backend.md](prompts/claude-backend.md)

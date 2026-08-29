@@ -60,6 +60,12 @@
 
 数据读取封装成一个 `api()` 函数：现在 fetch `static/mock.json` 按 key 取；联调时只改这个函数指到 `/api/*`。POST 类（reflect/forge/temper）先用假延时 setTimeout 模拟 3 秒返回 mock 数据，动效按真等待设计（后端真实耗时约 30s，loading 态要耐看：炉火动画+一句随机的锻造行话轮播）。
 
+## Commit 纪律（赛规硬要求：commit 记录须体现完整 Vibe Coding 过程）
+
+- 素材一批一 commit、页面一个 tab 成型一 commit，不攒大包
+- message 头：`feat(视觉线): xxx`，正文一两行写设计取舍（为什么这个配色/布局）——过程叙事就是参赛内容
+- 不 squash、不改历史
+
 ## 约束
 
 - 纯 HTML/CSS/JS 单文件 + static/，无构建、无框架、无外链 CDN 图片（字体 CDN 可以）

@@ -74,6 +74,13 @@ curl -s localhost:7712/api/prospect | python -m json.tool
 
 外加：response 全部 `Content-Type: application/json; charset=utf-8`，中文不转义成 \uXXXX（json.dumps ensure_ascii=False），前端直接渲染。
 
+## Commit 纪律（赛规硬要求：commit 记录须体现完整 Vibe Coding 过程）
+
+- 每打通一个接口就 commit 一次，不攒大包
+- message 头：`feat(逻辑线): xxx`，正文一两行写为什么这么做/踩了什么坑——过程叙事就是参赛内容
+- 每个 commit 带 `Co-Authored-By: Claude <noreply@anthropic.com>` 署名，真实体现人机协作
+- 不 squash、不 rebase 改历史
+
 ## 约束
 
 - 纯 Python stdlib，零 pip 依赖（保住 README 的"5 分钟装上"卖点）
