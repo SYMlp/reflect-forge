@@ -365,6 +365,24 @@
   .prospect-error, .prospect-empty { display: none; min-height: 230px; place-items: center; color: var(--muted); text-align: center; }
   .prospect-error.show, .prospect-empty.show { display: grid; }
 
+  .weapons-ledger { position: relative; padding: 24px; border: 1px solid #6f624e; background: linear-gradient(rgba(15,14,12,.72), rgba(15,14,12,.88)), url("static/bg-forge.png") center / cover; box-shadow: var(--shadow-deep), inset 0 0 0 7px rgba(184,139,69,.035); }
+  .weapons-ledger::before, .weapons-ledger::after { content: ""; position: absolute; width: 44px; height: 44px; border-color: #8b724b; opacity: .8; pointer-events: none; }
+  .weapons-ledger::before { left: 11px; top: 11px; border-left: 1px solid; border-top: 1px solid; }
+  .weapons-ledger::after { right: 11px; bottom: 11px; border-right: 1px solid; border-bottom: 1px solid; }
+  .weapons-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+  .weapon-tile { position: relative; min-height: 214px; overflow: hidden; border: 1px solid rgba(175,158,126,.17); background: #191816; box-shadow: inset 0 0 32px rgba(0,0,0,.35); }
+  .weapon-figure { position: absolute; inset: 0; background-image: linear-gradient(rgba(19,18,16,.34), rgba(19,18,16,.62)), url("static/weapons-manifest.png"); background-size: 600% 300%, 600% 300%; background-position: center, var(--weapon-x) var(--weapon-y); filter: grayscale(1) sepia(.12) brightness(.48); transform: scale(1.012); transition: filter .25s ease, transform .25s ease; }
+  .weapon-tile::after { content: ""; position: absolute; inset: 8px; border: 1px solid rgba(218,190,137,.07); pointer-events: none; }
+  .weapon-tile.live { cursor: pointer; border-color: #a77b3f; box-shadow: inset 0 0 44px rgba(203,104,28,.15), 0 0 30px rgba(186,89,25,.11); }
+  .weapon-tile.live .weapon-figure { background-image: linear-gradient(rgba(72,37,17,.1), rgba(24,18,12,.32)), url("static/weapons-manifest.png"); filter: saturate(.82) brightness(1.04); }
+  .weapon-tile.live:hover .weapon-figure { filter: saturate(1.05) brightness(1.16); transform: scale(1.045); }
+  .weapon-name { position: absolute; left: 16px; bottom: 14px; z-index: 1; color: #877f70; font: 700 25px/1 var(--display); text-shadow: 0 2px 8px #000; }
+  .weapon-tile.live .weapon-name { color: #f1daa5; }
+  .weapon-state { position: absolute; right: 14px; top: 13px; z-index: 1; min-width: 54px; padding: 4px 6px; border: 1px solid #6c6254; color: #777064; font: 700 12px/1.2 var(--display); letter-spacing: .1em; text-align: center; transform: rotate(5deg); }
+  .weapon-tile.live .weapon-state { border-color: #c25a43; color: #de7359; background: rgba(112,31,22,.18); transform: rotate(-3deg); }
+  .ledger-note { display: flex; align-items: center; justify-content: space-between; gap: 30px; margin-top: 18px; padding: 13px 16px; border-left: 3px solid var(--ember); color: var(--muted); background: rgba(24,22,18,.84); font-size: 14px; }
+  .ledger-note strong { color: var(--paper-200); font-weight: 600; }
+
   .placeholder-pane { min-height: 520px; display: grid; place-items: center; border: 1px solid var(--line); background: rgba(17,16,13,.88); color: var(--muted); text-align: center; }
   .placeholder-pane strong { display: block; color: var(--paper-200); font: 700 26px/1.5 var(--display); }
   .placeholder-pane p { margin: 5px 0 0; }
@@ -552,7 +570,19 @@
           <div class="prospect-error" id="prospectError"><p>矿灯熄了，暂未照见历史卷宗。</p></div>
         </section>
       </section>
-      <section class="tab-panel" id="tab-weapons"><div class="placeholder-pane"><div><strong>十八般兵器正在拓印</strong><p>本炉今日先锻一套剑</p></div></div></section>
+      <section class="tab-panel" id="tab-weapons" aria-labelledby="weaponsTitle">
+        <header class="stage-head">
+          <div>
+            <p class="stage-kicker">十八般兵器 · 一谱尽览</p>
+            <h2 id="weaponsTitle">兵器谱</h2>
+          </div>
+          <p class="stage-desc">江湖的目标形态先完整铺开，今日的实现切片只亮一格：<strong>一套述职剑法</strong>。其余兵器不是删掉，只是尚待开炉。</p>
+        </header>
+        <section class="weapons-ledger">
+          <div class="weapons-grid" id="weaponsGrid"></div>
+        </section>
+        <div class="ledger-note"><span><strong>剑已实装</strong> · 一把剑对应一个可带走的 SKILL.md</span><span>余十七器 · 待锻</span></div>
+      </section>
       <section class="tab-panel" id="tab-scrolls"><div class="placeholder-pane"><div><strong>秘籍阁正在落锁</strong><p>江湖尚远，先留一卷真传</p></div></div></section>
     </main>
   </div>
@@ -862,6 +892,26 @@
     }));
   }
 
+  function renderWeapons(manifest) {
+    const weapons = manifest?.weapons || [];
+    document.getElementById('weaponsGrid').innerHTML = weapons.map((weapon, index) => {
+      const column = index % 6;
+      const row = Math.floor(index / 6);
+      const x = `${column * 20}%`;
+      const y = `${row * 50}%`;
+      return `<article class="weapon-tile ${weapon.live ? 'live' : ''}" style="--weapon-x:${x};--weapon-y:${y}" ${weapon.live ? 'tabindex="0" role="button" data-live-weapon="剑" aria-label="查看已实装的剑"' : ''}>
+        <div class="weapon-figure" aria-hidden="true"></div>
+        <span class="weapon-state">${weapon.live ? '实装' : '待锻'}</span>
+        <h3 class="weapon-name">${escapeHtml(weapon.name)}</h3>
+      </article>`;
+    }).join('');
+    document.querySelectorAll('[data-live-weapon]').forEach(tile => {
+      const go = () => document.querySelector('[data-tab="armory"]').click();
+      tile.addEventListener('click', go);
+      tile.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); go(); } });
+    });
+  }
+
   document.querySelectorAll('.tab-btn').forEach(button => button.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(btn => {
       const active = btn === button;
@@ -986,5 +1036,8 @@
   Promise.all([api('prospect'), api('prospect_banner')])
     .then(([mines, banner]) => renderProspect({mines, banner}))
     .catch(() => document.getElementById('prospectError').classList.add('show'));
+  api('manifest').then(renderWeapons).catch(error => {
+    document.getElementById('weaponsGrid').innerHTML = `<div class="message show">${escapeHtml(error.message || '兵器谱未能展开')}</div>`;
+  });
 </script>
 </body></html>
