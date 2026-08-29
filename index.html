@@ -337,6 +337,34 @@
   .temper-error { color: #e78770; font-size: 13px; }
   .temper-actions button { min-height: 42px; min-width: 108px; font-size: 15px; }
 
+  .prospect-banner { position: relative; display: grid; grid-template-columns: 260px 1fr 300px; gap: 28px; align-items: center; min-height: 180px; margin-bottom: 20px; padding: 26px 34px; overflow: hidden; border: 1px solid #896e43; background: linear-gradient(110deg, rgba(62,43,26,.98), rgba(29,26,21,.96) 58%, rgba(19,18,15,.97)); box-shadow: var(--shadow-deep), inset 0 1px rgba(255,226,164,.08); }
+  .prospect-banner::before { content: ""; position: absolute; inset: 0; opacity: .12; background: repeating-linear-gradient(115deg, transparent 0 20px, #d8b36a 21px, transparent 22px 42px); mask-image: linear-gradient(90deg, transparent, #000 50%, transparent); }
+  .prospect-stat { position: relative; text-align: center; border-right: 1px solid var(--line); }
+  .prospect-stat strong { display: block; color: var(--ember-hot); font: 700 55px/.95 Georgia, var(--display); font-variant-numeric: tabular-nums; text-shadow: 0 0 28px rgba(230,121,41,.22); }
+  .prospect-stat span { display: block; margin-top: 8px; color: var(--paper-300); font-size: 14px; letter-spacing: .15em; }
+  .prospect-claim { position: relative; }
+  .prospect-claim p { margin: 0; color: var(--muted); font-size: 14px; letter-spacing: .16em; }
+  .prospect-claim h3 { margin: 4px 0 0; max-width: 720px; color: #f2dfb0; font: 700 29px/1.55 var(--display); letter-spacing: .04em; }
+  .mine-mark { position: relative; justify-self: end; width: 240px; padding: 14px 18px; border: 1px solid #a64c3b; color: #d36f57; font: 700 18px/1.5 var(--display); letter-spacing: .12em; text-align: center; transform: rotate(-2deg); background: rgba(104,29,22,.12); }
+  .mine-list { border: 1px solid var(--line); background: rgba(20,19,16,.94); box-shadow: 0 18px 42px rgba(0,0,0,.32); }
+  .mine-list-head, .mine-row { display: grid; grid-template-columns: minmax(330px, 1.55fr) 170px 130px 120px minmax(260px, 1fr) 120px; gap: 18px; align-items: center; }
+  .mine-list-head { min-height: 52px; padding: 0 24px; border-bottom: 1px solid #665d4e; color: #8f8572; background: rgba(255,255,255,.025); font-size: 12px; letter-spacing: .16em; }
+  .mine-row { min-height: 88px; padding: 12px 24px; border-bottom: 1px solid rgba(220,195,143,.1); transition: background .18s ease; }
+  .mine-row:last-child { border-bottom: 0; }
+  .mine-row:hover { background: rgba(229,138,53,.055); }
+  .mine-file { min-width: 0; }
+  .mine-file strong { display: block; overflow: hidden; color: var(--paper-100); font: 600 16px/1.45 var(--body); text-overflow: ellipsis; white-space: nowrap; }
+  .mine-file span { color: var(--iron-500); font-size: 12px; }
+  .mine-date, .mine-size { color: #b2a68e; font-variant-numeric: tabular-nums; }
+  .assay-stamp { display: inline-block; width: 66px; padding: 4px 3px; border: 1px solid #787064; color: #9e9689; font: 700 13px/1.2 var(--display); text-align: center; transform: rotate(-2deg); }
+  .assay-stamp.rich { border-color: #aa7b38; color: #e0af5a; background: rgba(166,103,36,.1); }
+  .assay-stamp.poor { color: #aaa193; }
+  .assay-stamp.unknown { border-style: dashed; color: #a47869; }
+  .mine-note { color: #a99d87; font-size: 14px; }
+  .mine-action { min-width: 98px; min-height: 40px; padding: 0 14px; border: 1px solid #77684e; background: rgba(103,83,54,.17); color: var(--paper-200); cursor: pointer; font: 600 14px/1 var(--display); letter-spacing: .08em; }
+  .prospect-error, .prospect-empty { display: none; min-height: 230px; place-items: center; color: var(--muted); text-align: center; }
+  .prospect-error.show, .prospect-empty.show { display: grid; }
+
   .placeholder-pane { min-height: 520px; display: grid; place-items: center; border: 1px solid var(--line); background: rgba(17,16,13,.88); color: var(--muted); text-align: center; }
   .placeholder-pane strong { display: block; color: var(--paper-200); font: 700 26px/1.5 var(--display); }
   .placeholder-pane p { margin: 5px 0 0; }
@@ -504,7 +532,26 @@
           </div>
         </div>
       </section>
-      <section class="tab-panel" id="tab-prospect"><div class="placeholder-pane"><div><strong>矿灯正在点亮</strong><p>历史卷宗稍后显脉</p></div></div></section>
+      <section class="tab-panel" id="tab-prospect" aria-labelledby="prospectTitle">
+        <header class="stage-head">
+          <div>
+            <p class="stage-kicker">旧账不是废纸 · 是未开采的矿</p>
+            <h2 id="prospectTitle">寻料</h2>
+          </div>
+          <p class="stage-desc">侠客做过的每场活都留下过程卷宗。先看矿脉，再把值得回捞的旧 session 送进反思炉。</p>
+        </header>
+        <section class="prospect-banner" aria-label="历史回捞战绩">
+          <div class="prospect-stat"><strong>76</strong><span>场历史会话</span></div>
+          <div class="prospect-claim"><p>上月回捞战绩</p><h3 id="prospectBanner">正在翻检旧卷宗……</h3></div>
+          <div class="mine-mark">九百余条判断<br>重见炉火</div>
+        </section>
+        <section class="mine-list" aria-label="矿脉列表">
+          <header class="mine-list-head"><span>卷宗</span><span>日期</span><span>大小</span><span>品级</span><span>快评</span><span>动作</span></header>
+          <div id="mineRows"></div>
+          <div class="prospect-empty" id="prospectEmpty"><p>此处尚无矿脉。先让侠客斩几场活，过程自然会留下铁。</p></div>
+          <div class="prospect-error" id="prospectError"><p>矿灯熄了，暂未照见历史卷宗。</p></div>
+        </section>
+      </section>
       <section class="tab-panel" id="tab-weapons"><div class="placeholder-pane"><div><strong>十八般兵器正在拓印</strong><p>本炉今日先锻一套剑</p></div></div></section>
       <section class="tab-panel" id="tab-scrolls"><div class="placeholder-pane"><div><strong>秘籍阁正在落锁</strong><p>江湖尚远，先留一卷真传</p></div></div></section>
     </main>
@@ -559,7 +606,8 @@
     armory: [],
     activeSword: null,
     temperAction: 'revise',
-    drawerTrigger: null
+    drawerTrigger: null,
+    prospectPath: ''
   };
 
   const forgeSayings = [
@@ -783,6 +831,37 @@
     document.getElementById('temperWhy').focus();
   }
 
+  function renderProspect({mines, banner}) {
+    document.getElementById('prospectBanner').textContent = banner || '旧会话仍在，经验不必随下班蒸发';
+    const rows = document.getElementById('mineRows');
+    const empty = document.getElementById('prospectEmpty');
+    if (!mines?.length) {
+      rows.innerHTML = '';
+      empty.classList.add('show');
+      return;
+    }
+    empty.classList.remove('show');
+    rows.innerHTML = mines.map(mine => {
+      const assayClass = mine.assay === '富矿' ? 'rich' : mine.assay === '贫矿' ? 'poor' : 'unknown';
+      return `<article class="mine-row">
+        <div class="mine-file"><strong title="${escapeHtml(mine.file)}">${escapeHtml(mine.file)}</strong><span>session 卷宗</span></div>
+        <time class="mine-date">${escapeHtml(mine.date)}</time>
+        <span class="mine-size">${Number(mine.size_kb).toLocaleString('zh-CN')} KB</span>
+        <span class="assay-stamp ${assayClass}">${escapeHtml(mine.assay)}</span>
+        <span class="mine-note">${escapeHtml(mine.note)}</span>
+        <button class="mine-action" type="button" data-mine-path="${escapeHtml(mine.file)}">投炉</button>
+      </article>`;
+    }).join('');
+    rows.querySelectorAll('[data-mine-path]').forEach(button => button.addEventListener('click', () => {
+      state.prospectPath = button.dataset.minePath;
+      state.source = 'file';
+      document.querySelector('[data-tab="reflect"]').click();
+      document.querySelector('[data-source="file"]').click();
+      document.getElementById('fileName').textContent = `已从矿脉择取：${state.prospectPath}`;
+      showToast('卷宗已送至反思炉投料口');
+    }));
+  }
+
   document.querySelectorAll('.tab-btn').forEach(button => button.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(btn => {
       const active = btn === button;
@@ -849,7 +928,7 @@
     const file = document.getElementById('sessionFile').files[0];
     const body = state.source === 'paste'
       ? {source: 'paste', content: input.value.trim()}
-      : {source: 'file', path: file?.name || ''};
+      : {source: 'file', path: file?.name || state.prospectPath || ''};
     if ((state.source === 'paste' && !body.content) || (state.source === 'file' && !body.path)) {
       setError(state.source === 'paste' ? '炉中无料：请先贴入一段完整会话。' : '尚未择卷：请先选一册 jsonl 卷宗。');
       return;
@@ -904,5 +983,8 @@
   api('armory').then(renderArmory).catch(error => {
     document.getElementById('armoryGrid').innerHTML = `<div class="message show">${escapeHtml(error.message || '兵器架未能载入')}</div>`;
   });
+  Promise.all([api('prospect'), api('prospect_banner')])
+    .then(([mines, banner]) => renderProspect({mines, banner}))
+    .catch(() => document.getElementById('prospectError').classList.add('show'));
 </script>
 </body></html>
