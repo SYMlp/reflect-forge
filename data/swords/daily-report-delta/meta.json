@@ -1,0 +1,35 @@
+{
+  "id": "daily-report-delta",
+  "name": "日报鉴变剑",
+  "kind": "剑",
+  "status": "forged",
+  "version": "v0.2",
+  "why_log": [
+    {
+      "v": "v0.1",
+      "why": "初锻",
+      "at": "2026-08-29 13:45"
+    },
+    {
+      "v": "v0.1",
+      "why": "真跑一轮日报输出可直接交付，判断与证据没有返工",
+      "at": "2026-08-29 13:46"
+    },
+    {
+      "v": "v0.2",
+      "why": "补充证据不足时的降级路径，因为真实工作资料常有缺口",
+      "at": "2026-08-29 13:47"
+    }
+  ],
+  "skill_path": "data/swords/daily-report-delta/SKILL.md",
+  "skill_name": "daily-report-delta",
+  "description": "写工作日报时用：开头先写今昨变化和它为何重要，完成项只作后置证据，证据不足的地方标待确认。",
+  "triggers": "写日报, 帮我写今天的日报, 整理今天的进展, 日报怎么写, 改日报模板",
+  "iron_ids": [
+    "0f2d3f3d-i1",
+    "0f2d3f3d-i2",
+    "0f2d3f3d-i3"
+  ],
+  "scene": "",
+  "created": "2026-08-29 13:45"
+}
