@@ -19,7 +19,7 @@ import shutil
 import subprocess
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 
 ROOT = Path(__file__).parent
 STATIC = ROOT / "static"
@@ -645,6 +645,141 @@ def armory():
     return out
 
 
+# ── 寻料（旧账里还埋着矿） ─────────────────────────────────────────
+
+ASSAY_TEMPLATE = PROMPTS / "assay.md"
+ASSAY_FILE = DATA / "assays.json"
+
+
+def read_assays():
+    """验矿结果落盘。验一次要烧一次火，重开页面不该重烧——所以缓存跟着文件走，不跟着进程走。"""
+    if ASSAY_FILE.exists():
+        try:
+            return json.loads(ASSAY_FILE.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    return {}
+
+
+def write_assays(a):
+    ASSAY_FILE.write_text(json.dumps(a, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def session_dir(dirname=""):
+    d = Path(dirname or read_config()["session_dir"]).expanduser()
+    if not d.exists() or not d.is_dir():
+        raise ForgeError("no_file", "这个矿场不存在：{}".format(d))
+    return d
+
+
+def prospect(dirname=""):
+    d = session_dir(dirname)
+    assays = read_assays()
+    out = []
+    for f in d.glob("*.jsonl"):
+        try:
+            st = f.stat()
+        except OSError:
+            continue
+        cached = assays.get(str(f.resolve())) or {}
+        out.append({
+            "file": f.name,
+            # 前端要拿这个去 /api/reflect {source:"file"}——列表里点一下就能直接入炉
+            "path": str(f),
+            "date": datetime.datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d"),
+            "size_kb": round(st.st_size / 1024, 1),
+            "assay": cached.get("assay") or "未验",
+            "note": cached.get("note") or "",
+        })
+    # 新的排前面：最近的会话最可能还记得，也最可能有铁
+    out.sort(key=lambda x: (x["date"], x["size_kb"]), reverse=True)
+    return out
+
+
+def head_lines(path, n=200):
+    """只读前 n 行。验矿是替锻造师省火的，自己先别把整份 500KB 会话塞进去烧。"""
+    lines, out = [], []
+    with Path(path).open(encoding="utf-8", errors="replace") as fh:
+        for i, line in enumerate(fh):
+            if i >= n:
+                break
+            lines.append(line)
+    for line in lines:
+        if not line.strip():
+            continue
+        try:
+            ev = json.loads(line)
+        except Exception:
+            out.append(line.strip()[:300])
+            continue
+        msg = ev.get("message") or {}
+        role = msg.get("role") or ev.get("type")
+        content = msg.get("content")
+        if isinstance(content, str) and content.strip():
+            out.append("[{}] {}".format(role, content.strip()[:400]))
+        elif isinstance(content, list):
+            for blk in content:
+                if isinstance(blk, dict) and blk.get("type") == "text" \
+                        and blk.get("text", "").strip():
+                    out.append("[{}] {}".format(role, blk["text"].strip()[:400]))
+    return "\n".join(out)[:12000]
+
+
+def parse_assay(raw):
+    """炉子该吐「富矿 | 一句话」。它偶尔会多话，所以只认第一处出现的矿品字样。"""
+    text = strip_fence(raw).strip()
+    line = next((l.strip() for l in text.split("\n") if l.strip()), "")
+    grade = "富矿" if "富矿" in line else ("贫矿" if "贫矿" in line else "")
+    if not grade:
+        raise ForgeError("bad_output", "验矿师没给出矿品", raw)
+    note = line.split("|", 1)[1].strip() if "|" in line else \
+        line.replace(grade, "", 1).strip(" |：:—-")
+    return grade, note[:40]
+
+
+def assay(file="", dirname=""):
+    d = session_dir(dirname)
+    name = (file or "").strip()
+    if not name:
+        raise ForgeError("bad_request", "验矿得指一份记录：给 file")
+    # 只在矿场目录里找，不许用 ../ 把手伸到别处去
+    f = (d / Path(name).name).resolve()
+    if not str(f).startswith(str(d.resolve())) or not f.exists():
+        raise ForgeError("no_file", "矿场里没有这份记录：{}".format(name))
+
+    log("验矿：{}".format(f.name))
+    sample = head_lines(f)
+    if len(sample.strip()) < 40:
+        grade, note = "贫矿", "开头几乎没有内容，成不了形"
+    else:
+        tpl = ASSAY_TEMPLATE.read_text(encoding="utf-8")
+        # 验矿是「要不要烧」的前置判断，本身不许烧太久——30s 不出结果就是它没价值
+        grade, note = parse_assay(call_claude(tpl.replace("{sample}", sample), timeout=30))
+
+    assays = read_assays()
+    assays[str(f)] = {"assay": grade, "note": note, "at": _now()}
+    write_assays(assays)
+    log("矿品：{} — {}".format(grade, note))
+    return {"file": f.name, "path": str(f), "assay": grade, "note": note}
+
+
+# ── 兵器谱 / 秘籍阁（烙印页） ───────────────────────────────────────
+
+# 十八般兵器。本期**只有剑实装**，其余 17 种是烙印——游戏惯例：
+# 灰着的格子不是缺功能，是把「还能长成什么样」摆在明面上。
+WEAPONS = ["剑", "刀", "枪", "棍", "斧", "钺", "钩", "叉", "鞭",
+           "锏", "锤", "抓", "镋", "棒", "槊", "戟", "弓", "盾"]
+
+
+def manifest():
+    return {
+        "weapons": [{"name": w, "live": w == "剑"} for w in WEAPONS],
+        # 秘籍阁只有一本实卡，是真被引用过的那本——从 config 读，不写死在代码里
+        "featured_scroll": read_config().get("featured_scroll") or {},
+        "scrolls_locked_rest": True,
+    }
+
+
 # ── HTTP ─────────────────────────────────────────────────────────
 
 # 料不对 → 4xx（前端提示用户改输入）；炉子出问题 → 502（前端提示重试/看日志）
@@ -709,6 +844,19 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/armory":
                 return self._json(armory())
 
+            if path == "/api/prospect":
+                q = parse_qs(urlparse(self.path).query)
+                return self._json(prospect((q.get("dir") or [""])[0]))
+
+            # 契约 §4 里 /api/prospect 是个裸数组，横幅没地方塞。
+            # mock.json 里它本来就是和 prospect 平级的一个 key，这里照那个形状单开一路，
+            # 前端 api('prospect_banner') 不用改一个字——加路由不动契约
+            if path == "/api/prospect_banner":
+                return self._json(read_config().get("prospect_banner") or "")
+
+            if path == "/api/manifest":
+                return self._json(manifest())
+
             if path in ("/", "/index.html"):
                 f = ROOT / "index.html"
                 if not f.exists():
@@ -742,6 +890,9 @@ class Handler(BaseHTTPRequestHandler):
 
             if path == "/api/forge":
                 return self._json(forge(data.get("iron_ids"), data.get("scene") or ""))
+
+            if path == "/api/prospect/assay":
+                return self._json(assay(data.get("file") or "", data.get("dir") or ""))
 
             if path == "/api/temper":
                 return self._json(temper(data.get("sword_id") or "",
