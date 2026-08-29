@@ -59,7 +59,7 @@ DEFAULT_CONFIG = {
     "session_dir": "~/.claude/projects/",
     "prospect_banner": "",
     "featured_scroll": {},
-    # 外来秘籍：别人写好的开源 SKILL.md，重锻炉的进料口。登记在册的才认（见 find_foreign_scroll）
+    # 外来名剑：别人锻好的开源 SKILL.md，重锻炉的进料口。登记在册的才认（见 find_foreign_scroll）
     "foreign_scrolls": [],
 }
 
@@ -571,7 +571,7 @@ def forge(iron_ids=None, scene=""):
                       "description": meta["description"]}}
 
 
-# ── 重锻炉（外来秘籍 + 你的铁 = 你的版本） ──────────────────────────
+# ── 重锻炉（外来名剑 + 你的铁 = 你的版本） ──────────────────────────
 
 REFORGE_TEMPLATE = PROMPTS / "reforge.md"
 
@@ -581,18 +581,18 @@ def foreign_scrolls():
 
 
 def find_foreign_scroll(path):
-    """只认 config 里登记过的秘籍。
+    """只认 config 里登记过的外来名剑。
 
     scroll_path 是请求体带进来的字符串——不设白名单，这个接口就是一个
-    「读本机任意文件再喂给 LLM」的口子。登记制既是安全闸，也是秘籍阁的实卡来源。
+    「读本机任意文件再喂给 LLM」的口子。登记制既是安全闸，也是兵器架外来名剑的来源。
     """
     p = str(path or "").strip()
     if not p:
-        raise ForgeError("bad_request", "重锻得指一本秘籍：给 scroll_path")
+        raise ForgeError("bad_request", "重锻得指一把外来名剑：给 scroll_path")
     for s in foreign_scrolls():
         if s["path"] == p or Path(s["path"]).expanduser() == Path(p).expanduser():
             return s
-    raise ForgeError("bad_request", "秘籍阁里没有登记这本：{}".format(p))
+    raise ForgeError("bad_request", "架上没有登记这把外来名剑：{}".format(p))
 
 
 def all_irons():
@@ -620,19 +620,19 @@ def reforge(scroll_path, iron_ids=None):
     scroll = find_foreign_scroll(scroll_path)
     f = Path(scroll["path"]).expanduser()
     if not f.exists():
-        raise ForgeError("no_file", "这本秘籍不在架上：{}".format(f))
+        raise ForgeError("no_file", "这把外来名剑不在架上：{}".format(f))
     scroll_md = f.read_text(encoding="utf-8", errors="replace")
 
     index = load_all_irons()
     picked = [index[i] for i in (iron_ids or []) if i in index]
-    # 重锻的立论就是「别人的秘籍 + 我的判断」。没有铁就只是把开源文件抄一遍，
+    # 重锻的立论就是「别人的剑 + 我的判断」。没有铁就只是把开源文件抄一遍，
     # 那不叫重锻，这一炉不开
     if not picked:
-        raise ForgeError("no_iron", "重锻得带自己的铁，不然只是把别人的秘籍抄一遍")
+        raise ForgeError("no_iron", "重锻得带自己的铁，不然只是把别人的剑抄一遍")
 
-    log("重锻炉开火：秘籍《{}》{} 字 + 铁 {} 块".format(
+    log("重锻炉开火：外来名剑《{}》{} 字 + 铁 {} 块".format(
         scroll.get("name"), len(scroll_md), len(picked)))
-    # 秘籍全文进 prompt、全文再吐一遍，比初锻烧得久，超时给足
+    # 外来剑全文进 prompt、全文再吐一遍，比初锻烧得久，超时给足
     raw = call_claude(build_reforge_prompt(scroll, scroll_md, picked), timeout=420)
     sword_name, _chosen, skill_md = split_forge_output(raw)
 
@@ -649,9 +649,9 @@ def reforge(scroll_path, iron_ids=None):
         "kind": "剑",
         "status": "draft",
         "version": "v0.1",
-        # 谱系第一条就写清出身：这把剑不是凭空长出来的，它站在一本开源秘籍上
+        # 谱系第一条就写清出身：这把剑不是凭空长出来的，它是把别人的剑融了自己的铁重锻的
         "why_log": [{"v": "v0.1",
-                     "why": "重锻自秘籍《{}》".format(scroll.get("name")),
+                     "why": "重锻自外来名剑《{}》".format(scroll.get("name")),
                      "at": _now()}],
         "skill_path": "data/swords/{}/SKILL.md".format(sid),
         "skill_name": skill_name,
@@ -668,7 +668,7 @@ def reforge(scroll_path, iron_ids=None):
     (d / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2),
                                  encoding="utf-8")
     bump_works_slain()
-    log("重锻成剑：{}（{}）← 秘籍《{}》+ 铁 {} 块".format(
+    log("重锻成剑：{}（{}）← 外来名剑《{}》+ 铁 {} 块".format(
         sword_name, sid, scroll.get("name"), len(picked)))
     return {"sword": {"id": sid, "name": sword_name, "version": "v0.1",
                       "skill_md": skill_md,
@@ -1001,7 +1001,7 @@ def manifest():
         "weapons": [{"name": w, "live": w == "剑"} for w in WEAPONS],
         # 秘籍阁只有一本实卡，是真被引用过的那本——从 config 读，不写死在代码里
         "featured_scroll": read_config().get("featured_scroll") or {},
-        # 外来秘籍区：真躺在磁盘上的开源 SKILL.md，卡上「重锻」按钮的进料来源
+        # 外来名剑区：真躺在磁盘上的开源 SKILL.md，卡上「重锻」按钮的进料来源
         "foreign_scrolls": foreign_scrolls(),
         "scrolls_locked_rest": True,
     }
