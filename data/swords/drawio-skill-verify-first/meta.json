@@ -1,0 +1,59 @@
+{
+  "id": "drawio-skill-verify-first",
+  "name": "验真守契剑",
+  "kind": "剑",
+  "status": "draft",
+  "version": "v0.1",
+  "why_log": [
+    {
+      "v": "v0.1",
+      "why": "重锻自秘籍《drawio-skill》",
+      "at": "2026-08-29 16:28"
+    }
+  ],
+  "skill_path": "data/swords/drawio-skill-verify-first/SKILL.md",
+  "skill_name": "drawio-skill-verify-first",
+  "description": "Use when the user requests diagrams, flowcharts, architecture diagrams, ER diagrams, UML / sequence / class diagrams, SysML / MBSE diagrams (block definition, internal block, requirement, parametric), BPMN business process diagrams, swimlane / cross-functional flowcharts, network topology, cloud architecture from Terraform or Kubernetes manifests, ML/DL model figures (Transformer/CNN/LSTM), mind maps, or any visualization. Also use proactively when explaining systems with 3+ components, complex data flows, or relationships that benefit from visual representation. Best suited when the diagram needs custom styling, rich shape vocabulary, swimlanes, or exportable images (PNG/SVG/PDF/JPG). Generates .drawio XML and exports locally via the native draw.io desktop CLI. Personal edition — adds hard gates from the forger's own judgments: verify-before-claim version checks, human-readable node labels over raw ids, content-over-styling priority, and single-point arbitration before any full regeneration.",
+  "triggers": "",
+  "iron_ids": [
+    "3f0ab92f-i4",
+    "3f0ab92f-i6",
+    "3f0ab92f-i7",
+    "3f0ab92f-i8"
+  ],
+  "irons": [
+    {
+      "id": "3f0ab92f-i4",
+      "text": "事实性疑问不许用「可能」作答，当场查证再开口，猜错会误导决策",
+      "anchor": "是没验证就说的猜测",
+      "kind": "经验",
+      "grade": "上品"
+    },
+    {
+      "id": "3f0ab92f-i6",
+      "text": "资源列表须给条目生成人话标识，光剩 uuid 用户认不出等于没料",
+      "anchor": "真正病因不是没料，是认不出",
+      "kind": "经验",
+      "grade": "中品"
+    },
+    {
+      "id": "3f0ab92f-i7",
+      "text": "视觉包装只负责把人吸引来看，产品内核不为外皮让步",
+      "anchor": "好看的外表其实就是让人家愿意看看",
+      "kind": "判断",
+      "grade": "上品"
+    },
+    {
+      "id": "3f0ab92f-i8",
+      "text": "多线并行开发先签接口合同，中途改契约一律拦下走单点仲裁",
+      "anchor": "拦下来发我仲裁",
+      "kind": "流程",
+      "grade": "中品"
+    }
+  ],
+  "reforged_from": "drawio-skill",
+  "reforged_from_name": "drawio-skill",
+  "reforged_from_path": "C:\\Users\\Administrator\\.claude\\skills\\drawio-skill-repo\\skills\\drawio-skill\\SKILL.md",
+  "scene": "",
+  "created": "2026-08-29 16:28"
+}

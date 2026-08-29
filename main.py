@@ -59,6 +59,8 @@ DEFAULT_CONFIG = {
     "session_dir": "~/.claude/projects/",
     "prospect_banner": "",
     "featured_scroll": {},
+    # 外来秘籍：别人写好的开源 SKILL.md，重锻炉的进料口。登记在册的才认（见 find_foreign_scroll）
+    "foreign_scrolls": [],
 }
 
 
@@ -569,6 +571,112 @@ def forge(iron_ids=None, scene=""):
                       "description": meta["description"]}}
 
 
+# ── 重锻炉（外来秘籍 + 你的铁 = 你的版本） ──────────────────────────
+
+REFORGE_TEMPLATE = PROMPTS / "reforge.md"
+
+
+def foreign_scrolls():
+    return [s for s in (read_config().get("foreign_scrolls") or []) if s.get("path")]
+
+
+def find_foreign_scroll(path):
+    """只认 config 里登记过的秘籍。
+
+    scroll_path 是请求体带进来的字符串——不设白名单，这个接口就是一个
+    「读本机任意文件再喂给 LLM」的口子。登记制既是安全闸，也是秘籍阁的实卡来源。
+    """
+    p = str(path or "").strip()
+    if not p:
+        raise ForgeError("bad_request", "重锻得指一本秘籍：给 scroll_path")
+    for s in foreign_scrolls():
+        if s["path"] == p or Path(s["path"]).expanduser() == Path(p).expanduser():
+            return s
+    raise ForgeError("bad_request", "秘籍阁里没有登记这本：{}".format(p))
+
+
+def all_irons():
+    """整堆料，新出的在前。重锻要从全部铁里挑，不是只挑刚出炉那一场的。"""
+    out = []
+    files = sorted(IRONS.glob("*.json"),
+                   key=lambda p: p.stat().st_mtime, reverse=True)
+    for f in files:
+        try:
+            rec = json.loads(f.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        out.extend(rec.get("irons") or [])
+    return out
+
+
+def build_reforge_prompt(scroll, scroll_md, irons):
+    tpl = REFORGE_TEMPLATE.read_text(encoding="utf-8")
+    return (tpl.replace("{scroll_name}", scroll.get("name", ""))
+               .replace("{scroll_md}", scroll_md)
+               .replace("{irons}", "\n".join(iron_line(i) for i in irons)))
+
+
+def reforge(scroll_path, iron_ids=None):
+    scroll = find_foreign_scroll(scroll_path)
+    f = Path(scroll["path"]).expanduser()
+    if not f.exists():
+        raise ForgeError("no_file", "这本秘籍不在架上：{}".format(f))
+    scroll_md = f.read_text(encoding="utf-8", errors="replace")
+
+    index = load_all_irons()
+    picked = [index[i] for i in (iron_ids or []) if i in index]
+    # 重锻的立论就是「别人的秘籍 + 我的判断」。没有铁就只是把开源文件抄一遍，
+    # 那不叫重锻，这一炉不开
+    if not picked:
+        raise ForgeError("no_iron", "重锻得带自己的铁，不然只是把别人的秘籍抄一遍")
+
+    log("重锻炉开火：秘籍《{}》{} 字 + 铁 {} 块".format(
+        scroll.get("name"), len(scroll_md), len(picked)))
+    # 秘籍全文进 prompt、全文再吐一遍，比初锻烧得久，超时给足
+    raw = call_claude(build_reforge_prompt(scroll, scroll_md, picked), timeout=420)
+    sword_name, _chosen, skill_md = split_forge_output(raw)
+
+    fm = parse_frontmatter(skill_md)
+    skill_name = fm.get("name", "")
+    sword_name = sword_name or skill_name or "无名剑"
+    sid = new_sword_id(skill_name, sword_name)
+    d = SWORDS / sid
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "SKILL.md").write_text(skill_md + "\n", encoding="utf-8")
+    meta = {
+        "id": sid,
+        "name": sword_name,
+        "kind": "剑",
+        "status": "draft",
+        "version": "v0.1",
+        # 谱系第一条就写清出身：这把剑不是凭空长出来的，它站在一本开源秘籍上
+        "why_log": [{"v": "v0.1",
+                     "why": "重锻自秘籍《{}》".format(scroll.get("name")),
+                     "at": _now()}],
+        "skill_path": "data/swords/{}/SKILL.md".format(sid),
+        "skill_name": skill_name,
+        "description": fm.get("description", ""),
+        "triggers": fm.get("triggers", ""),
+        "iron_ids": [i["id"] for i in picked],
+        "irons": iron_snapshot(picked),
+        "reforged_from": scroll.get("id") or scroll.get("name", ""),
+        "reforged_from_name": scroll.get("name", ""),
+        "reforged_from_path": str(f),
+        "scene": "",
+        "created": _now(),
+    }
+    (d / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2),
+                                 encoding="utf-8")
+    bump_works_slain()
+    log("重锻成剑：{}（{}）← 秘籍《{}》+ 铁 {} 块".format(
+        sword_name, sid, scroll.get("name"), len(picked)))
+    return {"sword": {"id": sid, "name": sword_name, "version": "v0.1",
+                      "skill_md": skill_md,
+                      "iron_ids": meta["iron_ids"],
+                      "reforged_from": meta["reforged_from"],
+                      "description": meta["description"]}}
+
+
 # ── 淬火炉（转正 / 改版） ──────────────────────────────────────────
 
 def read_sword(sword_id):
@@ -893,6 +1001,8 @@ def manifest():
         "weapons": [{"name": w, "live": w == "剑"} for w in WEAPONS],
         # 秘籍阁只有一本实卡，是真被引用过的那本——从 config 读，不写死在代码里
         "featured_scroll": read_config().get("featured_scroll") or {},
+        # 外来秘籍区：真躺在磁盘上的开源 SKILL.md，卡上「重锻」按钮的进料来源
+        "foreign_scrolls": foreign_scrolls(),
         "scrolls_locked_rest": True,
     }
 
@@ -962,6 +1072,10 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/armory":
                 return self._json(armory())
 
+            # 整堆料。重锻要从全部铁里挑，不能只挑当前这一场反思出的
+            if path == "/api/irons":
+                return self._json(all_irons())
+
             if path == "/api/prospect":
                 q = parse_qs(urlparse(self.path).query)
                 return self._json(prospect((q.get("dir") or [""])[0]))
@@ -1008,6 +1122,10 @@ class Handler(BaseHTTPRequestHandler):
 
             if path == "/api/forge":
                 return self._json(forge(data.get("iron_ids"), data.get("scene") or ""))
+
+            if path == "/api/reforge":
+                return self._json(reforge(data.get("scroll_path") or "",
+                                          data.get("iron_ids")))
 
             if path == "/api/prospect/assay":
                 return self._json(assay(data.get("file") or "", data.get("dir") or ""))

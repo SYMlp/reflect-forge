@@ -129,6 +129,31 @@ GET  /api/armory    → 追加字段：irons:[{id, text, anchor, kind, grade, ci
 GET  /api/armory    → 追加字段：reforged_from:str（重锻来源秘籍 id，非重锻剑为空串）
 ```
 
+**追加 2026-08-29 · v2 重锻炉（新接口，不改上面任何旧契约）**
+
+```
+POST /api/reforge   → 入 {scroll_path, iron_ids:[..]} 出 {sword:{id, name, version:"v0.1",
+                      skill_md, iron_ids, reforged_from, description}}
+                      动作：读 scroll_path 的外来 SKILL.md 全文 + 取 iron_ids 的铁
+                      → forge_prompts/reforge.md 模板 → claude CLI（timeout 420，秘籍全文进出，比初锻烧得久）
+                      → 落 data/swords/<id>/。
+                      **scroll_path 走白名单**：只认 config.json 的 foreign_scrolls 里登记过的路径。
+                      不设白名单，这个接口就是「读本机任意文件再喂给 LLM」的口子。未登记 → 400 bad_request。
+                      iron_ids 为空 → 400 stage=no_iron「重锻得带自己的铁，不然只是把别人的秘籍抄一遍」。
+                      产出 meta.json 谱系三件：reforged_from / reforged_from_name / reforged_from_path，
+                      why_log 首条 = "重锻自秘籍《<name>》"，irons = 铁快照（同上节）。
+                      副作用：斩活 +1（与 /api/forge 同）。
+GET  /api/irons     → [{id, text, anchor, kind, grade, cite?}]  整堆料，新出的在前。
+                      为什么加：重锻要从**全部**铁里挑，不能只挑当前这一场反思出的那几块。
+GET  /api/manifest  → 追加字段：foreign_scrolls:[{id, name, path, lines, origin, desc}]
+                      = config.json 同名字段直出，既是秘籍阁外来区的卡片来源，也是上面那道白名单。
+```
+
+**为什么要有重锻炉**：开源 skill 是别人踩出来的实地，骨架和能力都是好东西——推翻它是浪费。
+但它不认识你：你的判据、你踩过的坑、你的流程规矩，它一条都不知道。
+重锻 = 保留骨架，把你的铁嵌进它的判据/步骤/反例，**每处改动就地标 ⚒ 并挂上铁的原话锚**，
+末尾一节「重锻记」列全改动点。这样产出的不是一份抄来的 skill，是一份**能追溯到你本人判断**的个人版。
+
 ## 5. 等级规则（写死，够 demo 用）
 
 | 等级 | 反思场次 | 锻剑数 | 转正剑 | 斩活数 |

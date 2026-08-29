@@ -573,6 +573,26 @@
   .ledger-note { display: flex; align-items: center; justify-content: space-between; gap: 30px; margin-top: 18px; padding: 13px 16px; border-left: 3px solid var(--ember); color: var(--muted); background: rgba(24,22,18,.84); font-size: 14px; }
   .ledger-note strong { color: var(--paper-200); font-weight: 600; }
 
+  /* 外来秘籍区：和真传卷同一套卷轴语言，只是身份不同——它是别人的东西，等着被重锻 */
+  .foreign-vault { margin-bottom: 22px; }
+  .foreign-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); gap: 18px; }
+  .foreign-card { position: relative; display: grid; grid-template-columns: 190px 1fr; overflow: hidden; border: 1px solid #6c6252; background: linear-gradient(130deg, rgba(44,41,34,.97), rgba(22,21,18,.98) 62%); box-shadow: var(--shadow-deep), inset 0 1px rgba(255,229,174,.05); }
+  .foreign-card .scroll-art img { width: 88%; filter: drop-shadow(0 18px 14px rgba(0,0,0,.5)) grayscale(.25); }
+  .foreign-card .scroll-content { padding: 26px 26px 22px; }
+  .foreign-card h3 { margin: 4px 0 10px; font-size: 27px; line-height: 1.3; }
+  .foreign-desc { margin: 0 0 12px; color: #b3a68e; font-size: 14px; line-height: 1.7; }
+  .foreign-path { margin: 0; overflow: hidden; color: #7e7563; font: 12px/1.6 "Cascadia Code", Consolas, monospace; text-overflow: ellipsis; white-space: nowrap; }
+  .foreign-actions { display: flex; align-items: center; gap: 14px; margin-top: auto; padding-top: 16px; }
+  .foreign-actions .foreign-hint { color: var(--muted); font-size: 13px; }
+
+  .reforge-banner { display: none; align-items: center; gap: 18px; margin-bottom: 18px; padding: 16px 22px; border: 1px solid #a2824d; background: linear-gradient(110deg, rgba(70,48,26,.96), rgba(28,25,20,.96)); box-shadow: inset 0 1px rgba(255,226,164,.08); }
+  .reforge-banner.show { display: flex; animation: panel-in .3s ease both; }
+  .reforge-mark { color: var(--ember-hot); font-size: 30px; line-height: 1; }
+  .reforge-copy { flex: 1; min-width: 0; }
+  .reforge-copy p { margin: 0; color: #f2dfae; font: 700 19px/1.4 var(--display); letter-spacing: .06em; }
+  .reforge-copy b { color: var(--ember-hot); font-weight: 700; }
+  .reforge-copy span { color: var(--muted); font-size: 13px; }
+
   .scroll-vault { display: grid; grid-template-columns: minmax(550px, .95fr) minmax(620px, 1.05fr); gap: 20px; min-height: 590px; }
   .featured-scroll { position: relative; display: grid; grid-template-columns: 245px 1fr; overflow: hidden; border: 1px solid #9a7b47; background: linear-gradient(130deg, rgba(56,43,28,.97), rgba(24,22,18,.98) 62%); box-shadow: var(--shadow-deep), inset 0 1px rgba(255,229,174,.08); }
   .featured-scroll::before { content: "真\A 传"; white-space: pre; position: absolute; left: 20px; top: 19px; z-index: 2; width: 46px; padding: 7px 0; border: 1px solid #cb5f47; color: #df765d; font: 700 18px/1.15 var(--display); text-align: center; transform: rotate(-3deg); }
@@ -677,6 +697,15 @@
           </div>
           <p class="stage-desc">完整记录是矿脉，<strong>反思炉不靠记忆猜</strong>。入炉捞出你当时的判断、踩过的坑、改过的流程——择好铁，锻成下件活还能用的剑。</p>
         </header>
+
+        <section class="reforge-banner" id="reforgeBanner" role="status">
+          <span class="reforge-mark" aria-hidden="true">⚒</span>
+          <div class="reforge-copy">
+            <p>重锻《<b id="reforgeScrollName">—</b>》——择你的铁融入</p>
+            <span>别人的骨架保留，你的判断嵌进它的判据、步骤与反例。</span>
+          </div>
+          <button class="secondary-btn" id="exitReforge" type="button">退出重锻</button>
+        </section>
 
         <div class="forge-grid">
           <section class="panel input-panel">
@@ -832,6 +861,13 @@
           </div>
           <p class="stage-desc">反思不只回看自己，也要让前辈经验进入判断链。被引用的秘籍会在铁上留下朱砂小印，来路不再隐身。</p>
         </header>
+        <section class="foreign-vault" aria-label="外来秘籍">
+          <div class="section-ribbon">
+            <h3>外来秘籍 · 可重锻</h3>
+            <p>别人的骨架 + 你的铁 = 你的版本</p>
+          </div>
+          <div class="foreign-grid" id="foreignScrolls"></div>
+        </section>
         <div class="scroll-vault">
           <article class="featured-scroll">
             <div class="scroll-art"><img src="static/scroll.png" alt="卷起的前辈剑谱"></div>
@@ -917,7 +953,9 @@
     temperAction: 'revise',
     drawerTrigger: null,
     prospectPath: '',
-    charge: null
+    charge: null,
+    // 重锻态：{path, name}。置上之后「锻剑」按钮改走 /api/reforge，选的铁融进外来秘籍
+    reforge: null
   };
 
   const forgeSayings = [
@@ -1228,6 +1266,53 @@
     });
   }
 
+  function renderForeignScrolls(manifest) {
+    const scrolls = manifest?.foreign_scrolls || [];
+    const box = document.getElementById('foreignScrolls');
+    if (!scrolls.length) {
+      box.innerHTML = '<p class="foreign-hint">秘籍阁暂无外来卷宗。</p>';
+      return;
+    }
+    box.innerHTML = scrolls.map(scroll => `<article class="foreign-card">
+      <div class="scroll-art"><img src="static/scroll.png" alt="外来秘籍卷轴"></div>
+      <div class="scroll-content">
+        <p class="scroll-label">${escapeHtml(scroll.origin || '外来开源秘籍')} · ${escapeHtml(String(scroll.lines || '—'))} 行</p>
+        <h3>《${escapeHtml(scroll.name)}》</h3>
+        <p class="foreign-desc">${escapeHtml(scroll.desc || '')}</p>
+        <p class="foreign-path" title="${escapeHtml(scroll.path)}">${escapeHtml(scroll.path)}</p>
+        <div class="foreign-actions">
+          <button class="primary-btn" type="button" data-reforge-path="${escapeHtml(scroll.path)}" data-reforge-name="${escapeHtml(scroll.name)}">重锻</button>
+          <span class="foreign-hint">保留它的骨架，嵌进你的判断</span>
+        </div>
+      </div>
+    </article>`).join('');
+    box.querySelectorAll('[data-reforge-path]').forEach(button => button.addEventListener('click', () =>
+      enterReforge(button.dataset.reforgePath, button.dataset.reforgeName)));
+  }
+
+  async function enterReforge(path, name) {
+    state.reforge = {path, name};
+    document.getElementById('reforgeScrollName').textContent = name;
+    document.getElementById('reforgeBanner').classList.add('show');
+    document.getElementById('forgeBtn').textContent = '重锻';
+    document.querySelector('[data-tab="reflect"]').click();
+    document.getElementById('swordResult').classList.remove('show');
+    try {
+      // 重锻从整堆料里挑，不限于当前这一场反思——旧铁一样能融进别人的秘籍
+      const irons = await api('irons');
+      if (irons.length) renderIrons(irons);
+      else setError('料堆里还没有铁：先入一炉反思，再来重锻。');
+    } catch (error) {
+      setError(error.message || '料堆没打开，请再试。');
+    }
+  }
+
+  function exitReforge() {
+    state.reforge = null;
+    document.getElementById('reforgeBanner').classList.remove('show');
+    document.getElementById('forgeBtn').textContent = '锻剑';
+  }
+
   function renderScrolls(manifest) {
     const scroll = manifest?.featured_scroll;
     if (!scroll) throw new Error('未找到真秘籍');
@@ -1367,10 +1452,13 @@
   document.getElementById('forgeBtn').addEventListener('click', async () => {
     if (!state.selectedIrons.size) return;
     const button = document.getElementById('forgeBtn');
+    const reforging = Boolean(state.reforge);
     button.disabled = true;
-    setForgeLoading(true, '锻造中…');
+    setForgeLoading(true, reforging ? '重锻中…' : '锻造中…');
     try {
-      const result = await api('forge', {method: 'POST', body: {iron_ids: [...state.selectedIrons]}});
+      const result = reforging
+        ? await api('reforge', {method: 'POST', body: {scroll_path: state.reforge.path, iron_ids: [...state.selectedIrons]}})
+        : await api('forge', {method: 'POST', body: {iron_ids: [...state.selectedIrons]}});
       document.getElementById('newSwordName').textContent = result.sword.name;
       document.getElementById('newSwordVersion').textContent = result.sword.version;
       document.getElementById('skillPreview').textContent = result.sword.skill_md;
@@ -1378,7 +1466,7 @@
         ...result.sword,
         kind: '剑',
         status: 'draft',
-        why_log: [{v: result.sword.version, why: '初锻', at: new Date().toISOString().slice(0, 10)}]
+        why_log: [{v: result.sword.version, why: reforging ? `重锻自秘籍《${state.reforge.name}》` : '初锻', at: new Date().toISOString().slice(0, 10)}]
       };
       state.armory = [newSword, ...state.armory.filter(item => item.id !== newSword.id)];
       renderArmory(state.armory);
@@ -1389,7 +1477,12 @@
       setForgeLoading(false, '剑成 · 尚待试锋');
       document.getElementById('forgeStatusLine').textContent = '先以草稿斩活，真跑过再转正';
       document.getElementById('swordResult').scrollIntoView({behavior: 'smooth', block: 'start'});
-      showToast('新剑 v0.1 已归入草稿架');
+      if (reforging) {
+        showToast(`《${state.reforge.name}》已重锻为你的版本 v0.1——改动点见剑上「重锻记」`, 6000);
+        exitReforge();
+      } else {
+        showToast('新剑 v0.1 已归入草稿架');
+      }
     } catch (error) {
       setError(error.message || '这一锤落空了，请重锻。');
       setForgeLoading(false, '炉火暂熄');
@@ -1414,6 +1507,10 @@
     .catch(() => document.getElementById('prospectError').classList.add('show'));
   api('manifest').then(renderWeapons).catch(error => {
     document.getElementById('weaponsGrid').innerHTML = `<div class="message show">${escapeHtml(error.message || '兵器谱未能展开')}</div>`;
+  });
+  document.getElementById('exitReforge').addEventListener('click', exitReforge);
+  api('manifest').then(renderForeignScrolls).catch(() => {
+    document.getElementById('foreignScrolls').innerHTML = '<p class="foreign-hint">外来秘籍未能载入。</p>';
   });
   api('manifest').then(renderScrolls).catch(error => {
     document.getElementById('featuredScrollName').textContent = '秘籍未能展开';

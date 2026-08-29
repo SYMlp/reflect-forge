@@ -1,0 +1,70 @@
+{
+  "session_hash": "3f0ab92fb6a8",
+  "source": "file",
+  "path": "C:\\Users\\Administrator\\.claude\\projects\\d--Project-personal-toys\\80200f02-0462-4b17-9a63-948b4aa555ba.jsonl",
+  "created": "2026-08-29 15:40",
+  "chars": 24009,
+  "irons": [
+    {
+      "id": "3f0ab92f-i1",
+      "text": "再看不下去的代码也只让 AI 改，人只给改法不上手，逼它返工到合格",
+      "anchor": "让 AI 去改，我自己绝对不改",
+      "kind": "判断",
+      "grade": "上品"
+    },
+    {
+      "id": "3f0ab92f-i2",
+      "text": "定 why 先验词性：动词链是 how，描述性状态句才算 why",
+      "anchor": "动词就不是 why",
+      "kind": "判断",
+      "grade": "上品",
+      "cite": {
+        "name": "前辈剑谱·why 三问",
+        "kind": "秘籍"
+      }
+    },
+    {
+      "id": "3f0ab92f-i3",
+      "text": "AI 只从记录里捞判断显影，验留与拍板的权力必须留在人手里",
+      "anchor": "捞是它捞，判是我判",
+      "kind": "判断",
+      "grade": "上品"
+    },
+    {
+      "id": "3f0ab92f-i4",
+      "text": "事实性疑问不许用「可能」作答，当场查证再开口，猜错会误导决策",
+      "anchor": "是没验证就说的猜测",
+      "kind": "经验",
+      "grade": "上品"
+    },
+    {
+      "id": "3f0ab92f-i5",
+      "text": "自动化先让用户手动看清一炉全过程，信任建立后再上定时管线",
+      "anchor": "先手动后自动，是信任的顺序",
+      "kind": "判断",
+      "grade": "上品"
+    },
+    {
+      "id": "3f0ab92f-i6",
+      "text": "资源列表须给条目生成人话标识，光剩 uuid 用户认不出等于没料",
+      "anchor": "真正病因不是没料，是认不出",
+      "kind": "经验",
+      "grade": "中品"
+    },
+    {
+      "id": "3f0ab92f-i7",
+      "text": "视觉包装只负责把人吸引来看，产品内核不为外皮让步",
+      "anchor": "好看的外表其实就是让人家愿意看看",
+      "kind": "判断",
+      "grade": "上品"
+    },
+    {
+      "id": "3f0ab92f-i8",
+      "text": "多线并行开发先签接口合同，中途改契约一律拦下走单点仲裁",
+      "anchor": "拦下来发我仲裁",
+      "kind": "流程",
+      "grade": "中品"
+    }
+  ],
+  "dropped": []
+}

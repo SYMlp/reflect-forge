@@ -1,0 +1,44 @@
+{
+  "id": "ai-work-human-judge",
+  "name": "驭机分权剑",
+  "kind": "剑",
+  "status": "forged",
+  "version": "v0.2",
+  "why_log": [
+    {
+      "v": "v0.1",
+      "why": "初锻",
+      "at": "2026-08-29 15:44"
+    },
+    {
+      "v": "v0.1",
+      "why": "测试一下",
+      "at": "2026-08-29 15:49"
+    },
+    {
+      "v": "v0.2",
+      "why": "这话给出来的不够简洁。我们每天日报，就是 今日工作，明日工作。每个下面1-4条，每条不超过10个字就完了",
+      "at": "2026-08-29 16:00"
+    }
+  ],
+  "skill_path": "data/swords/ai-work-human-judge/SKILL.md",
+  "skill_name": "ai-work-human-judge",
+  "description": "带 AI 干活（改代码、建管线、出产物）时的分权守则：AI 执行、人拍板，明确哪些动作必须停下等人确认。",
+  "triggers": "让 AI 改, 这个能直接做吗, 要不要上自动化, 先跑一遍给我看, 等我拍板",
+  "iron_ids": [
+    "3f0ab92f-i2",
+    "3f0ab92f-i3",
+    "3f0ab92f-i4",
+    "3f0ab92f-i5",
+    "3f0ab92f-i6",
+    "3f0ab92f-i7",
+    "3f0ab92f-i8",
+    "3f0ab92f-i1"
+  ],
+  "scene": "",
+  "created": "2026-08-29 15:44",
+  "bestowed": true,
+  "bestowed_to": "C:\\Users\\Administrator\\.claude\\skills\\ai-work-human-judge\\SKILL.md",
+  "bestowed_at": "2026-08-29 16:09",
+  "bestowed_version": "v0.2"
+}

@@ -31,5 +31,9 @@
     "0f2d3f3d-i3"
   ],
   "scene": "",
-  "created": "2026-08-29 13:45"
+  "created": "2026-08-29 13:45",
+  "bestowed": true,
+  "bestowed_to": "C:\\Users\\Administrator\\.claude\\skills\\daily-report-delta\\SKILL.md",
+  "bestowed_at": "2026-08-29 15:06",
+  "bestowed_version": "v0.2"
 }
