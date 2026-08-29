@@ -370,7 +370,7 @@
   .weapons-ledger::before { left: 11px; top: 11px; border-left: 1px solid; border-top: 1px solid; }
   .weapons-ledger::after { right: 11px; bottom: 11px; border-right: 1px solid; border-bottom: 1px solid; }
   .weapons-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
-  .weapon-tile { position: relative; min-height: 214px; overflow: hidden; border: 1px solid rgba(175,158,126,.17); background: #191816; box-shadow: inset 0 0 32px rgba(0,0,0,.35); }
+  .weapon-tile { position: relative; min-height: 198px; overflow: hidden; border: 1px solid rgba(175,158,126,.17); background: #191816; box-shadow: inset 0 0 32px rgba(0,0,0,.35); }
   .weapon-figure { position: absolute; inset: 0; background-image: linear-gradient(rgba(19,18,16,.34), rgba(19,18,16,.62)), url("static/weapons-manifest.png"); background-size: 600% 300%, 600% 300%; background-position: center, var(--weapon-x) var(--weapon-y); filter: grayscale(1) sepia(.12) brightness(.48); transform: scale(1.012); transition: filter .25s ease, transform .25s ease; }
   .weapon-tile::after { content: ""; position: absolute; inset: 8px; border: 1px solid rgba(218,190,137,.07); pointer-events: none; }
   .weapon-tile.live { cursor: pointer; border-color: #a77b3f; box-shadow: inset 0 0 44px rgba(203,104,28,.15), 0 0 30px rgba(186,89,25,.11); }
@@ -423,6 +423,9 @@
     .exp-grid { gap: 11px; }
     .forge-grid { grid-template-columns: minmax(590px, 1.15fr) minmax(390px, .85fr); }
     .iron-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
   }
 </style></head>
 <body>
@@ -742,7 +745,14 @@
         }
       };
     }
-    if (resource === 'temper') return {version: 'v1.0', why_log: []};
+    if (resource === 'temper') {
+      const current = state.activeSword?.version || 'v0.1';
+      const match = current.match(/^v(\d+)\.(\d+)$/);
+      const version = options.body?.action === 'promote'
+        ? 'v1.0'
+        : match ? `v${match[1]}.${Number(match[2]) + 1}` : current;
+      return {version, why_log: []};
+    }
     throw new Error('这条炉路尚未接通');
   }
 
@@ -989,6 +999,7 @@
     });
     document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
     document.getElementById(`tab-${button.dataset.tab}`).classList.add('active');
+    window.scrollTo({top: 0, left: 0, behavior: 'instant'});
   }));
 
   document.querySelectorAll('[data-go-reflect]').forEach(button => button.addEventListener('click', () => document.querySelector('[data-tab="reflect"]').click()));
