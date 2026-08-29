@@ -383,6 +383,32 @@
   .ledger-note { display: flex; align-items: center; justify-content: space-between; gap: 30px; margin-top: 18px; padding: 13px 16px; border-left: 3px solid var(--ember); color: var(--muted); background: rgba(24,22,18,.84); font-size: 14px; }
   .ledger-note strong { color: var(--paper-200); font-weight: 600; }
 
+  .scroll-vault { display: grid; grid-template-columns: minmax(550px, .95fr) minmax(620px, 1.05fr); gap: 20px; min-height: 590px; }
+  .featured-scroll { position: relative; display: grid; grid-template-columns: 245px 1fr; overflow: hidden; border: 1px solid #9a7b47; background: linear-gradient(130deg, rgba(56,43,28,.97), rgba(24,22,18,.98) 62%); box-shadow: var(--shadow-deep), inset 0 1px rgba(255,229,174,.08); }
+  .featured-scroll::before { content: "真\A 传"; white-space: pre; position: absolute; left: 20px; top: 19px; z-index: 2; width: 46px; padding: 7px 0; border: 1px solid #cb5f47; color: #df765d; font: 700 18px/1.15 var(--display); text-align: center; transform: rotate(-3deg); }
+  .scroll-art { position: relative; display: grid; place-items: center; overflow: hidden; border-right: 1px solid var(--line); background: radial-gradient(circle, rgba(226,144,54,.17), transparent 57%); }
+  .scroll-art img { width: 92%; object-fit: contain; transform: rotate(-9deg); filter: drop-shadow(0 22px 16px rgba(0,0,0,.55)); }
+  .scroll-art::after { content: ""; position: absolute; width: 150px; height: 150px; border: 1px solid rgba(212,169,93,.14); transform: rotate(45deg); }
+  .scroll-content { display: flex; flex-direction: column; padding: 42px 34px 34px; }
+  .scroll-label { margin: 0; color: var(--ember); font-size: 13px; letter-spacing: .2em; }
+  .scroll-content h3 { margin: 4px 0 8px; color: #f4e0ad; font: 700 32px/1.42 var(--display); letter-spacing: .05em; }
+  .scroll-desc { margin: 0; color: #c1b394; font-size: 16px; }
+  .cited-today { align-self: flex-end; margin: 18px 0 10px; padding: 7px 10px; border: 1px solid #c65b46; color: #dd725a; font: 700 13px/1.2 var(--display); letter-spacing: .08em; transform: rotate(2deg); background: rgba(116,30,23,.17); }
+  .scroll-quote { position: relative; margin: auto 0 0; padding: 24px 22px 20px; border-top: 1px solid #8e754e; border-bottom: 1px solid rgba(142,117,78,.45); color: #eadbbb; font: 600 20px/1.85 var(--display); }
+  .scroll-quote::before { content: "“"; position: absolute; left: -2px; top: -5px; color: rgba(229,138,53,.35); font: 70px/1 Georgia, serif; }
+  .scroll-source { margin: 12px 0 0; color: #8f8471; font-size: 13px; }
+  .locked-vault { position: relative; display: grid; place-items: center; overflow: hidden; border: 1px solid #504b43; background: linear-gradient(rgba(17,16,14,.74), rgba(17,16,14,.91)), url("static/bg-forge.png") 15% center / cover; box-shadow: inset 0 0 80px rgba(0,0,0,.5); text-align: center; }
+  .locked-vault::before { content: ""; position: absolute; inset: 18px; border: 1px dashed rgba(188,173,142,.13); }
+  .vault-lock { position: relative; width: 84px; height: 70px; margin: 0 auto 24px; border: 2px solid #6f6658; }
+  .vault-lock::before { content: ""; position: absolute; width: 48px; height: 44px; left: 16px; top: -38px; border: 2px solid #6f6658; border-bottom: 0; border-radius: 28px 28px 0 0; }
+  .vault-lock::after { content: ""; position: absolute; left: 37px; top: 24px; width: 7px; height: 17px; background: #6f6658; }
+  .locked-copy { position: relative; z-index: 1; max-width: 570px; padding: 48px; }
+  .locked-copy h3 { margin: 0; color: #a9a08e; font: 700 32px/1.4 var(--display); letter-spacing: .12em; }
+  .locked-copy p { margin: 9px auto 26px; color: #736d62; }
+  .future-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .future-actions button { min-height: 48px; border: 1px solid #4f4b44; background: rgba(55,52,47,.22); color: #6f6a61; font: 600 15px/1.3 var(--display); cursor: not-allowed; }
+  .future-note { display: block; margin-top: 16px; color: #5f5a52; font-size: 12px; letter-spacing: .1em; }
+
   .placeholder-pane { min-height: 520px; display: grid; place-items: center; border: 1px solid var(--line); background: rgba(17,16,13,.88); color: var(--muted); text-align: center; }
   .placeholder-pane strong { display: block; color: var(--paper-200); font: 700 26px/1.5 var(--display); }
   .placeholder-pane p { margin: 5px 0 0; }
@@ -583,7 +609,41 @@
         </section>
         <div class="ledger-note"><span><strong>剑已实装</strong> · 一把剑对应一个可带走的 SKILL.md</span><span>余十七器 · 待锻</span></div>
       </section>
-      <section class="tab-panel" id="tab-scrolls"><div class="placeholder-pane"><div><strong>秘籍阁正在落锁</strong><p>江湖尚远，先留一卷真传</p></div></div></section>
+      <section class="tab-panel" id="tab-scrolls" aria-labelledby="scrollsTitle">
+        <header class="stage-head">
+          <div>
+            <p class="stage-kicker">借前人火种 · 锻自己的剑</p>
+            <h2 id="scrollsTitle">秘籍阁</h2>
+          </div>
+          <p class="stage-desc">反思不只回看自己，也要让前辈经验进入判断链。被引用的秘籍会在铁上留下朱砂小印，来路不再隐身。</p>
+        </header>
+        <div class="scroll-vault">
+          <article class="featured-scroll">
+            <div class="scroll-art"><img src="static/scroll.png" alt="卷起的前辈剑谱"></div>
+            <div class="scroll-content">
+              <p class="scroll-label">本阁实藏 · 壹卷</p>
+              <h3 id="featuredScrollName">载入秘籍中</h3>
+              <p class="scroll-desc" id="featuredScrollDesc"></p>
+              <span class="cited-today">今晨被引用</span>
+              <blockquote class="scroll-quote" id="featuredScrollQuote">炉火正在显字……</blockquote>
+              <p class="scroll-source">此句已在反思炉出铁时留下“引·前辈剑谱”印</p>
+            </div>
+          </article>
+          <section class="locked-vault" aria-label="锁定的秘籍与社交能力">
+            <div class="locked-copy">
+              <span class="vault-lock" aria-hidden="true"></span>
+              <h3>江湖尚远，敬请期待</h3>
+              <p>等更多锻造师带着自己的真剑与真秘籍相逢。今日先把经验锻成自己带得走的资产。</p>
+              <div class="future-actions">
+                <button type="button" disabled>交友</button>
+                <button type="button" disabled>换秘籍</button>
+                <button type="button" disabled>赠剑（需重铸）</button>
+              </div>
+              <span class="future-note">此区域为锁定态 · 本期不实装社交</span>
+            </div>
+          </section>
+        </div>
+      </section>
     </main>
   </div>
   <div class="toast" id="toast" role="status"></div>
@@ -912,6 +972,15 @@
     });
   }
 
+  function renderScrolls(manifest) {
+    const scroll = manifest?.featured_scroll;
+    if (!scroll) throw new Error('未找到真秘籍');
+    document.getElementById('featuredScrollName').textContent = scroll.name;
+    document.getElementById('featuredScrollDesc').textContent = scroll.desc;
+    const quoted = String(scroll.cited || '').split('——').at(-1).trim();
+    document.getElementById('featuredScrollQuote').textContent = quoted;
+  }
+
   document.querySelectorAll('.tab-btn').forEach(button => button.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(btn => {
       const active = btn === button;
@@ -1038,6 +1107,10 @@
     .catch(() => document.getElementById('prospectError').classList.add('show'));
   api('manifest').then(renderWeapons).catch(error => {
     document.getElementById('weaponsGrid').innerHTML = `<div class="message show">${escapeHtml(error.message || '兵器谱未能展开')}</div>`;
+  });
+  api('manifest').then(renderScrolls).catch(error => {
+    document.getElementById('featuredScrollName').textContent = '秘籍未能展开';
+    document.getElementById('featuredScrollQuote').textContent = error.message;
   });
 </script>
 </body></html>
