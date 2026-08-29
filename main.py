@@ -423,6 +423,21 @@ def load_all_irons():
     return index
 
 
+def iron_snapshot(irons):
+    """铁快照：这块铁**锻造当下**长什么样，原样封进剑的谱系。
+
+    只存 id 等于把证据链的一端拴在可变文件上——data/irons 一改一删，
+    剑就说不清自己是拿什么锻的了。谱系必须自带原话，不许回查。
+    """
+    out = []
+    for it in irons:
+        snap = {k: it.get(k, "") for k in ("id", "text", "anchor", "kind", "grade")}
+        if it.get("cite"):
+            snap["cite"] = it["cite"]
+        out.append(snap)
+    return out
+
+
 def iron_line(it):
     """喂给锻剑 prompt 的一行铁。原话锚一起带上——它是这把剑判据的骨头。"""
     line = "- [{}] {}（{}·{}）原话：「{}」".format(
@@ -521,6 +536,7 @@ def forge(iron_ids=None, scene=""):
     sword_name = sword_name or skill_name or "无名剑"
     # 明确点了名的铁一定算数；scene 模式才信炉子自己报的选铁
     used = iron_ids or [c for c in chosen if c in index]
+    used_irons = [index[i] for i in used if i in index]
 
     sid = new_sword_id(skill_name, sword_name)
     d = SWORDS / sid
@@ -538,6 +554,8 @@ def forge(iron_ids=None, scene=""):
         "description": fm.get("description", ""),
         "triggers": fm.get("triggers", ""),
         "iron_ids": used,
+        # 谱系：这把剑是拿哪几块铁锻的，铁的原话一起封存（旧剑没有这个字段，前端据此不渲染）
+        "irons": iron_snapshot(used_irons),
         "scene": scene,
         "created": _now(),
     }
@@ -690,6 +708,9 @@ def armory():
             "skill_md": read_skill_md(m.get("id")),
             "description": m.get("description", ""),
             "iron_ids": m.get("iron_ids") or [],
+            # 谱系快照。旧剑锻的时候还没有这个字段 → 空数组，前端整节不渲染
+            "irons": m.get("irons") or [],
+            "reforged_from": m.get("reforged_from", ""),
             "created": m.get("created", ""),
             # 佩剑标记：兵器架上要一眼看得出哪把剑已经在侠客身上
             "bestowed": bool(m.get("bestowed")),

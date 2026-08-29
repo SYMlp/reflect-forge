@@ -499,6 +499,15 @@
   .drawer-section { margin-bottom: 30px; }
   .drawer-section h3 { margin: 0 0 13px; color: var(--paper-200); font: 700 20px/1.4 var(--display); letter-spacing: .08em; }
   .drawer-skill { margin: 0; max-height: 310px; overflow: auto; padding: 17px 19px; border: 1px solid rgba(255,255,255,.07); background: #0f0e0c; color: #d4c6aa; font: 13px/1.7 "Cascadia Code", Consolas, monospace; white-space: pre-wrap; }
+  /* 用料清单：复用铁卡那套记号（类型/品级/朱砂印/原话），只把版型压成一行一块 */
+  .stock-section { display: none; }
+  .stock-section.show { display: block; }
+  .stock-row { position: relative; padding: 13px 16px; border: 1px solid #655d50; background: linear-gradient(155deg, rgba(56,52,45,.97), rgba(31,29,25,.98)); }
+  .stock-row + .stock-row { margin-top: 10px; }
+  .stock-row .iron-top { margin-bottom: 8px; }
+  .stock-row .cite-seal { position: static; display: inline-block; max-width: none; padding: 3px 8px; transform: none; }
+  .stock-row .stock-text { margin: 0 0 6px; color: #efe1c4; font: 600 15px/1.6 var(--body); }
+  .stock-row .iron-anchor { color: #cbbb9b; }
   .why-timeline { position: relative; margin-left: 7px; padding-left: 25px; }
   .why-timeline::before { content: ""; position: absolute; left: 4px; top: 6px; bottom: 9px; width: 1px; background: #66583f; }
   .why-entry { position: relative; padding: 0 0 20px; }
@@ -880,6 +889,10 @@
           <h3>SKILL.md</h3>
           <pre class="drawer-skill" id="drawerSkill"></pre>
         </section>
+        <section class="drawer-section stock-section" id="stockSection">
+          <h3>用料清单 · 这把剑拿什么锻的</h3>
+          <div id="stockList"></div>
+        </section>
         <section class="drawer-section">
           <h3>淬火记录 · why 链</h3>
           <div class="why-timeline" id="whyTimeline"></div>
@@ -1068,6 +1081,27 @@
     });
   }
 
+  function renderIronStock(irons = []) {
+    const section = document.getElementById('stockSection');
+    const list = document.getElementById('stockList');
+    // 旧剑锻的时候还没有谱系字段：整节收起，不报错也不拿假料顶上
+    if (!irons.length) {
+      list.innerHTML = '';
+      section.classList.remove('show');
+      return;
+    }
+    section.classList.add('show');
+    list.innerHTML = irons.map(iron => `<article class="stock-row">
+      <div class="iron-top">
+        <span class="iron-kind">${escapeHtml(iron.kind)}</span>
+        <span class="iron-grade ${iron.grade === '上品' ? 'top' : ''}">${escapeHtml(iron.grade)}</span>
+        ${iron.cite ? `<span class="cite-seal">引·${escapeHtml(iron.cite.name)}</span>` : ''}
+      </div>
+      <p class="stock-text">${escapeHtml(iron.text)}</p>
+      <p class="iron-anchor">「${escapeHtml(iron.anchor)}」</p>
+    </article>`).join('');
+  }
+
   function renderWhyLog(log = []) {
     document.getElementById('whyTimeline').innerHTML = log.map(item => `<article class="why-entry">
       <div class="why-version"><strong>${escapeHtml(item.v)}</strong><time>${escapeHtml(item.at)}</time></div>
@@ -1092,6 +1126,7 @@
     bestowBtn.disabled = false;
     bestowBtn.textContent = sword.bestowed ? '重授新版' : '授予侠客';
     document.getElementById('temperSheet').classList.remove('open');
+    renderIronStock(sword.irons);
     renderWhyLog(sword.why_log);
     const backdrop = document.getElementById('drawerBackdrop');
     backdrop.classList.add('open');
@@ -1347,6 +1382,8 @@
       };
       state.armory = [newSword, ...state.armory.filter(item => item.id !== newSword.id)];
       renderArmory(state.armory);
+      // 回拉一次兵器架：谱系（铁快照）只有后端有，不回拉的话新剑抽屉里的用料清单是空的
+      api('armory').then(renderArmory).catch(() => {});
       api('profile').then(renderProfile).catch(() => {});
       document.getElementById('swordResult').classList.add('show');
       setForgeLoading(false, '剑成 · 尚待试锋');
