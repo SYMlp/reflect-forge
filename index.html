@@ -1,0 +1,668 @@
+<!doctype html><html lang="zh-Hans"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>反思锻造台 · Reflect Forge</title>
+<style>
+  :root {
+    --coal-950: #100f0c;
+    --coal-900: #171612;
+    --iron-850: #23211c;
+    --iron-800: #2c2922;
+    --iron-700: #464138;
+    --iron-500: #756d5f;
+    --paper-100: #f1e5c7;
+    --paper-200: #dfcfaa;
+    --paper-300: #c8b589;
+    --ink: #272219;
+    --muted: #a99c80;
+    --ember: #e58a35;
+    --ember-hot: #ffb052;
+    --gold: #c9a457;
+    --cinnabar: #a83728;
+    --cinnabar-hot: #cc4935;
+    --line: rgba(220, 195, 143, .2);
+    --display: "LXGW WenKai", "STKaiti", "KaiTi", "Noto Serif SC", serif;
+    --body: "Noto Serif SC", "Songti SC", "SimSun", serif;
+    --shadow-deep: 0 24px 60px rgba(0, 0, 0, .44);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { min-width: 1100px; background: var(--coal-950); }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    color: var(--paper-100);
+    background: var(--coal-950) url("static/bg-forge.png") center top / cover fixed no-repeat;
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.72;
+    text-rendering: optimizeLegibility;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background:
+      radial-gradient(circle at 84% 48%, rgba(220, 105, 25, .13), transparent 30%),
+      linear-gradient(180deg, rgba(11, 10, 8, .24), rgba(11, 10, 8, .74) 64%, rgba(11, 10, 8, .92));
+  }
+
+  button, textarea, input { font: inherit; }
+  button { color: inherit; }
+  button:focus-visible, textarea:focus-visible, input:focus-visible, summary:focus-visible {
+    outline: 2px solid var(--ember-hot);
+    outline-offset: 3px;
+  }
+
+  .app-shell { width: min(1720px, calc(100vw - 64px)); margin: 0 auto; padding: 24px 0 54px; }
+  .topbar {
+    position: relative;
+    display: grid;
+    grid-template-columns: 360px minmax(0, 1fr);
+    min-height: 124px;
+    border: 1px solid var(--line);
+    background: linear-gradient(105deg, rgba(19, 18, 15, .96), rgba(35, 31, 24, .86));
+    box-shadow: var(--shadow-deep), inset 0 1px rgba(255, 232, 177, .08);
+  }
+
+  .topbar::after, .panel::after {
+    content: "";
+    position: absolute;
+    inset: 7px;
+    pointer-events: none;
+    border: 1px solid rgba(206, 166, 85, .08);
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    min-width: 0;
+    padding: 20px 28px;
+    border-right: 1px solid var(--line);
+  }
+
+  .brand-seal {
+    display: grid;
+    place-items: center;
+    width: 72px;
+    height: 72px;
+    flex: 0 0 auto;
+    border: 2px solid #d46345;
+    color: #e18668;
+    font: 700 25px/1 var(--display);
+    letter-spacing: .08em;
+    transform: rotate(-2deg);
+    box-shadow: inset 0 0 0 4px rgba(168, 55, 40, .2), 0 0 22px rgba(168, 55, 40, .16);
+  }
+
+  .brand h1 {
+    margin: 0;
+    font: 700 36px/1.15 var(--display);
+    letter-spacing: .08em;
+    color: #f3dfad;
+    text-shadow: 0 2px 18px rgba(225, 128, 43, .22);
+  }
+
+  .brand p { margin: 6px 0 0; color: var(--muted); font-size: 14px; letter-spacing: .17em; text-transform: uppercase; }
+  .profile-strip { display: grid; grid-template-columns: 272px minmax(0, 1fr) 106px; gap: 26px; align-items: center; padding: 20px 28px; }
+  .profile-id { display: flex; gap: 14px; align-items: center; min-width: 0; }
+  .profile-id img { width: 70px; height: 70px; object-fit: contain; filter: drop-shadow(0 7px 10px rgba(0, 0, 0, .48)); }
+  .profile-kicker { margin: 0; color: var(--ember); font-size: 13px; letter-spacing: .2em; }
+  .profile-name { margin: 1px 0; font: 700 25px/1.2 var(--display); color: var(--paper-100); }
+  .profile-title { margin: 0; color: var(--paper-300); font-size: 14px; }
+  .exp-grid { display: grid; grid-template-columns: repeat(4, minmax(106px, 1fr)); gap: 18px; }
+  .exp-item { min-width: 0; }
+  .exp-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 7px; color: var(--muted); font-size: 13px; white-space: nowrap; }
+  .exp-head strong { color: var(--paper-100); font-size: 16px; font-variant-numeric: tabular-nums; }
+  .exp-track { position: relative; height: 5px; overflow: hidden; background: #0c0b09; border: 1px solid rgba(255, 255, 255, .05); }
+  .exp-fill { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #8d4b25, var(--ember-hot)); box-shadow: 0 0 12px rgba(239, 142, 55, .5); transition: width 900ms cubic-bezier(.2,.8,.2,1); }
+  .quality-readout { text-align: center; border-left: 1px solid var(--line); padding-left: 22px; }
+  .quality-readout span { display: block; color: var(--muted); font-size: 13px; letter-spacing: .12em; }
+  .quality-readout strong { display: block; margin-top: 2px; color: var(--gold); font: 700 27px/1.2 var(--display); font-variant-numeric: tabular-nums; }
+
+  .tabs {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    margin-top: 14px;
+    border: 1px solid var(--line);
+    background: rgba(14, 13, 11, .92);
+    box-shadow: 0 14px 30px rgba(0,0,0,.26);
+  }
+
+  .tab-btn {
+    position: relative;
+    min-height: 66px;
+    border: 0;
+    border-right: 1px solid var(--line);
+    background: transparent;
+    cursor: pointer;
+    color: #b7aa8d;
+    font: 600 21px/1 var(--display);
+    letter-spacing: .12em;
+    transition: color .2s ease, background .2s ease;
+  }
+
+  .tab-btn:last-child { border-right: 0; }
+  .tab-btn::after { content: ""; position: absolute; left: 22%; right: 22%; bottom: 0; height: 3px; background: var(--ember); transform: scaleX(0); transition: transform .25s ease; }
+  .tab-btn:hover { color: var(--paper-100); background: rgba(229, 138, 53, .05); }
+  .tab-btn.active { color: var(--ember-hot); background: linear-gradient(180deg, rgba(229, 138, 53, .08), transparent); }
+  .tab-btn.active::after { transform: scaleX(1); }
+  .tab-index { margin-right: 12px; color: var(--iron-500); font: 12px/1 Georgia, serif; letter-spacing: 0; }
+  .tab-btn.active .tab-index { color: var(--cinnabar-hot); }
+
+  main { margin-top: 20px; }
+  .tab-panel { display: none; animation: panel-in .45s ease both; }
+  .tab-panel.active { display: block; }
+  @keyframes panel-in { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: none; } }
+
+  .stage-head { display: flex; align-items: end; justify-content: space-between; gap: 30px; margin: 0 2px 18px; }
+  .stage-kicker { margin: 0 0 2px; color: var(--ember); font-size: 13px; letter-spacing: .26em; }
+  .stage-head h2 { margin: 0; font: 700 34px/1.25 var(--display); letter-spacing: .08em; color: #f0ddb0; }
+  .stage-desc { max-width: 640px; margin: 0; color: #b8ad96; text-align: right; }
+  .stage-desc strong { color: var(--paper-100); font-weight: 600; }
+
+  .forge-grid { display: grid; grid-template-columns: minmax(620px, 1.12fr) minmax(440px, .88fr); gap: 20px; align-items: stretch; }
+  .panel {
+    position: relative;
+    border: 1px solid var(--line);
+    background: linear-gradient(145deg, rgba(25, 23, 19, .96), rgba(18, 17, 14, .93));
+    box-shadow: var(--shadow-deep), inset 0 1px rgba(255,255,255,.04);
+  }
+  .panel-inner { position: relative; z-index: 1; padding: 30px 32px; }
+  .panel-title-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 20px; }
+  .panel-title-row h3 { margin: 0; font: 700 24px/1.3 var(--display); color: var(--paper-100); letter-spacing: .08em; }
+  .panel-title-row p { margin: 0; color: var(--muted); font-size: 14px; }
+
+  .source-switch { display: flex; gap: 6px; padding: 4px; border: 1px solid var(--line); background: rgba(0,0,0,.2); }
+  .source-switch button { border: 0; padding: 7px 14px; background: transparent; color: var(--muted); cursor: pointer; font-size: 14px; }
+  .source-switch button.active { background: rgba(229,138,53,.14); color: var(--ember-hot); }
+  .session-input {
+    width: 100%;
+    height: 270px;
+    resize: none;
+    padding: 22px 24px;
+    border: 1px solid #8c7d5e;
+    border-radius: 0;
+    color: var(--ink);
+    background:
+      linear-gradient(rgba(232, 215, 175, .93), rgba(232, 215, 175, .93)),
+      repeating-linear-gradient(0deg, transparent 0 29px, rgba(80, 61, 34, .1) 29px 30px);
+    box-shadow: inset 0 0 38px rgba(83, 56, 24, .16), 0 10px 22px rgba(0,0,0,.22);
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.78;
+  }
+  .session-input::placeholder { color: #776c59; opacity: .78; }
+  .file-source { display: none; height: 270px; place-items: center; border: 1px dashed #8c7d5e; background: rgba(229, 216, 184, .08); text-align: center; }
+  .file-source.active { display: grid; }
+  .drop-glyph { display: block; width: 56px; height: 66px; margin: 0 auto 14px; border: 2px solid var(--gold); position: relative; }
+  .drop-glyph::before, .drop-glyph::after { content: ""; position: absolute; background: var(--gold); }
+  .drop-glyph::before { width: 23px; height: 2px; top: 22px; left: 15px; }
+  .drop-glyph::after { width: 2px; height: 23px; top: 12px; left: 26px; }
+  .file-source label { display: inline-block; padding: 9px 18px; border: 1px solid var(--gold); color: var(--paper-200); cursor: pointer; }
+  .file-source input { position: absolute; opacity: 0; pointer-events: none; }
+  .file-note { margin: 10px 0 0; color: var(--muted); font-size: 14px; }
+
+  .action-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-top: 20px; }
+  .fire-cost { margin: 0; color: var(--muted); font-size: 14px; }
+  .fire-cost b { color: var(--ember); font-weight: 600; }
+  .primary-btn, .secondary-btn, .danger-btn {
+    position: relative;
+    min-width: 148px;
+    min-height: 52px;
+    border: 1px solid #d19a50;
+    border-radius: 0;
+    cursor: pointer;
+    font: 700 18px/1 var(--display);
+    letter-spacing: .14em;
+    transition: transform .18s ease, filter .18s ease, opacity .18s ease;
+  }
+  .primary-btn { color: #25170b; background: linear-gradient(180deg, #f0b35c, #c8732c); box-shadow: 0 8px 22px rgba(210, 102, 27, .25), inset 0 1px #ffe0a4; }
+  .secondary-btn { color: var(--paper-100); background: rgba(91, 75, 51, .28); border-color: #8b7858; }
+  .danger-btn { color: #f3d6c5; background: var(--cinnabar); border-color: #d06a55; }
+  .primary-btn:hover, .secondary-btn:hover, .danger-btn:hover { transform: translateY(-2px); filter: brightness(1.08); }
+  button:disabled { cursor: not-allowed; opacity: .42; filter: grayscale(.5); transform: none !important; }
+
+  .furnace-stage { min-height: 495px; overflow: hidden; background: radial-gradient(circle at 52% 66%, rgba(219, 105, 27, .13), transparent 31%); }
+  .furnace-stage .panel-inner { height: 100%; min-height: 495px; display: grid; grid-template-rows: auto 1fr auto; }
+  .furnace-visual { position: relative; display: grid; place-items: center; min-height: 315px; }
+  .furnace-img { width: min(92%, 500px); max-height: 345px; object-fit: contain; filter: drop-shadow(0 23px 18px rgba(0,0,0,.52)) drop-shadow(0 0 20px rgba(226,106,22,.2)); transition: filter .4s ease, transform .4s ease; }
+  .furnace-glow { position: absolute; width: 230px; height: 160px; border-radius: 50%; background: rgba(255,113,24,.14); filter: blur(35px); transform: translateY(40px); animation: breathe 2.1s ease-in-out infinite; }
+  .spark-layer { position: absolute; inset: 3% 8% 8%; background: url("static/spark.png") center / contain no-repeat; opacity: 0; transform-origin: 50% 76%; pointer-events: none; }
+  .furnace-stage.loading .furnace-img { transform: scale(1.025); filter: drop-shadow(0 23px 18px rgba(0,0,0,.52)) drop-shadow(0 0 42px rgba(255,106,16,.68)) saturate(1.18); }
+  .furnace-stage.loading .spark-layer { opacity: .8; animation: sparks 1.2s linear infinite; }
+  .furnace-stage.loading .furnace-glow { background: rgba(255,103,20,.35); animation-duration: .7s; }
+  @keyframes breathe { 50% { opacity: .55; transform: translateY(40px) scale(1.12); } }
+  @keyframes sparks { from { transform: translateY(16px) scale(.9); opacity: 0; } 35% { opacity: .9; } to { transform: translateY(-32px) scale(1.08); opacity: 0; } }
+  .forge-status { position: relative; min-height: 84px; padding: 16px 18px 14px; border-top: 1px solid var(--line); text-align: center; }
+  .forge-status strong { display: block; color: var(--paper-100); font: 700 19px/1.4 var(--display); letter-spacing: .08em; }
+  .forge-status span { display: block; color: var(--muted); font-size: 14px; margin-top: 4px; }
+  .forge-status .status-line { position: absolute; left: 12%; right: 12%; top: -1px; height: 1px; background: var(--ember); transform: scaleX(0); }
+  .furnace-stage.loading .status-line { animation: status-sweep 2.7s ease-in-out infinite; }
+  @keyframes status-sweep { 0%,100% { transform: scaleX(.05); opacity: .3; } 50% { transform: scaleX(1); opacity: 1; } }
+
+  .message { display: none; margin-top: 16px; padding: 10px 14px; border-left: 3px solid var(--cinnabar-hot); color: #e8c8b7; background: rgba(157, 52, 37, .16); font-size: 14px; }
+  .message.show { display: block; }
+
+  .iron-section, .sword-result { display: none; margin-top: 20px; }
+  .iron-section.show, .sword-result.show { display: block; animation: panel-in .45s ease both; }
+  .section-ribbon { display: flex; align-items: center; gap: 18px; margin: 0 0 14px; }
+  .section-ribbon::after { content: ""; height: 1px; flex: 1; background: linear-gradient(90deg, var(--line), transparent); }
+  .section-ribbon h3 { margin: 0; font: 700 24px/1.3 var(--display); letter-spacing: .1em; color: var(--paper-100); white-space: nowrap; }
+  .section-ribbon p { margin: 0; color: var(--muted); font-size: 14px; white-space: nowrap; }
+  .iron-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+  .iron-card { position: relative; min-height: 228px; padding: 22px 20px 20px; border: 1px solid #655d50; background: linear-gradient(155deg, rgba(56,52,45,.97), rgba(31,29,25,.98)); box-shadow: inset 0 1px rgba(255,255,255,.04), 0 12px 28px rgba(0,0,0,.24); cursor: pointer; transition: transform .18s ease, border-color .18s ease, background .18s ease; }
+  .iron-card:hover { transform: translateY(-3px); border-color: #9b835d; }
+  .iron-card.selected { border-color: var(--ember); background: linear-gradient(155deg, rgba(76,59,41,.98), rgba(35,30,24,.98)); box-shadow: inset 0 0 0 1px rgba(235,145,61,.18), 0 12px 32px rgba(0,0,0,.3); }
+  .iron-check { position: absolute; opacity: 0; }
+  .iron-top { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; }
+  .iron-kind, .iron-grade { padding: 3px 9px; border: 1px solid #7b705e; color: #c6b89b; font-size: 12px; letter-spacing: .12em; }
+  .iron-grade.top { color: #edbd63; border-color: #a57b35; }
+  .iron-card h4 { margin: 0 0 12px; color: #efe1c4; font: 600 17px/1.7 var(--body); }
+  .iron-anchor { margin: 0; color: #a99d87; font-size: 14px; line-height: 1.65; }
+  .cite-seal { position: absolute; right: 14px; top: 14px; max-width: 112px; padding: 5px 7px; border: 1px solid #c65b46; color: #df7962; font: 600 11px/1.35 var(--display); letter-spacing: .06em; text-align: center; transform: rotate(2deg); background: rgba(108,27,22,.18); }
+  .selected-mark { position: absolute; right: 15px; bottom: 14px; display: grid; place-items: center; width: 26px; height: 26px; border: 1px solid #776e5d; color: transparent; font: 700 17px/1 serif; }
+  .iron-card.selected .selected-mark { color: #2b190d; border-color: var(--ember); background: var(--ember); }
+  .forge-selection { display: flex; align-items: center; justify-content: flex-end; gap: 18px; margin-top: 16px; }
+  .forge-selection p { margin: 0; color: var(--muted); }
+  .forge-selection b { color: var(--ember-hot); font-variant-numeric: tabular-nums; }
+
+  .sword-card { display: grid; grid-template-columns: 240px 1fr; min-height: 290px; overflow: hidden; border: 1px solid #a2824d; background: linear-gradient(125deg, rgba(44,36,26,.98), rgba(21,19,16,.99)); box-shadow: 0 22px 44px rgba(0,0,0,.36), inset 0 1px rgba(255,229,172,.08); }
+  .sword-portrait { position: relative; display: grid; place-items: center; background: radial-gradient(circle, rgba(219,129,45,.18), transparent 62%); border-right: 1px solid var(--line); overflow: hidden; }
+  .sword-portrait::before { content: "新\A 剑"; white-space: pre; position: absolute; left: 18px; top: 18px; width: 40px; padding: 6px 1px; border: 1px solid #c75c45; color: #df735a; font: 700 16px/1.2 var(--display); text-align: center; }
+  .sword-portrait img { width: 92%; height: 255px; object-fit: contain; transform: rotate(-6deg); filter: drop-shadow(0 14px 13px rgba(0,0,0,.55)); }
+  .sword-copy { padding: 28px 30px; }
+  .sword-meta { display: flex; align-items: center; gap: 12px; color: var(--gold); font-size: 13px; letter-spacing: .12em; }
+  .sword-copy h3 { margin: 3px 0 12px; color: #f2dfae; font: 700 30px/1.25 var(--display); letter-spacing: .08em; }
+  .sword-copy > p { margin: 0 0 16px; color: #bbae95; }
+  details.skill-preview { border-top: 1px solid var(--line); padding-top: 13px; }
+  details.skill-preview summary { color: var(--paper-200); cursor: pointer; font-size: 15px; }
+  details.skill-preview pre { max-height: 260px; overflow: auto; margin: 14px 0 0; padding: 16px 18px; background: #11100d; color: #d7c9ad; border: 1px solid rgba(255,255,255,.07); font: 13px/1.65 "Cascadia Code", Consolas, monospace; white-space: pre-wrap; }
+
+  .placeholder-pane { min-height: 520px; display: grid; place-items: center; border: 1px solid var(--line); background: rgba(17,16,13,.88); color: var(--muted); text-align: center; }
+  .placeholder-pane strong { display: block; color: var(--paper-200); font: 700 26px/1.5 var(--display); }
+  .placeholder-pane p { margin: 5px 0 0; }
+
+  .toast { position: fixed; right: 34px; bottom: 34px; z-index: 50; max-width: 420px; padding: 14px 18px; border: 1px solid #987349; color: var(--paper-100); background: rgba(28,24,18,.97); box-shadow: 0 14px 38px rgba(0,0,0,.44); transform: translateY(20px); opacity: 0; pointer-events: none; transition: .25s ease; }
+  .toast.show { transform: none; opacity: 1; }
+
+  @media (max-width: 1320px) {
+    .app-shell { width: calc(100vw - 36px); }
+    .topbar { grid-template-columns: 320px 1fr; }
+    .profile-strip { grid-template-columns: 230px 1fr 90px; gap: 16px; padding-inline: 20px; }
+    .exp-grid { gap: 11px; }
+    .forge-grid { grid-template-columns: minmax(590px, 1.15fr) minmax(390px, .85fr); }
+    .iron-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style></head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-seal" aria-hidden="true">反思</div>
+        <div>
+          <h1>反思锻造台</h1>
+          <p>Reflect Forge · 以铁铸剑</p>
+        </div>
+      </div>
+      <section class="profile-strip" aria-label="锻造师档案">
+        <div class="profile-id">
+          <img id="profileBadge" src="static/badge-3.png" alt="锻造师等级徽章">
+          <div>
+            <p class="profile-kicker">锻造师档案</p>
+            <p class="profile-name" id="profileName">载入中</p>
+            <p class="profile-title" id="profileTitle">炉火正在辨认来客</p>
+          </div>
+        </div>
+        <div class="exp-grid" id="expGrid" aria-label="四维经验"></div>
+        <div class="quality-readout" title="转正率是成色读数，不参与等级晋升">
+          <span>剑器成色</span>
+          <strong id="temperRate">—</strong>
+        </div>
+      </section>
+    </header>
+
+    <nav class="tabs" aria-label="锻造台功能">
+      <button class="tab-btn active" type="button" data-tab="reflect" aria-selected="true"><span class="tab-index">壹</span>反思炉</button>
+      <button class="tab-btn" type="button" data-tab="armory" aria-selected="false"><span class="tab-index">贰</span>兵器架</button>
+      <button class="tab-btn" type="button" data-tab="prospect" aria-selected="false"><span class="tab-index">叁</span>寻料</button>
+      <button class="tab-btn" type="button" data-tab="weapons" aria-selected="false"><span class="tab-index">肆</span>兵器谱</button>
+      <button class="tab-btn" type="button" data-tab="scrolls" aria-selected="false"><span class="tab-index">伍</span>秘籍阁</button>
+    </nav>
+
+    <main>
+      <section class="tab-panel active" id="tab-reflect" aria-labelledby="reflectTitle">
+        <header class="stage-head">
+          <div>
+            <p class="stage-kicker">一炉一得 · 过程不白走</p>
+            <h2 id="reflectTitle">把会话里的铁，锻成侠客可用的剑</h2>
+          </div>
+          <p class="stage-desc">完整 session 是矿脉，<strong>反思炉不靠记忆猜</strong>。入炉析出判断、经验与流程，再择铁锻成可带走的 SKILL.md。</p>
+        </header>
+
+        <div class="forge-grid">
+          <section class="panel input-panel">
+            <div class="panel-inner">
+              <div class="panel-title-row">
+                <div>
+                  <h3>投料口</h3>
+                  <p>粘贴一段你与侠客协作的完整过程</p>
+                </div>
+                <div class="source-switch" role="group" aria-label="材料来源">
+                  <button class="active" type="button" data-source="paste">粘贴</button>
+                  <button type="button" data-source="file">选卷宗</button>
+                </div>
+              </div>
+              <textarea class="session-input" id="sessionInput" aria-label="Session 文本" placeholder="把今日与 Claude Code / Codex 的会话贴在这里……&#10;&#10;真正值钱的往往不是最后那段代码，而是你中途作出的判断、踩过的坑和改过的流程。"></textarea>
+              <div class="file-source" id="fileSource">
+                <div>
+                  <span class="drop-glyph" aria-hidden="true"></span>
+                  <label for="sessionFile">择一册 jsonl 卷宗</label>
+                  <input id="sessionFile" type="file" accept=".jsonl,.txt,.md">
+                  <p class="file-note" id="fileName">本机卷宗只取路径，不上传远端</p>
+                </div>
+              </div>
+              <div class="message" id="reflectError" role="alert"></div>
+              <div class="action-row">
+                <p class="fire-cost">此炉需烧一簇<b>火</b> · 真炉约候半炷香</p>
+                <button class="primary-btn" id="reflectBtn" type="button">入炉</button>
+              </div>
+            </div>
+          </section>
+
+          <aside class="panel furnace-stage" id="furnaceStage" aria-live="polite">
+            <div class="panel-inner">
+              <div class="panel-title-row">
+                <div>
+                  <h3>反思炉</h3>
+                  <p>以完整过程照见可复用之物</p>
+                </div>
+                <span class="iron-grade top">炉温 · 待燃</span>
+              </div>
+              <div class="furnace-visual">
+                <div class="furnace-glow"></div>
+                <img class="furnace-img" src="static/furnace.png" alt="燃着炉火的反思炉">
+                <div class="spark-layer" aria-hidden="true"></div>
+              </div>
+              <div class="forge-status">
+                <i class="status-line" aria-hidden="true"></i>
+                <strong id="forgeStatusTitle">炉门未启</strong>
+                <span id="forgeStatusLine">好铁不怕火，真判断经得起回看</span>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <section class="iron-section" id="ironSection" aria-labelledby="ironTitle">
+          <div class="section-ribbon">
+            <h3 id="ironTitle">出铁</h3>
+            <p>择其精者，方可成剑</p>
+          </div>
+          <div class="iron-grid" id="ironGrid"></div>
+          <div class="forge-selection">
+            <p>已择 <b id="selectedCount">0</b> 块铁</p>
+            <button class="primary-btn" id="forgeBtn" type="button" disabled>锻剑</button>
+          </div>
+        </section>
+
+        <section class="sword-result" id="swordResult" aria-labelledby="swordResultTitle">
+          <div class="section-ribbon">
+            <h3 id="swordResultTitle">剑成</h3>
+            <p>草稿先试锋，斩过活再转正</p>
+          </div>
+          <div class="sword-card">
+            <div class="sword-portrait">
+              <img src="static/sword-2.png" alt="新锻成的长剑">
+            </div>
+            <div class="sword-copy">
+              <div class="sword-meta"><span>剑 · 草稿</span><span id="newSwordVersion">v0.1</span></div>
+              <h3 id="newSwordName">新剑</h3>
+              <p>一把剑是一份可复用的 SKILL.md。锻造师不挥剑，挥剑的是侠客。</p>
+              <details class="skill-preview">
+                <summary>展开查看 SKILL.md</summary>
+                <pre id="skillPreview"></pre>
+              </details>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <section class="tab-panel" id="tab-armory"><div class="placeholder-pane"><div><strong>兵器架正在上榫</strong><p>已锻之剑稍后归架</p></div></div></section>
+      <section class="tab-panel" id="tab-prospect"><div class="placeholder-pane"><div><strong>矿灯正在点亮</strong><p>历史卷宗稍后显脉</p></div></div></section>
+      <section class="tab-panel" id="tab-weapons"><div class="placeholder-pane"><div><strong>十八般兵器正在拓印</strong><p>本炉今日先锻一套剑</p></div></div></section>
+      <section class="tab-panel" id="tab-scrolls"><div class="placeholder-pane"><div><strong>秘籍阁正在落锁</strong><p>江湖尚远，先留一卷真传</p></div></div></section>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+
+<script>
+  const state = {
+    source: 'paste',
+    irons: [],
+    selectedIrons: new Set(),
+    loadingTimer: null,
+    mock: null
+  };
+
+  const forgeSayings = [
+    '旺火去杂，慢火见真章',
+    '正从原话里寻那一锤定音',
+    '经验若不能复用，只算一缕烟',
+    '先辨判断，再验它从何而来',
+    '火候未到，莫急着给剑起名',
+    '把偶然的灵光，锻成稳定的招式'
+  ];
+
+  // 联调切换点：目前只读 static/mock.json；换真接口时只改这个函数。
+  async function api(resource, options = {}) {
+    const useMock = true;
+    const method = options.method || 'GET';
+    if (!useMock) {
+      const response = await fetch(`/api/${resource}`, {
+        method,
+        headers: {'Content-Type': 'application/json'},
+        body: method === 'GET' ? undefined : JSON.stringify(options.body || {})
+      });
+      if (!response.ok) throw new Error(`炉火失控（${response.status}）`);
+      return response.json();
+    }
+
+    if (!state.mock) {
+      const response = await fetch('static/mock.json');
+      if (!response.ok) throw new Error('未寻到 mock.json 卷宗');
+      state.mock = await response.json();
+    }
+    if (method === 'GET') return state.mock[resource];
+
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    if (resource === 'reflect') return {irons: state.mock.irons};
+    if (resource === 'forge') {
+      return {
+        sword: {
+          id: 'sw-demo-new',
+          name: '复盘提炼剑',
+          version: 'v0.1',
+          skill_md: `---\nname: 复盘提炼剑\ndescription: 从完整会话中提取可复用判断、经验与流程\n---\n\n# 复盘提炼剑\n\n## 何时出鞘\n当一场与 AI 侠客的协作已完成，需要把过程资料锻成可复用资产时。\n\n## 剑招\n1. 保留关键原话作为判断锚点。\n2. 区分判断、经验与流程，不把情绪当结论。\n3. 每条提炼都回答“下次何时能直接复用”。\n4. 改版必须留一行 why，说明触发与取舍。\n\n## 收剑判据\n产物能让另一个侠客在新会话中直接执行，而不依赖本场上下文。`
+        }
+      };
+    }
+    if (resource === 'temper') return {version: 'v1.0', why_log: []};
+    throw new Error('这条炉路尚未接通');
+  }
+
+  const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+
+  function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.add('show');
+    window.clearTimeout(showToast.timer);
+    showToast.timer = window.setTimeout(() => toast.classList.remove('show'), 2600);
+  }
+
+  function setError(message = '') {
+    const box = document.getElementById('reflectError');
+    box.textContent = message;
+    box.classList.toggle('show', Boolean(message));
+  }
+
+  function setForgeLoading(loading, title = '锻造中…') {
+    const stage = document.getElementById('furnaceStage');
+    const titleEl = document.getElementById('forgeStatusTitle');
+    const lineEl = document.getElementById('forgeStatusLine');
+    window.clearInterval(state.loadingTimer);
+    stage.classList.toggle('loading', loading);
+    if (!loading) {
+      titleEl.textContent = title;
+      return;
+    }
+    titleEl.textContent = title;
+    let index = Math.floor(Math.random() * forgeSayings.length);
+    lineEl.textContent = forgeSayings[index];
+    state.loadingTimer = window.setInterval(() => {
+      index = (index + 1) % forgeSayings.length;
+      lineEl.animate([{opacity: 0, transform: 'translateY(4px)'}, {opacity: 1, transform: 'none'}], {duration: 430});
+      lineEl.textContent = forgeSayings[index];
+    }, 2300);
+  }
+
+  function renderProfile(profile) {
+    const req = profile.next_level_req || {};
+    const expLabels = {
+      reflect_sessions: '反思场次',
+      swords_forged: '锻剑数',
+      swords_promoted: '转正剑数',
+      works_slain: '斩活数'
+    };
+    document.getElementById('profileName').textContent = profile.name;
+    document.getElementById('profileTitle').textContent = `${profile.level} · ${profile.title}`;
+    const levelIndex = ['见习锻造师','初级锻造师','中级锻造师','高级锻造师','超级锻造师','锻造之神'].indexOf(profile.level);
+    document.getElementById('profileBadge').src = `static/badge-${Math.max(1, levelIndex + 1)}.png`;
+    document.getElementById('temperRate').textContent = `${Math.round((profile.temper_rate || 0) * 100)}%`;
+    document.getElementById('expGrid').innerHTML = Object.entries(expLabels).map(([key, label]) => {
+      const current = Number(profile.exp[key] || 0);
+      const target = Number(req[key] || current || 1);
+      const percent = Math.min(100, Math.round(current / target * 100));
+      const met = req.met ? req.met[key] : current >= target;
+      return `<div class="exp-item" title="${escapeHtml(req.level || profile.level)}门槛：${target}">
+        <div class="exp-head"><span>${label}${met ? ' · 已达' : ''}</span><strong>${current}<small> / ${target}</small></strong></div>
+        <div class="exp-track"><i class="exp-fill" data-width="${percent}%"></i></div>
+      </div>`;
+    }).join('');
+    requestAnimationFrame(() => document.querySelectorAll('.exp-fill').forEach(el => { el.style.width = el.dataset.width; }));
+  }
+
+  function renderIrons(irons) {
+    state.irons = irons;
+    state.selectedIrons = new Set(irons.map(iron => iron.id));
+    const grid = document.getElementById('ironGrid');
+    grid.innerHTML = irons.map(iron => `<label class="iron-card selected" data-iron-id="${escapeHtml(iron.id)}">
+      <input class="iron-check" type="checkbox" value="${escapeHtml(iron.id)}" checked>
+      <div class="iron-top">
+        <span class="iron-kind">${escapeHtml(iron.kind)}</span>
+        <span class="iron-grade ${iron.grade === '上品' ? 'top' : ''}">${escapeHtml(iron.grade)}</span>
+      </div>
+      ${iron.cite ? `<span class="cite-seal">引·${escapeHtml(iron.cite.name)}</span>` : ''}
+      <h4>${escapeHtml(iron.text)}</h4>
+      <p class="iron-anchor">${escapeHtml(iron.anchor)}</p>
+      <span class="selected-mark" aria-hidden="true">✓</span>
+    </label>`).join('');
+    grid.querySelectorAll('.iron-check').forEach(input => input.addEventListener('change', event => {
+      const card = event.target.closest('.iron-card');
+      if (event.target.checked) state.selectedIrons.add(event.target.value);
+      else state.selectedIrons.delete(event.target.value);
+      card.classList.toggle('selected', event.target.checked);
+      updateSelectedCount();
+    }));
+    updateSelectedCount();
+    document.getElementById('ironSection').classList.add('show');
+    document.getElementById('ironSection').scrollIntoView({behavior: 'smooth', block: 'start'});
+  }
+
+  function updateSelectedCount() {
+    document.getElementById('selectedCount').textContent = state.selectedIrons.size;
+    document.getElementById('forgeBtn').disabled = state.selectedIrons.size === 0;
+  }
+
+  document.querySelectorAll('.tab-btn').forEach(button => button.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      const active = btn === button;
+      btn.classList.toggle('active', active);
+      btn.setAttribute('aria-selected', String(active));
+    });
+    document.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+    document.getElementById(`tab-${button.dataset.tab}`).classList.add('active');
+  }));
+
+  document.querySelectorAll('[data-source]').forEach(button => button.addEventListener('click', () => {
+    state.source = button.dataset.source;
+    document.querySelectorAll('[data-source]').forEach(btn => btn.classList.toggle('active', btn === button));
+    document.getElementById('sessionInput').style.display = state.source === 'paste' ? 'block' : 'none';
+    document.getElementById('fileSource').classList.toggle('active', state.source === 'file');
+    setError('');
+  }));
+
+  document.getElementById('sessionFile').addEventListener('change', event => {
+    document.getElementById('fileName').textContent = event.target.files[0]?.name || '本机卷宗只取路径，不上传远端';
+  });
+
+  document.getElementById('reflectBtn').addEventListener('click', async () => {
+    const input = document.getElementById('sessionInput');
+    const file = document.getElementById('sessionFile').files[0];
+    const body = state.source === 'paste'
+      ? {source: 'paste', content: input.value.trim()}
+      : {source: 'file', path: file?.name || ''};
+    if ((state.source === 'paste' && !body.content) || (state.source === 'file' && !body.path)) {
+      setError(state.source === 'paste' ? '炉中无料：请先贴入一段完整会话。' : '尚未择卷：请先选一册 jsonl 卷宗。');
+      return;
+    }
+    setError('');
+    const button = document.getElementById('reflectBtn');
+    button.disabled = true;
+    document.getElementById('ironSection').classList.remove('show');
+    document.getElementById('swordResult').classList.remove('show');
+    setForgeLoading(true, '反思中…');
+    try {
+      const result = await api('reflect', {method: 'POST', body});
+      renderIrons(result.irons || []);
+      setForgeLoading(false, `出铁 ${result.irons?.length || 0} 块`);
+      document.getElementById('forgeStatusLine').textContent = '原话为锚，品级只论复用价值';
+    } catch (error) {
+      setError(error.message || '反思炉熄火了，请再试一次。');
+      setForgeLoading(false, '炉火暂熄');
+      document.getElementById('forgeStatusLine').textContent = '材料仍在，可重燃一炉';
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+  document.getElementById('forgeBtn').addEventListener('click', async () => {
+    if (!state.selectedIrons.size) return;
+    const button = document.getElementById('forgeBtn');
+    button.disabled = true;
+    setForgeLoading(true, '锻造中…');
+    try {
+      const result = await api('forge', {method: 'POST', body: {iron_ids: [...state.selectedIrons]}});
+      document.getElementById('newSwordName').textContent = result.sword.name;
+      document.getElementById('newSwordVersion').textContent = result.sword.version;
+      document.getElementById('skillPreview').textContent = result.sword.skill_md;
+      document.getElementById('swordResult').classList.add('show');
+      setForgeLoading(false, '剑成 · 尚待试锋');
+      document.getElementById('forgeStatusLine').textContent = '先以草稿斩活，真跑过再转正';
+      document.getElementById('swordResult').scrollIntoView({behavior: 'smooth', block: 'start'});
+      showToast('新剑 v0.1 已归入草稿架');
+    } catch (error) {
+      setError(error.message || '这一锤落空了，请重锻。');
+      setForgeLoading(false, '炉火暂熄');
+    } finally {
+      button.disabled = state.selectedIrons.size === 0;
+    }
+  });
+
+  api('profile').then(renderProfile).catch(error => {
+    document.getElementById('profileName').textContent = '档案未载入';
+    document.getElementById('profileTitle').textContent = error.message;
+  });
+</script>
+</body></html>
