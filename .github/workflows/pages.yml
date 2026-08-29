@@ -1,0 +1,35 @@
+# Pages 发布：把 main 上的 site/（scripts/export_static.py 的导出产物）原样上传。
+# 为什么走 workflow 而不是分支发布：Pages 分支发布只认 / 或 /docs，
+# /site 进不去；挪 docs/ 会把导出产物混进手写设计文档。零构建，纯上传。
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4
