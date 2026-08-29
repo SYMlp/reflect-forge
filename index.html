@@ -881,7 +881,6 @@
     irons: [],
     selectedIrons: new Set(),
     loadingTimer: null,
-    mock: null,
     armory: [],
     activeSword: null,
     temperAction: 'revise',
@@ -898,48 +897,17 @@
     '把偶然的灵光，锻成稳定的招式'
   ];
 
-  // 联调切换点：目前只读 static/mock.json；换真接口时只改这个函数。
+  // 真接口统一入口：合同资源全部走 /api/*，不在这里混入展示用 mock。
   async function api(resource, options = {}) {
-    const useMock = true;
     const method = options.method || 'GET';
-    if (!useMock) {
-      const response = await fetch(`/api/${resource}`, {
-        method,
-        headers: {'Content-Type': 'application/json'},
-        body: method === 'GET' ? undefined : JSON.stringify(options.body || {})
-      });
-      if (!response.ok) throw new Error(`炉火失控（${response.status}）`);
-      return response.json();
-    }
-
-    if (!state.mock) {
-      const response = await fetch('static/mock.json');
-      if (!response.ok) throw new Error('未寻到 mock.json 卷宗');
-      state.mock = await response.json();
-    }
-    if (method === 'GET') return state.mock[resource];
-
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    if (resource === 'reflect') return {irons: state.mock.irons};
-    if (resource === 'forge') {
-      return {
-        sword: {
-          id: 'sw-demo-new',
-          name: '复盘提炼剑',
-          version: 'v0.1',
-          skill_md: `---\nname: 复盘提炼剑\ndescription: 从完整会话中提取可复用判断、经验与流程\n---\n\n# 复盘提炼剑\n\n## 何时出鞘\n当一场与 AI 侠客的协作已完成，需要把过程资料锻成可复用资产时。\n\n## 剑招\n1. 保留关键原话作为判断锚点。\n2. 区分判断、经验与流程，不把情绪当结论。\n3. 每条提炼都回答“下次何时能直接复用”。\n4. 改版必须留一行 why，说明触发与取舍。\n\n## 收剑判据\n产物能让另一个侠客在新会话中直接执行，而不依赖本场上下文。`
-        }
-      };
-    }
-    if (resource === 'temper') {
-      const current = state.activeSword?.version || 'v0.1';
-      const match = current.match(/^v(\d+)\.(\d+)$/);
-      const version = options.body?.action === 'promote'
-        ? 'v1.0'
-        : match ? `v${match[1]}.${Number(match[2]) + 1}` : current;
-      return {version, why_log: []};
-    }
-    throw new Error('这条炉路尚未接通');
+    const response = await fetch(`/api/${resource}`, {
+      method,
+      headers: {'Content-Type': 'application/json'},
+      body: method === 'GET' ? undefined : JSON.stringify(options.body || {})
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || `炉火失控（${response.status}）`);
+    return payload;
   }
 
   const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
@@ -1096,7 +1064,7 @@
     document.getElementById('drawerSwordImage').src = `static/sword-${index % 4 + 1}.png`;
     document.getElementById('drawerSwordName').textContent = sword.name;
     document.getElementById('drawerSwordMeta').textContent = `${sword.kind} · ${sword.version} · ${sword.status === 'forged' ? '已转正' : '草稿'}`;
-    document.getElementById('drawerSkill').textContent = swordSkill(sword);
+    document.getElementById('drawerSkill').textContent = sword.skill_md || swordSkill(sword);
     document.getElementById('promoteBtn').disabled = sword.status === 'forged';
     document.getElementById('temperSheet').classList.remove('open');
     renderWhyLog(sword.why_log);
@@ -1233,12 +1201,13 @@
     button.textContent = '淬炼中…';
     try {
       const result = await api('temper', {method: 'POST', body: {sword_id: state.activeSword.id, why, action: state.temperAction}});
-      const today = new Date().toISOString().slice(0, 10);
-      state.activeSword.version = result.version || (state.temperAction === 'promote' ? 'v1.0' : state.activeSword.version);
-      state.activeSword.status = state.temperAction === 'promote' ? 'forged' : state.activeSword.status;
-      state.activeSword.why_log.push({v: state.activeSword.version, why: `${state.temperAction === 'promote' ? '转正' : '淬火'}：${why}`, at: today});
+      state.activeSword.version = result.version || state.activeSword.version;
+      state.activeSword.status = result.status || state.activeSword.status;
+      state.activeSword.why_log = Array.isArray(result.why_log) ? result.why_log : state.activeSword.why_log;
+      if (result.skill_md) state.activeSword.skill_md = result.skill_md;
       renderArmory(state.armory);
       openSwordDrawer(state.activeSword.id, state.drawerTrigger);
+      api('profile').then(renderProfile).catch(() => {});
       showToast(state.temperAction === 'promote' ? '此剑已转正入谱' : `此剑已淬火至 ${state.activeSword.version}`);
     } catch (error) {
       document.getElementById('temperError').textContent = error.message || '淬火未成，请再试。';
@@ -1299,6 +1268,15 @@
       document.getElementById('newSwordName').textContent = result.sword.name;
       document.getElementById('newSwordVersion').textContent = result.sword.version;
       document.getElementById('skillPreview').textContent = result.sword.skill_md;
+      const newSword = {
+        ...result.sword,
+        kind: '剑',
+        status: 'draft',
+        why_log: [{v: result.sword.version, why: '初锻', at: new Date().toISOString().slice(0, 10)}]
+      };
+      state.armory = [newSword, ...state.armory.filter(item => item.id !== newSword.id)];
+      renderArmory(state.armory);
+      api('profile').then(renderProfile).catch(() => {});
       document.getElementById('swordResult').classList.add('show');
       setForgeLoading(false, '剑成 · 尚待试锋');
       document.getElementById('forgeStatusLine').textContent = '先以草稿斩活，真跑过再转正';
@@ -1316,7 +1294,10 @@
     document.getElementById('profileName').textContent = '档案未载入';
     document.getElementById('profileTitle').textContent = error.message;
   });
-  api('token_burned').then(renderTokenBurned).catch(() => renderTokenBurned(0));
+  fetch('static/mock.json')
+    .then(response => response.ok ? response.json() : Promise.reject())
+    .then(mock => renderTokenBurned(mock.token_burned))
+    .catch(() => renderTokenBurned(0));
   api('armory').then(renderArmory).catch(error => {
     document.getElementById('armoryGrid').innerHTML = `<div class="message show">${escapeHtml(error.message || '兵器架未能载入')}</div>`;
   });
