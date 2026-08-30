@@ -503,6 +503,12 @@
         <fieldset>
           <legend>二 · 零件与兼容</legend>
           <div class="fields">
+            <label>零件品质
+              <select id="quality">
+                <option value="stable">稳定版</option>
+                <option value="premium" selected>精工样件 A/B</option>
+              </select>
+            </label>
             <label>剑格覆盖
               <select id="guard">
                 <option value="">由蓝图决定</option>
@@ -567,12 +573,17 @@
 
     function inputConfig() {
       const auto = $("#auto-proportions").checked;
+      const premium = $("#quality").value === "premium";
       return {
         type: $("#type").value,
         state: $("#state").value,
         skill_id: $("#skill-id").value.trim(),
         seed: Number($("#seed").value),
-        parts: {guard: $("#guard").value || undefined},
+        parts: {
+          blade: premium ? "judgment-premium" : undefined,
+          guard: premium ? "judgment-premium" : ($("#guard").value || undefined),
+          handle: premium && $("#state").value === "tempered" ? "tempered-premium" : undefined,
+        },
         proportions: auto ? undefined : {
           bladeLength: Number($("#blade-length").value),
           bladeWidth: Number($("#blade-width").value),
@@ -592,7 +603,7 @@
         $("#sword-title").textContent = `${result.blueprint.label} · ${result.stateSpec.label}`;
         $("#sword-profile").textContent = `${result.blueprint.profile} · 身份种子 ${result.seed}`;
         $("#connection-error").textContent = `${result.connectionError.toFixed(3)} px`;
-        $("#shoulder-cover").textContent = `${result.structural.shoulderCoverPx.toFixed(1)} px`;
+        $("#shoulder-cover").textContent = `${result.structural.shoulderCoverPx.toFixed(1)} px / ${(result.structural.shoulderCoverRatio * 100).toFixed(0)}%`;
         $("#guard-ratio").textContent = `${result.structural.guardToBladeRatio.toFixed(2)} : 1`;
         $("#fit-scale").textContent = result.fitScale < .999 ? `整剑收束 ×${result.fitScale.toFixed(3)}` : "无需整体收束";
         $("#verdict-title").textContent = result.warnings.length ? "已纠偏，剑成" : "榫口无隙，剑成";
@@ -620,7 +631,19 @@
       }
     }
 
-    for (const selector of ["#type", "#state", "#guard", "#debug-anchors", "#auto-proportions"]) {
+    $("#quality").addEventListener("change", () => {
+      if ($("#quality").value === "premium") {
+        $("#type").value = "judgment";
+        $("#state").value = "tempered";
+        $("#guard").value = "";
+      }
+      forge();
+    });
+    $("#type").addEventListener("change", () => {
+      if ($("#type").value !== "judgment") $("#quality").value = "stable";
+      forge();
+    });
+    for (const selector of ["#state", "#guard", "#debug-anchors", "#auto-proportions"]) {
       $(selector).addEventListener("change", () => {
         updateRangeLabels();
         forge();
@@ -640,6 +663,7 @@
       forge();
     });
     $("#mismatch").addEventListener("click", () => {
+      $("#quality").value = "stable";
       $("#type").value = "experience";
       $("#guard").value = "judgment";
       forge();
@@ -649,6 +673,7 @@
       $("#state").value = "tempered";
       $("#skill-id").value = "daily-report-delta";
       $("#seed").value = "7713";
+      $("#quality").value = "premium";
       $("#guard").value = "";
       $("#debug-anchors").value = "off";
       $("#auto-proportions").checked = true;

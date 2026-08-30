@@ -194,7 +194,10 @@ export class SwordKitRenderer {
     const centerX = this.manifest.coordinateSpace.centerX;
 
     const bladeHeight = nominal.bladeHeight * p.bladeLength;
-    const bladeWidth = bladeHeight * (images.blade.naturalWidth / images.blade.naturalHeight) * p.bladeWidth;
+    const bladeWidth = bladeHeight
+      * (images.blade.naturalWidth / images.blade.naturalHeight)
+      * p.bladeWidth
+      * (specs.blade.renderWidthScale || 1);
     let blade = {
       x: centerX - bladeWidth / 2,
       y: nominal.tipY,
@@ -203,13 +206,16 @@ export class SwordKitRenderer {
     };
 
     const bladeJoin = anchorPoint(blade, specs.blade.anchors.guardSocket);
-    const guardWidth = bladeWidth * nominal.guardToBladeRatio * p.guardWidth;
-    const guardHeight = nominal.guardHeight;
+    const guardRatio = specs.guard.preferredBladeRatio || nominal.guardToBladeRatio;
+    const guardWidth = bladeWidth * guardRatio * p.guardWidth;
+    const guardHeight = specs.guard.renderAspect ? guardWidth / specs.guard.renderAspect : nominal.guardHeight;
     let guard = rectFromAnchor(guardWidth, guardHeight, specs.guard.anchors.bladeSocket, bladeJoin);
 
     const handleJoin = anchorPoint(guard, specs.guard.anchors.handleSocket);
     const handleHeight = nominal.handleHeight * p.handleLength;
-    const handleWidth = handleHeight * (images.handle.naturalWidth / images.handle.naturalHeight);
+    const handleWidth = handleHeight
+      * (images.handle.naturalWidth / images.handle.naturalHeight)
+      * (specs.handle.renderWidthScale || 1);
     let handle = rectFromAnchor(handleWidth, handleHeight, specs.handle.anchors.guardSocket, handleJoin);
 
     let tassel = null;
@@ -271,11 +277,12 @@ export class SwordKitRenderer {
       centerlineError,
       layerOrder: this.manifest.assembly.drawOrder.join(" → "),
     };
+    structural.shoulderCoverRatio = structural.shoulderCoverPx / guard.height;
 
     return {blade, guard, handle, tassel, fitScale, connections, structural};
   }
 
-  bladeSurface(image, finish, rect, resolved) {
+  bladeSurface(image, finish, rect, resolved, bladeSpec) {
     const width = Math.max(1, Math.round(rect.width));
     const height = Math.max(1, Math.round(rect.height));
     const surface = document.createElement("canvas");
@@ -283,26 +290,30 @@ export class SwordKitRenderer {
     surface.height = height;
     const ctx = surface.getContext("2d");
 
-    const finishRatio = finish.naturalWidth / finish.naturalHeight;
-    const targetRatio = width / height;
-    let sourceWidth = finish.naturalWidth;
-    let sourceHeight = finish.naturalHeight;
-    let sourceX = 0;
-    let sourceY = 0;
-    if (finishRatio > targetRatio) {
-      sourceWidth = finish.naturalHeight * targetRatio;
-      sourceX = (finish.naturalWidth - sourceWidth) / 2;
+    if (bladeSpec.surfaceMode === "source") {
+      ctx.drawImage(image, 0, 0, width, height);
     } else {
-      sourceHeight = finish.naturalWidth / targetRatio;
-      sourceY = (finish.naturalHeight - sourceHeight) / 2;
+      const finishRatio = finish.naturalWidth / finish.naturalHeight;
+      const targetRatio = width / height;
+      let sourceWidth = finish.naturalWidth;
+      let sourceHeight = finish.naturalHeight;
+      let sourceX = 0;
+      let sourceY = 0;
+      if (finishRatio > targetRatio) {
+        sourceWidth = finish.naturalHeight * targetRatio;
+        sourceX = (finish.naturalWidth - sourceWidth) / 2;
+      } else {
+        sourceHeight = finish.naturalWidth / targetRatio;
+        sourceY = (finish.naturalHeight - sourceHeight) / 2;
+      }
+      ctx.drawImage(finish, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, width, height);
+      ctx.globalCompositeOperation = "destination-in";
+      ctx.drawImage(image, 0, 0, width, height);
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = resolved.stateSpec.detailOpacity;
+      ctx.drawImage(image, 0, 0, width, height);
+      ctx.globalAlpha = 1;
     }
-    ctx.drawImage(finish, sourceX, sourceY, sourceWidth, sourceHeight, 0, 0, width, height);
-    ctx.globalCompositeOperation = "destination-in";
-    ctx.drawImage(image, 0, 0, width, height);
-    ctx.globalCompositeOperation = "source-over";
-    ctx.globalAlpha = resolved.stateSpec.detailOpacity;
-    ctx.drawImage(image, 0, 0, width, height);
-    ctx.globalAlpha = 1;
 
     ctx.globalCompositeOperation = "source-atop";
     const warmth = resolved.identity.metalWarmth;
@@ -399,12 +410,17 @@ export class SwordKitRenderer {
     const resolved = this.resolve(input);
     const {specs, loaded} = await this.loadResolvedParts(resolved);
     const layout = this.layout(resolved, specs, loaded);
-    const surface = this.bladeSurface(loaded.blade, loaded.finish, layout.blade, resolved);
+    const surface = this.bladeSurface(loaded.blade, loaded.finish, layout.blade, resolved, specs.blade);
 
     const qa = this.manifest.assembly.structuralQa;
     const ratioRange = qa.guardToBladeRatioByType[resolved.type];
-    if (layout.structural.shoulderCoverPx < qa.minShoulderCoverPx) {
-      resolved.warnings.push(`剑格压肩仅 ${layout.structural.shoulderCoverPx.toFixed(1)}px，低于结构下限`);
+    if (
+      layout.structural.shoulderCoverPx < qa.minShoulderCoverPx
+      || layout.structural.shoulderCoverRatio < qa.minShoulderCoverRatio
+    ) {
+      resolved.warnings.push(
+        `剑格压肩 ${layout.structural.shoulderCoverPx.toFixed(1)}px / ${(layout.structural.shoulderCoverRatio * 100).toFixed(0)}%，低于结构下限`,
+      );
     }
     if (layout.structural.exposedTangAboveGuardPx > qa.maxExposedTangAboveGuardPx) {
       resolved.warnings.push(`剑肩与剑格之间露出 ${layout.structural.exposedTangAboveGuardPx.toFixed(1)}px 剑茎`);

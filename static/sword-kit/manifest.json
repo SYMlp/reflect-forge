@@ -106,6 +106,18 @@
         },
         "deform": {"scaleX": [0.84, 1.18], "scaleY": [0.9, 1.12]}
       },
+      "judgment-premium": {
+        "file": "premium/blade-judgment-premium.png",
+        "profileWeight": "light",
+        "surfaceMode": "source",
+        "renderWidthScale": 1.15,
+        "tags": ["straight", "narrow", "decisive", "premium-folded-steel"],
+        "anchors": {
+          "guardSocket": {"x": 0.5, "y": 0.86, "width": 0.356, "normal": [0, 1]},
+          "tangEnd": {"x": 0.5, "y": 0.988, "width": 0.33}
+        },
+        "deform": {"scaleX": [0.94, 1.08], "scaleY": [0.96, 1.06]}
+      },
       "experience": {
         "file": "blade-experience.png",
         "profileWeight": "heavy",
@@ -136,6 +148,17 @@
           "handleSocket": {"x": 0.5, "y": 0.6, "width": 0.11}
         },
         "deform": {"scaleX": [0.88, 1.16], "scaleY": [0.92, 1.08]}
+      },
+      "judgment-premium": {
+        "file": "premium/guard-judgment-premium.png",
+        "compatibleBladeWeights": ["light", "medium"],
+        "renderAspect": 3.58,
+        "preferredBladeRatio": 2.0,
+        "anchors": {
+          "bladeSocket": {"x": 0.5, "y": 0.5, "width": 0.08},
+          "handleSocket": {"x": 0.5, "y": 0.78, "width": 0.12}
+        },
+        "deform": {"scaleX": [0.94, 1.08], "scaleY": [0.96, 1.05]}
       },
       "experience": {
         "file": "guard-experience.png",
@@ -180,6 +203,15 @@
           "guardSocket": {"x": 0.5, "y": 0.08, "width": 0.22},
           "tasselSocket": {"x": 0.5, "y": 0.97}
         }
+      },
+      "tempered-premium": {
+        "file": "premium/handle-tempered-premium.png",
+        "compatibleBladeWeights": ["light", "medium"],
+        "renderWidthScale": 1.15,
+        "anchors": {
+          "guardSocket": {"x": 0.5, "y": 0.05, "width": 0.25},
+          "tasselSocket": {"x": 0.5, "y": 0.96}
+        }
       }
     },
     "finishes": {
@@ -206,7 +238,8 @@
     "safeCanvasBottom": 884,
     "structuralQa": {
       "maxCenterlineErrorPx": 0.01,
-      "minShoulderCoverPx": 18,
+      "minShoulderCoverPx": 12,
+      "minShoulderCoverRatio": 0.35,
       "maxExposedTangAboveGuardPx": 0,
       "minTangSideCoverPx": 4,
       "guardToBladeRatioByType": {
