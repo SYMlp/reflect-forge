@@ -20,16 +20,16 @@
       "nominal": {
         "tipY": 48,
         "bladeHeight": 610,
-        "guardWidth": 180,
+        "guardToBladeRatio": 1.9,
         "guardHeight": 72,
         "handleHeight": 178,
         "tasselHeight": 88
       },
       "ranges": {
-        "bladeLength": [0.92, 1.09],
-        "bladeWidth": [0.88, 1.13],
-        "guardWidth": [0.91, 1.12],
-        "handleLength": [0.94, 1.08]
+        "bladeLength": [0.96, 1.04],
+        "bladeWidth": [0.94, 1.06],
+        "guardWidth": [0.94, 1.06],
+        "handleLength": [0.96, 1.04]
       }
     },
     "experience": {
@@ -39,16 +39,16 @@
       "nominal": {
         "tipY": 62,
         "bladeHeight": 566,
-        "guardWidth": 286,
+        "guardToBladeRatio": 3.25,
         "guardHeight": 70,
         "handleHeight": 184,
         "tasselHeight": 88
       },
       "ranges": {
-        "bladeLength": [0.94, 1.07],
-        "bladeWidth": [0.93, 1.14],
-        "guardWidth": [0.9, 1.08],
-        "handleLength": [0.95, 1.09]
+        "bladeLength": [0.96, 1.04],
+        "bladeWidth": [0.96, 1.08],
+        "guardWidth": [0.95, 1.05],
+        "handleLength": [0.96, 1.05]
       }
     },
     "process": {
@@ -58,16 +58,16 @@
       "nominal": {
         "tipY": 38,
         "bladeHeight": 636,
-        "guardWidth": 238,
+        "guardToBladeRatio": 2.95,
         "guardHeight": 70,
         "handleHeight": 176,
         "tasselHeight": 88
       },
       "ranges": {
-        "bladeLength": [0.91, 1.08],
-        "bladeWidth": [0.88, 1.1],
-        "guardWidth": [0.92, 1.1],
-        "handleLength": [0.95, 1.08]
+        "bladeLength": [0.96, 1.04],
+        "bladeWidth": [0.94, 1.05],
+        "guardWidth": [0.95, 1.05],
+        "handleLength": [0.96, 1.04]
       }
     }
   },
@@ -101,7 +101,8 @@
         "profileWeight": "light",
         "tags": ["straight", "narrow", "decisive"],
         "anchors": {
-          "guardSocket": {"x": 0.5, "y": 0.995, "width": 0.12, "normal": [0, 1]}
+          "guardSocket": {"x": 0.5, "y": 0.889, "width": 0.216, "normal": [0, 1]},
+          "tangEnd": {"x": 0.5, "y": 0.975, "width": 0.216}
         },
         "deform": {"scaleX": [0.84, 1.18], "scaleY": [0.9, 1.12]}
       },
@@ -110,7 +111,8 @@
         "profileWeight": "heavy",
         "tags": ["straight", "broad", "weighty"],
         "anchors": {
-          "guardSocket": {"x": 0.5, "y": 0.995, "width": 0.15, "normal": [0, 1]}
+          "guardSocket": {"x": 0.5, "y": 0.871, "width": 0.333, "normal": [0, 1]},
+          "tangEnd": {"x": 0.5, "y": 0.977, "width": 0.333}
         },
         "deform": {"scaleX": [0.9, 1.16], "scaleY": [0.92, 1.1]}
       },
@@ -119,7 +121,8 @@
         "profileWeight": "medium",
         "tags": ["straight", "long", "disciplined"],
         "anchors": {
-          "guardSocket": {"x": 0.5, "y": 0.995, "width": 0.13, "normal": [0, 1]}
+          "guardSocket": {"x": 0.5, "y": 0.861, "width": 0.255, "normal": [0, 1]},
+          "tangEnd": {"x": 0.5, "y": 0.976, "width": 0.255}
         },
         "deform": {"scaleX": [0.84, 1.14], "scaleY": [0.9, 1.1]}
       }
@@ -192,7 +195,7 @@
     }
   },
   "assembly": {
-    "drawOrder": ["blade", "handle", "guard", "tassel", "identityMarks"],
+    "drawOrder": ["bladeSurface", "handle", "guard", "tassel"],
     "connections": [
       {"from": "blade.guardSocket", "to": "guard.bladeSocket"},
       {"from": "guard.handleSocket", "to": "handle.guardSocket"},
@@ -200,7 +203,18 @@
     ],
     "compatibilityFailure": "fallback-to-blueprint-default",
     "seamCover": "guard-over-blade-and-handle",
-    "safeCanvasBottom": 884
+    "safeCanvasBottom": 884,
+    "structuralQa": {
+      "maxCenterlineErrorPx": 0.01,
+      "minShoulderCoverPx": 18,
+      "maxExposedTangAboveGuardPx": 0,
+      "minTangSideCoverPx": 4,
+      "guardToBladeRatioByType": {
+        "judgment": [1.7, 2.15],
+        "experience": [2.9, 3.6],
+        "process": [2.65, 3.3]
+      }
+    }
   },
   "identity": {
     "seedSource": "seed-or-fnv1a(skill_id)",

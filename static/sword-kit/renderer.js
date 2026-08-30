@@ -203,7 +203,7 @@ export class SwordKitRenderer {
     };
 
     const bladeJoin = anchorPoint(blade, specs.blade.anchors.guardSocket);
-    const guardWidth = nominal.guardWidth * p.guardWidth;
+    const guardWidth = bladeWidth * nominal.guardToBladeRatio * p.guardWidth;
     const guardHeight = nominal.guardHeight;
     let guard = rectFromAnchor(guardWidth, guardHeight, specs.guard.anchors.bladeSocket, bladeJoin);
 
@@ -254,7 +254,25 @@ export class SwordKitRenderer {
       });
     }
 
-    return {blade, guard, handle, tassel, fitScale, connections};
+    const shoulder = anchorPoint(blade, specs.blade.anchors.guardSocket);
+    const tangEnd = anchorPoint(blade, specs.blade.anchors.tangEnd);
+    const centerlineError = Math.max(
+      Math.abs(blade.x + blade.width / 2 - centerX),
+      Math.abs(guard.x + guard.width / 2 - centerX),
+      Math.abs(handle.x + handle.width / 2 - centerX),
+      tassel ? Math.abs(tassel.x + tassel.width / 2 - centerX) : 0,
+    );
+    const structural = {
+      shoulderCoverPx: Math.min(shoulder.y - guard.y, guard.y + guard.height - shoulder.y),
+      exposedTangAboveGuardPx: Math.max(0, guard.y - shoulder.y),
+      guardToBladeRatio: guard.width / blade.width,
+      tangSideCoverPx: (handle.width - blade.width * specs.blade.anchors.tangEnd.width) / 2,
+      tangVerticalCoverPx: Math.min(tangEnd.y - handle.y, handle.y + handle.height - tangEnd.y),
+      centerlineError,
+      layerOrder: this.manifest.assembly.drawOrder.join(" → "),
+    };
+
+    return {blade, guard, handle, tassel, fitScale, connections, structural};
   }
 
   bladeSurface(image, finish, rect, resolved) {
@@ -383,6 +401,24 @@ export class SwordKitRenderer {
     const layout = this.layout(resolved, specs, loaded);
     const surface = this.bladeSurface(loaded.blade, loaded.finish, layout.blade, resolved);
 
+    const qa = this.manifest.assembly.structuralQa;
+    const ratioRange = qa.guardToBladeRatioByType[resolved.type];
+    if (layout.structural.shoulderCoverPx < qa.minShoulderCoverPx) {
+      resolved.warnings.push(`剑格压肩仅 ${layout.structural.shoulderCoverPx.toFixed(1)}px，低于结构下限`);
+    }
+    if (layout.structural.exposedTangAboveGuardPx > qa.maxExposedTangAboveGuardPx) {
+      resolved.warnings.push(`剑肩与剑格之间露出 ${layout.structural.exposedTangAboveGuardPx.toFixed(1)}px 剑茎`);
+    }
+    if (layout.structural.guardToBladeRatio < ratioRange[0] || layout.structural.guardToBladeRatio > ratioRange[1]) {
+      resolved.warnings.push(`剑格/刃宽比 ${layout.structural.guardToBladeRatio.toFixed(2)} 超出 ${resolved.type} 蓝图`);
+    }
+    if (layout.structural.tangSideCoverPx < qa.minTangSideCoverPx || layout.structural.tangVerticalCoverPx < 0) {
+      resolved.warnings.push("剑柄没有完整包住剑茎，需回退零件或收束比例");
+    }
+    if (layout.structural.centerlineError > qa.maxCenterlineErrorPx) {
+      resolved.warnings.push(`剑器中轴偏移 ${layout.structural.centerlineError.toFixed(3)}px`);
+    }
+
     this.drawBackground();
     this.drawImage(surface, layout.blade);
     this.drawImage(loaded.handle, layout.handle);
@@ -399,6 +435,7 @@ export class SwordKitRenderer {
       fitScale: layout.fitScale,
       connectionError,
       anchors: layout.connections,
+      structural: layout.structural,
     };
   }
 }

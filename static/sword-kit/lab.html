@@ -24,7 +24,7 @@
 
     body {
       margin: 0;
-      min-width: 1100px;
+      min-width: 0;
       min-height: 100vh;
       color: var(--paper);
       font-family: var(--serif);
@@ -184,6 +184,7 @@
       left: 38px;
       bottom: 34px;
       display: flex;
+      flex-wrap: wrap;
       gap: 10px;
       align-items: center;
       padding: 8px 12px;
@@ -386,6 +387,52 @@
       font-size: 11px;
       line-height: 1.7;
     }
+
+    @media (max-width: 1199px) {
+      .shell {
+        width: calc(100vw - 28px);
+        padding: 22px 0 34px;
+      }
+
+      header {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        padding-bottom: 17px;
+      }
+
+      h1 { font-size: 31px; }
+
+      .header-note {
+        max-width: 680px;
+        font-size: 13px;
+        text-align: left;
+      }
+
+      main {
+        grid-template-columns: 1fr;
+        gap: 18px;
+        padding-top: 18px;
+      }
+
+      .forge-stage {
+        width: 100%;
+        height: clamp(680px, calc(100vh - 180px), 790px);
+        min-height: 0;
+      }
+
+      .canvas-wrap {
+        inset: 80px 28px 58px;
+      }
+
+      canvas {
+        width: auto;
+        height: min(630px, calc(100vh - 320px));
+        max-width: 100%;
+        max-height: none;
+      }
+
+      .control-bench { min-height: 0; }
+    }
   </style>
 </head>
 <body>
@@ -411,8 +458,12 @@
           <canvas id="sword-canvas" aria-label="自动装配剑器预览"></canvas>
         </div>
         <div class="connection-readout">
-          <span>榫口对位</span>
+          <span>锚点误差</span>
           <strong id="connection-error">待验</strong>
+          <span>吞口压肩</span>
+          <strong id="shoulder-cover">待验</strong>
+          <span>格刃比</span>
+          <strong id="guard-ratio">待验</strong>
           <span id="fit-scale"></span>
         </div>
       </section>
@@ -541,6 +592,8 @@
         $("#sword-title").textContent = `${result.blueprint.label} · ${result.stateSpec.label}`;
         $("#sword-profile").textContent = `${result.blueprint.profile} · 身份种子 ${result.seed}`;
         $("#connection-error").textContent = `${result.connectionError.toFixed(3)} px`;
+        $("#shoulder-cover").textContent = `${result.structural.shoulderCoverPx.toFixed(1)} px`;
+        $("#guard-ratio").textContent = `${result.structural.guardToBladeRatio.toFixed(2)} : 1`;
         $("#fit-scale").textContent = result.fitScale < .999 ? `整剑收束 ×${result.fitScale.toFixed(3)}` : "无需整体收束";
         $("#verdict-title").textContent = result.warnings.length ? "已纠偏，剑成" : "榫口无隙，剑成";
         $("#trace").innerHTML = `
@@ -550,10 +603,13 @@
           <span>材质 <b>${result.parts.finish}</b></span>
           <span>长 / 宽 <b>${result.proportions.bladeLength.toFixed(3)} / ${result.proportions.bladeWidth.toFixed(3)}</b></span>
           <span>旧痕 / 铭纹 <b>${result.identity.scarCount} / ${result.identity.markCount}</b></span>
+          <span>遮挡层 <b>${result.structural.layerOrder}</b></span>
         `;
         const warnings = $("#warnings");
         warnings.classList.toggle("ok", result.warnings.length === 0);
-        warnings.textContent = result.warnings.length ? result.warnings.join("；") : "形制兼容，所有连接点对齐，无需回退。";
+        warnings.textContent = result.warnings.length
+          ? result.warnings.join("；")
+          : `形制兼容；剑格压住剑肩 ${result.structural.shoulderCoverPx.toFixed(1)}px；剑柄包茎余量 ${result.structural.tangSideCoverPx.toFixed(1)}px；中轴无偏移。`;
       } catch (error) {
         $("#verdict-title").textContent = "锻造中断";
         $("#warnings").classList.remove("ok");
