@@ -1,141 +1,233 @@
 {
-  "version": 1,
+  "version": 2,
+  "renderer": "renderer.js",
   "coordinateSpace": {
-    "width": 360,
-    "height": 720
+    "width": 480,
+    "height": 900,
+    "centerX": 240
   },
   "metadata": {
-    "type": [
-      "judgment",
-      "experience",
-      "process"
-    ],
-    "state": [
-      "draft",
-      "forged",
-      "tempered"
-    ],
-    "skill_id": "reserved-for-future-identity-parts"
+    "type": ["judgment", "experience", "process"],
+    "state": ["draft", "forged", "tempered"],
+    "skill_id": "deterministic-identity-source",
+    "seed": "optional-explicit-identity-seed"
   },
-  "variants": {
-    "type": {
+  "blueprints": {
+    "judgment": {
+      "label": "判断之剑",
+      "profile": "轻锐直剑",
+      "defaultParts": {"blade": "judgment", "guard": "judgment"},
+      "nominal": {
+        "tipY": 48,
+        "bladeHeight": 610,
+        "guardWidth": 180,
+        "guardHeight": 72,
+        "handleHeight": 178,
+        "tasselHeight": 88
+      },
+      "ranges": {
+        "bladeLength": [0.92, 1.09],
+        "bladeWidth": [0.88, 1.13],
+        "guardWidth": [0.91, 1.12],
+        "handleLength": [0.94, 1.08]
+      }
+    },
+    "experience": {
+      "label": "经验之剑",
+      "profile": "厚重阔剑",
+      "defaultParts": {"blade": "experience", "guard": "experience"},
+      "nominal": {
+        "tipY": 62,
+        "bladeHeight": 566,
+        "guardWidth": 286,
+        "guardHeight": 70,
+        "handleHeight": 184,
+        "tasselHeight": 88
+      },
+      "ranges": {
+        "bladeLength": [0.94, 1.07],
+        "bladeWidth": [0.93, 1.14],
+        "guardWidth": [0.9, 1.08],
+        "handleLength": [0.95, 1.09]
+      }
+    },
+    "process": {
+      "label": "流程之剑",
+      "profile": "修长矩格剑",
+      "defaultParts": {"blade": "process", "guard": "process"},
+      "nominal": {
+        "tipY": 38,
+        "bladeHeight": 636,
+        "guardWidth": 238,
+        "guardHeight": 70,
+        "handleHeight": 176,
+        "tasselHeight": 88
+      },
+      "ranges": {
+        "bladeLength": [0.91, 1.08],
+        "bladeWidth": [0.88, 1.1],
+        "guardWidth": [0.92, 1.1],
+        "handleLength": [0.95, 1.08]
+      }
+    }
+  },
+  "states": {
+    "draft": {
+      "label": "剑胚",
+      "finish": "draft",
+      "handle": "draft",
+      "tassel": null,
+      "detailOpacity": 0.24
+    },
+    "forged": {
+      "label": "成锋",
+      "finish": "forged",
+      "handle": "forged",
+      "tassel": null,
+      "detailOpacity": 0.3
+    },
+    "tempered": {
+      "label": "淬炼",
+      "finish": "tempered",
+      "handle": "tempered",
+      "tassel": "tempered",
+      "detailOpacity": 0.34
+    }
+  },
+  "parts": {
+    "blades": {
       "judgment": {
-        "blade": "blade-judgment.png",
-        "guard": "guard-judgment.png"
+        "file": "blade-judgment.png",
+        "profileWeight": "light",
+        "tags": ["straight", "narrow", "decisive"],
+        "anchors": {
+          "guardSocket": {"x": 0.5, "y": 0.995, "width": 0.12, "normal": [0, 1]}
+        },
+        "deform": {"scaleX": [0.84, 1.18], "scaleY": [0.9, 1.12]}
       },
       "experience": {
-        "blade": "blade-experience.png",
-        "guard": "guard-experience.png"
+        "file": "blade-experience.png",
+        "profileWeight": "heavy",
+        "tags": ["straight", "broad", "weighty"],
+        "anchors": {
+          "guardSocket": {"x": 0.5, "y": 0.995, "width": 0.15, "normal": [0, 1]}
+        },
+        "deform": {"scaleX": [0.9, 1.16], "scaleY": [0.92, 1.1]}
       },
       "process": {
-        "blade": "blade-process.png",
-        "guard": "guard-process.png"
+        "file": "blade-process.png",
+        "profileWeight": "medium",
+        "tags": ["straight", "long", "disciplined"],
+        "anchors": {
+          "guardSocket": {"x": 0.5, "y": 0.995, "width": 0.13, "normal": [0, 1]}
+        },
+        "deform": {"scaleX": [0.84, 1.14], "scaleY": [0.9, 1.1]}
       }
     },
-    "state": {
+    "guards": {
+      "judgment": {
+        "file": "guard-judgment.png",
+        "compatibleBladeWeights": ["light", "medium"],
+        "anchors": {
+          "bladeSocket": {"x": 0.5, "y": 0.52, "width": 0.07},
+          "handleSocket": {"x": 0.5, "y": 0.6, "width": 0.11}
+        },
+        "deform": {"scaleX": [0.88, 1.16], "scaleY": [0.92, 1.08]}
+      },
+      "experience": {
+        "file": "guard-experience.png",
+        "compatibleBladeWeights": ["medium", "heavy"],
+        "anchors": {
+          "bladeSocket": {"x": 0.5, "y": 0.5, "width": 0.06},
+          "handleSocket": {"x": 0.5, "y": 0.62, "width": 0.1}
+        },
+        "deform": {"scaleX": [0.9, 1.12], "scaleY": [0.92, 1.08]}
+      },
+      "process": {
+        "file": "guard-process.png",
+        "compatibleBladeWeights": ["light", "medium"],
+        "anchors": {
+          "bladeSocket": {"x": 0.5, "y": 0.5, "width": 0.065},
+          "handleSocket": {"x": 0.5, "y": 0.61, "width": 0.1}
+        },
+        "deform": {"scaleX": [0.9, 1.13], "scaleY": [0.92, 1.08]}
+      }
+    },
+    "handles": {
       "draft": {
-        "finish": "finish-draft.png",
-        "handle": "handle-draft.png",
-        "tassel": null
+        "file": "handle-draft.png",
+        "compatibleBladeWeights": ["light", "medium", "heavy"],
+        "anchors": {
+          "guardSocket": {"x": 0.5, "y": 0.08, "width": 0.22},
+          "tasselSocket": {"x": 0.5, "y": 0.97}
+        }
       },
       "forged": {
-        "finish": "finish-forged.png",
-        "handle": "handle-forged.png",
-        "tassel": null
+        "file": "handle-forged.png",
+        "compatibleBladeWeights": ["light", "medium", "heavy"],
+        "anchors": {
+          "guardSocket": {"x": 0.5, "y": 0.08, "width": 0.22},
+          "tasselSocket": {"x": 0.5, "y": 0.97}
+        }
       },
       "tempered": {
-        "finish": "finish-tempered.png",
-        "handle": "handle-tempered.png",
-        "tassel": "tassel-tempered.png"
+        "file": "handle-tempered.png",
+        "compatibleBladeWeights": ["light", "medium", "heavy"],
+        "anchors": {
+          "guardSocket": {"x": 0.5, "y": 0.08, "width": 0.22},
+          "tasselSocket": {"x": 0.5, "y": 0.97}
+        }
+      }
+    },
+    "finishes": {
+      "draft": {"file": "finish-draft.png", "tags": ["raw", "hammered", "charcoal"]},
+      "forged": {"file": "finish-forged.png", "tags": ["polished", "cold-steel"]},
+      "tempered": {"file": "finish-tempered.png", "tags": ["folded-steel", "water-grain"]}
+    },
+    "tassels": {
+      "tempered": {
+        "file": "tassel-tempered.png",
+        "anchors": {"gripSocket": {"x": 0.5, "y": 0.1}}
       }
     }
   },
-  "slots": {
-    "blade": {
-      "x": 80,
-      "y": 18,
-      "width": 200,
-      "height": 500,
-      "fit": "contain"
-    },
-    "handle": {
-      "x": 145,
-      "y": 505,
-      "width": 70,
-      "height": 160,
-      "fit": "contain"
-    },
-    "guard": {
-      "x": 75,
-      "y": 492,
-      "width": 210,
-      "height": 60,
-      "fit": "contain"
-    },
-    "tassel": {
-      "x": 155,
-      "y": 650,
-      "width": 50,
-      "height": 70,
-      "fit": "contain"
+  "assembly": {
+    "drawOrder": ["blade", "handle", "guard", "tassel", "identityMarks"],
+    "connections": [
+      {"from": "blade.guardSocket", "to": "guard.bladeSocket"},
+      {"from": "guard.handleSocket", "to": "handle.guardSocket"},
+      {"from": "handle.tasselSocket", "to": "tassel.gripSocket", "optional": true}
+    ],
+    "compatibilityFailure": "fallback-to-blueprint-default",
+    "seamCover": "guard-over-blade-and-handle",
+    "safeCanvasBottom": 884
+  },
+  "identity": {
+    "seedSource": "seed-or-fnv1a(skill_id)",
+    "proceduralRanges": {
+      "metalWarmth": [-0.14, 0.18],
+      "patina": [0.06, 0.34],
+      "scarCount": [0, 3],
+      "markCount": [1, 4]
     }
   },
-  "layers": [
-    {
-      "name": "bladeFinish",
-      "z": 10,
-      "slot": "blade",
-      "render": "mask-fill",
-      "mask": "type.blade",
-      "source": "state.finish"
-    },
-    {
-      "name": "bladeDetail",
-      "z": 11,
-      "slot": "blade",
-      "render": "source-overlay",
-      "source": "type.blade",
-      "opacity": 0.3
-    },
-    {
-      "name": "handle",
-      "z": 20,
-      "slot": "handle",
-      "render": "image",
-      "source": "state.handle"
-    },
-    {
-      "name": "guard",
-      "z": 30,
-      "slot": "guard",
-      "render": "image",
-      "source": "type.guard"
-    },
-    {
-      "name": "tassel",
-      "z": 40,
-      "slot": "tassel",
-      "render": "image",
-      "source": "state.tassel",
-      "when": "state.tassel != null"
-    }
-  ],
   "example": {
     "input": {
       "type": "judgment",
       "state": "tempered",
       "skill_id": "sword-001"
     },
-    "resolved": [
-      "blade-judgment.png",
-      "finish-tempered.png",
-      "handle-tempered.png",
-      "guard-judgment.png",
-      "tassel-tempered.png"
+    "resolvedByRenderer": [
+      "blueprint",
+      "compatible-parts",
+      "anchor-transforms",
+      "seeded-proportions",
+      "procedural-identity-marks"
     ]
   },
   "qaPreview": {
     "components": "components-overview.png",
-    "combinations": "preview-grid.png"
+    "fixedGridV1": "preview-grid.png",
+    "adaptiveLab": "lab.html"
   }
 }
