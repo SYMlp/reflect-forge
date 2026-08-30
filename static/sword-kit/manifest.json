@@ -12,6 +12,57 @@
     "skill_id": "deterministic-identity-source",
     "seed": "optional-explicit-identity-seed"
   },
+  "presets": {
+    "stable": {
+      "label": "稳定版 · 随剑型",
+      "description": "沿用蓝图默认零件，适合结构基线对照。",
+      "parts": {}
+    },
+    "judgment-premium": {
+      "label": "裁决 · 精工判断",
+      "description": "冷钢中脊、薄翼铜格与深色皮柄。",
+      "type": "judgment",
+      "state": "tempered",
+      "parts": {
+        "blade": "judgment-premium",
+        "guard": "judgment-premium",
+        "handle": "tempered-premium"
+      }
+    },
+    "judgment-frost-premium": {
+      "label": "霜裁 · 轻锐判断",
+      "description": "霜银窄锋、云翼银格与靛蓝丝柄。",
+      "type": "judgment",
+      "state": "tempered",
+      "parts": {
+        "blade": "judgment-frost-premium",
+        "guard": "judgment-frost-premium",
+        "handle": "judgment-frost-premium"
+      }
+    },
+    "experience-mountain-premium": {
+      "label": "玄岳 · 厚重经验",
+      "description": "黑锻阔脊、山纹承力格与双手皮柄。",
+      "type": "experience",
+      "state": "tempered",
+      "parts": {
+        "blade": "experience-mountain-premium",
+        "guard": "experience-mountain-premium",
+        "handle": "experience-mountain-premium"
+      }
+    },
+    "process-hundredfold-premium": {
+      "label": "百炼 · 均衡流程",
+      "description": "明亮锻纹、锤鳞工造格与绛红缠柄。",
+      "type": "process",
+      "state": "tempered",
+      "parts": {
+        "blade": "process-hundredfold-premium",
+        "guard": "process-hundredfold-premium",
+        "handle": "process-hundredfold-premium"
+      }
+    }
+  },
   "blueprints": {
     "judgment": {
       "label": "判断之剑",
@@ -97,6 +148,7 @@
   "parts": {
     "blades": {
       "judgment": {
+        "label": "判断 · 稳定剑身",
         "file": "blade-judgment.png",
         "profileWeight": "light",
         "tags": ["straight", "narrow", "decisive"],
@@ -107,6 +159,7 @@
         "deform": {"scaleX": [0.84, 1.18], "scaleY": [0.9, 1.12]}
       },
       "judgment-premium": {
+        "label": "裁决 · 精工剑身",
         "file": "premium/blade-judgment-premium.png",
         "profileWeight": "light",
         "surfaceMode": "source",
@@ -118,7 +171,22 @@
         },
         "deform": {"scaleX": [0.94, 1.08], "scaleY": [0.96, 1.06]}
       },
+      "judgment-frost-premium": {
+        "label": "霜裁 · 霜银窄锋",
+        "file": "premium/blade-judgment-frost-premium.png",
+        "profileWeight": "light",
+        "surfaceMode": "source",
+        "renderWidthScale": 1.18,
+        "series": "frost",
+        "tags": ["straight", "narrow", "frost-silver", "premium-folded-steel"],
+        "anchors": {
+          "guardSocket": {"x": 0.5, "y": 0.865, "width": 0.41, "normal": [0, 1]},
+          "tangEnd": {"x": 0.5, "y": 0.988, "width": 0.41}
+        },
+        "deform": {"scaleX": [0.94, 1.08], "scaleY": [0.96, 1.06]}
+      },
       "experience": {
+        "label": "经验 · 稳定剑身",
         "file": "blade-experience.png",
         "profileWeight": "heavy",
         "tags": ["straight", "broad", "weighty"],
@@ -128,7 +196,21 @@
         },
         "deform": {"scaleX": [0.9, 1.16], "scaleY": [0.92, 1.1]}
       },
+      "experience-mountain-premium": {
+        "label": "玄岳 · 黑锻阔脊",
+        "file": "premium/blade-experience-mountain-premium.png",
+        "profileWeight": "heavy",
+        "surfaceMode": "source",
+        "series": "mountain",
+        "tags": ["straight", "broad", "blackened-steel", "mountain-heavy"],
+        "anchors": {
+          "guardSocket": {"x": 0.5, "y": 0.84, "width": 0.32, "normal": [0, 1]},
+          "tangEnd": {"x": 0.5, "y": 0.988, "width": 0.32}
+        },
+        "deform": {"scaleX": [0.96, 1.06], "scaleY": [0.96, 1.05]}
+      },
       "process": {
+        "label": "流程 · 稳定剑身",
         "file": "blade-process.png",
         "profileWeight": "medium",
         "tags": ["straight", "long", "disciplined"],
@@ -137,10 +219,25 @@
           "tangEnd": {"x": 0.5, "y": 0.976, "width": 0.255}
         },
         "deform": {"scaleX": [0.84, 1.14], "scaleY": [0.9, 1.1]}
+      },
+      "process-hundredfold-premium": {
+        "label": "百炼 · 明纹均衡锋",
+        "file": "premium/blade-process-hundredfold-premium.png",
+        "profileWeight": "medium",
+        "surfaceMode": "source",
+        "renderWidthScale": 1.15,
+        "series": "hundredfold",
+        "tags": ["straight", "balanced", "hammered", "folded-steel"],
+        "anchors": {
+          "guardSocket": {"x": 0.5, "y": 0.865, "width": 0.42, "normal": [0, 1]},
+          "tangEnd": {"x": 0.5, "y": 0.988, "width": 0.42}
+        },
+        "deform": {"scaleX": [0.94, 1.08], "scaleY": [0.96, 1.06]}
       }
     },
     "guards": {
       "judgment": {
+        "label": "判断 · 稳定剑格",
         "file": "guard-judgment.png",
         "compatibleBladeWeights": ["light", "medium"],
         "anchors": {
@@ -150,17 +247,34 @@
         "deform": {"scaleX": [0.88, 1.16], "scaleY": [0.92, 1.08]}
       },
       "judgment-premium": {
+        "label": "裁决 · 精工薄翼格",
         "file": "premium/guard-judgment-premium.png",
         "compatibleBladeWeights": ["light", "medium"],
         "renderAspect": 3.58,
         "preferredBladeRatio": 2.0,
+        "preferredBladeRatioByType": {"judgment": 2.0, "experience": 3.2, "process": 2.9},
         "anchors": {
           "bladeSocket": {"x": 0.5, "y": 0.5, "width": 0.08},
           "handleSocket": {"x": 0.5, "y": 0.78, "width": 0.12}
         },
         "deform": {"scaleX": [0.94, 1.08], "scaleY": [0.96, 1.05]}
       },
+      "judgment-frost-premium": {
+        "label": "霜裁 · 云翼银格",
+        "file": "premium/guard-judgment-frost-premium.png",
+        "compatibleBladeWeights": ["light", "medium"],
+        "renderAspect": 3.9,
+        "preferredBladeRatio": 2.0,
+        "preferredBladeRatioByType": {"judgment": 2.0, "experience": 3.2, "process": 2.9},
+        "series": "frost",
+        "anchors": {
+          "bladeSocket": {"x": 0.5, "y": 0.5, "width": 0.1},
+          "handleSocket": {"x": 0.5, "y": 0.82, "width": 0.16}
+        },
+        "deform": {"scaleX": [0.94, 1.06], "scaleY": [0.96, 1.04]}
+      },
       "experience": {
+        "label": "经验 · 稳定剑格",
         "file": "guard-experience.png",
         "compatibleBladeWeights": ["medium", "heavy"],
         "anchors": {
@@ -169,7 +283,22 @@
         },
         "deform": {"scaleX": [0.9, 1.12], "scaleY": [0.92, 1.08]}
       },
+      "experience-mountain-premium": {
+        "label": "玄岳 · 山纹承力格",
+        "file": "premium/guard-experience-mountain-premium.png",
+        "compatibleBladeWeights": ["heavy"],
+        "renderAspect": 3.49,
+        "preferredBladeRatio": 3.2,
+        "preferredBladeRatioByType": {"judgment": 2.05, "experience": 3.2, "process": 2.9},
+        "series": "mountain",
+        "anchors": {
+          "bladeSocket": {"x": 0.5, "y": 0.5, "width": 0.12},
+          "handleSocket": {"x": 0.5, "y": 0.82, "width": 0.18}
+        },
+        "deform": {"scaleX": [0.96, 1.05], "scaleY": [0.96, 1.04]}
+      },
       "process": {
+        "label": "流程 · 稳定剑格",
         "file": "guard-process.png",
         "compatibleBladeWeights": ["light", "medium"],
         "anchors": {
@@ -177,10 +306,25 @@
           "handleSocket": {"x": 0.5, "y": 0.61, "width": 0.1}
         },
         "deform": {"scaleX": [0.9, 1.13], "scaleY": [0.92, 1.08]}
+      },
+      "process-hundredfold-premium": {
+        "label": "百炼 · 锤鳞工造格",
+        "file": "premium/guard-process-hundredfold-premium.png",
+        "compatibleBladeWeights": ["light", "medium"],
+        "renderAspect": 3.73,
+        "preferredBladeRatio": 2.9,
+        "preferredBladeRatioByType": {"judgment": 2.05, "experience": 3.2, "process": 2.9},
+        "series": "hundredfold",
+        "anchors": {
+          "bladeSocket": {"x": 0.5, "y": 0.5, "width": 0.1},
+          "handleSocket": {"x": 0.5, "y": 0.82, "width": 0.16}
+        },
+        "deform": {"scaleX": [0.95, 1.06], "scaleY": [0.96, 1.04]}
       }
     },
     "handles": {
       "draft": {
+        "label": "剑胚 · 素柄",
         "file": "handle-draft.png",
         "compatibleBladeWeights": ["light", "medium", "heavy"],
         "anchors": {
@@ -189,6 +333,7 @@
         }
       },
       "forged": {
+        "label": "成锋 · 缠柄",
         "file": "handle-forged.png",
         "compatibleBladeWeights": ["light", "medium", "heavy"],
         "anchors": {
@@ -197,6 +342,7 @@
         }
       },
       "tempered": {
+        "label": "淬炼 · 朱结柄",
         "file": "handle-tempered.png",
         "compatibleBladeWeights": ["light", "medium", "heavy"],
         "anchors": {
@@ -205,12 +351,46 @@
         }
       },
       "tempered-premium": {
+        "label": "裁决 · 精工皮柄",
         "file": "premium/handle-tempered-premium.png",
         "compatibleBladeWeights": ["light", "medium"],
-        "renderWidthScale": 1.15,
+        "renderWidthScale": 1.2,
         "anchors": {
           "guardSocket": {"x": 0.5, "y": 0.05, "width": 0.25},
           "tasselSocket": {"x": 0.5, "y": 0.96}
+        }
+      },
+      "judgment-frost-premium": {
+        "label": "霜裁 · 靛蓝丝柄",
+        "file": "premium/handle-judgment-frost-premium.png",
+        "compatibleBladeWeights": ["light", "medium"],
+        "renderWidthScale": 1.2,
+        "series": "frost",
+        "anchors": {
+          "guardSocket": {"x": 0.5, "y": 0.04, "width": 0.3},
+          "tasselSocket": {"x": 0.5, "y": 0.97}
+        }
+      },
+      "experience-mountain-premium": {
+        "label": "玄岳 · 双手山皮柄",
+        "file": "premium/handle-experience-mountain-premium.png",
+        "compatibleBladeWeights": ["heavy"],
+        "renderWidthScale": 1.15,
+        "series": "mountain",
+        "anchors": {
+          "guardSocket": {"x": 0.5, "y": 0.04, "width": 0.32},
+          "tasselSocket": {"x": 0.5, "y": 0.97}
+        }
+      },
+      "process-hundredfold-premium": {
+        "label": "百炼 · 绛红工造柄",
+        "file": "premium/handle-process-hundredfold-premium.png",
+        "compatibleBladeWeights": ["light", "medium"],
+        "renderWidthScale": 1.25,
+        "series": "hundredfold",
+        "anchors": {
+          "guardSocket": {"x": 0.5, "y": 0.04, "width": 0.3},
+          "tasselSocket": {"x": 0.5, "y": 0.97}
         }
       }
     },

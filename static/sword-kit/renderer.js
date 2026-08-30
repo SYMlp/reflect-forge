@@ -111,7 +111,16 @@ export class SwordKitRenderer {
     const blade = manifest.parts.blades[bladeId];
     let guard = manifest.parts.guards[guardId];
     if (!guard.compatibleBladeWeights.includes(blade.profileWeight)) {
-      const fallback = blueprint.defaultParts.guard;
+      const fallback = Object.entries(manifest.parts.guards).find(([id, spec]) =>
+        id === blueprint.defaultParts.guard && spec.compatibleBladeWeights.includes(blade.profileWeight),
+      )?.[0]
+        || Object.entries(manifest.parts.guards).find(([, spec]) =>
+          blade.series && spec.series === blade.series && spec.compatibleBladeWeights.includes(blade.profileWeight),
+        )?.[0]
+        || Object.entries(manifest.parts.guards).find(([, spec]) =>
+          spec.compatibleBladeWeights.includes(blade.profileWeight),
+        )?.[0];
+      if (!fallback) throw new Error(`没有剑格可承 ${blade.profileWeight} 剑身`);
       warnings.push(`${guardId} 剑格不承 ${blade.profileWeight} 剑身，已回退到 ${fallback}`);
       guardId = fallback;
       guard = manifest.parts.guards[guardId];
@@ -206,7 +215,9 @@ export class SwordKitRenderer {
     };
 
     const bladeJoin = anchorPoint(blade, specs.blade.anchors.guardSocket);
-    const guardRatio = specs.guard.preferredBladeRatio || nominal.guardToBladeRatio;
+    const guardRatio = specs.guard.preferredBladeRatioByType?.[resolved.type]
+      || specs.guard.preferredBladeRatio
+      || nominal.guardToBladeRatio;
     const guardWidth = bladeWidth * guardRatio * p.guardWidth;
     const guardHeight = specs.guard.renderAspect ? guardWidth / specs.guard.renderAspect : nominal.guardHeight;
     let guard = rectFromAnchor(guardWidth, guardHeight, specs.guard.anchors.bladeSocket, bladeJoin);

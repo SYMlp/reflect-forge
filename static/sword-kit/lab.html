@@ -504,17 +504,21 @@
           <legend>二 · 零件与兼容</legend>
           <div class="fields">
             <label>零件品质
-              <select id="quality">
-                <option value="stable">稳定版</option>
-                <option value="premium" selected>精工样件 A/B</option>
+              <select id="quality"></select>
+            </label>
+            <label>剑身覆盖
+              <select id="blade">
+                <option value="">由套装 / 蓝图决定</option>
               </select>
             </label>
             <label>剑格覆盖
               <select id="guard">
-                <option value="">由蓝图决定</option>
-                <option value="judgment">判断剑格</option>
-                <option value="experience">经验剑格</option>
-                <option value="process">流程剑格</option>
+                <option value="">由套装 / 蓝图决定</option>
+              </select>
+            </label>
+            <label>剑柄覆盖
+              <select id="handle">
+                <option value="">由套装 / 状态决定</option>
               </select>
             </label>
             <label>锚点读数
@@ -561,7 +565,23 @@
     const $ = (selector) => document.querySelector(selector);
     const renderer = await SwordKitRenderer.create($("#sword-canvas"));
     const rangeIds = ["blade-length", "blade-width", "guard-width", "handle-length"];
+    const partSelects = {blade: "blades", guard: "guards", handle: "handles"};
     let renderToken = 0;
+
+    function appendOptions(select, entries) {
+      for (const [id, spec] of Object.entries(entries)) {
+        const option = document.createElement("option");
+        option.value = id;
+        option.textContent = spec.label || id;
+        select.append(option);
+      }
+    }
+
+    appendOptions($("#quality"), renderer.manifest.presets);
+    for (const [role, group] of Object.entries(partSelects)) {
+      appendOptions($(`#${role}`), renderer.manifest.parts[group]);
+    }
+    $("#quality").value = "judgment-premium";
 
     function updateRangeLabels() {
       for (const id of rangeIds) {
@@ -573,17 +593,17 @@
 
     function inputConfig() {
       const auto = $("#auto-proportions").checked;
-      const premium = $("#quality").value === "premium";
+      const preset = renderer.manifest.presets[$("#quality").value] || renderer.manifest.presets.stable;
+      const parts = {...preset.parts};
+      for (const role of Object.keys(partSelects)) {
+        if ($(`#${role}`).value) parts[role] = $(`#${role}`).value;
+      }
       return {
         type: $("#type").value,
         state: $("#state").value,
         skill_id: $("#skill-id").value.trim(),
         seed: Number($("#seed").value),
-        parts: {
-          blade: premium ? "judgment-premium" : undefined,
-          guard: premium ? "judgment-premium" : ($("#guard").value || undefined),
-          handle: premium && $("#state").value === "tempered" ? "tempered-premium" : undefined,
-        },
+        parts,
         proportions: auto ? undefined : {
           bladeLength: Number($("#blade-length").value),
           bladeWidth: Number($("#blade-width").value),
@@ -600,8 +620,9 @@
       try {
         const result = await renderer.render(inputConfig());
         if (token !== renderToken) return;
+        const preset = renderer.manifest.presets[$("#quality").value];
         $("#sword-title").textContent = `${result.blueprint.label} · ${result.stateSpec.label}`;
-        $("#sword-profile").textContent = `${result.blueprint.profile} · 身份种子 ${result.seed}`;
+        $("#sword-profile").textContent = `${preset?.label || result.blueprint.profile} · 身份种子 ${result.seed}`;
         $("#connection-error").textContent = `${result.connectionError.toFixed(3)} px`;
         $("#shoulder-cover").textContent = `${result.structural.shoulderCoverPx.toFixed(1)} px / ${(result.structural.shoulderCoverRatio * 100).toFixed(0)}%`;
         $("#guard-ratio").textContent = `${result.structural.guardToBladeRatio.toFixed(2)} : 1`;
@@ -632,18 +653,18 @@
     }
 
     $("#quality").addEventListener("change", () => {
-      if ($("#quality").value === "premium") {
-        $("#type").value = "judgment";
-        $("#state").value = "tempered";
-        $("#guard").value = "";
-      }
+      const preset = renderer.manifest.presets[$("#quality").value];
+      if (preset?.type) $("#type").value = preset.type;
+      if (preset?.state) $("#state").value = preset.state;
+      for (const role of Object.keys(partSelects)) $(`#${role}`).value = "";
       forge();
     });
     $("#type").addEventListener("change", () => {
-      if ($("#type").value !== "judgment") $("#quality").value = "stable";
+      $("#quality").value = "stable";
+      for (const role of Object.keys(partSelects)) $(`#${role}`).value = "";
       forge();
     });
-    for (const selector of ["#state", "#guard", "#debug-anchors", "#auto-proportions"]) {
+    for (const selector of ["#state", "#blade", "#guard", "#handle", "#debug-anchors", "#auto-proportions"]) {
       $(selector).addEventListener("change", () => {
         updateRangeLabels();
         forge();
@@ -665,7 +686,9 @@
     $("#mismatch").addEventListener("click", () => {
       $("#quality").value = "stable";
       $("#type").value = "experience";
+      $("#blade").value = "";
       $("#guard").value = "judgment";
+      $("#handle").value = "";
       forge();
     });
     $("#reset").addEventListener("click", () => {
@@ -673,8 +696,8 @@
       $("#state").value = "tempered";
       $("#skill-id").value = "daily-report-delta";
       $("#seed").value = "7713";
-      $("#quality").value = "premium";
-      $("#guard").value = "";
+      $("#quality").value = "judgment-premium";
+      for (const role of Object.keys(partSelects)) $(`#${role}`).value = "";
       $("#debug-anchors").value = "off";
       $("#auto-proportions").checked = true;
       for (const id of rangeIds) $(`#${id}`).value = "1";
