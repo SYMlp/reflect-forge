@@ -1,0 +1,141 @@
+{
+  "version": 1,
+  "coordinateSpace": {
+    "width": 360,
+    "height": 720
+  },
+  "metadata": {
+    "type": [
+      "judgment",
+      "experience",
+      "process"
+    ],
+    "state": [
+      "draft",
+      "forged",
+      "tempered"
+    ],
+    "skill_id": "reserved-for-future-identity-parts"
+  },
+  "variants": {
+    "type": {
+      "judgment": {
+        "blade": "blade-judgment.png",
+        "guard": "guard-judgment.png"
+      },
+      "experience": {
+        "blade": "blade-experience.png",
+        "guard": "guard-experience.png"
+      },
+      "process": {
+        "blade": "blade-process.png",
+        "guard": "guard-process.png"
+      }
+    },
+    "state": {
+      "draft": {
+        "finish": "finish-draft.png",
+        "handle": "handle-draft.png",
+        "tassel": null
+      },
+      "forged": {
+        "finish": "finish-forged.png",
+        "handle": "handle-forged.png",
+        "tassel": null
+      },
+      "tempered": {
+        "finish": "finish-tempered.png",
+        "handle": "handle-tempered.png",
+        "tassel": "tassel-tempered.png"
+      }
+    }
+  },
+  "slots": {
+    "blade": {
+      "x": 80,
+      "y": 18,
+      "width": 200,
+      "height": 500,
+      "fit": "contain"
+    },
+    "handle": {
+      "x": 145,
+      "y": 505,
+      "width": 70,
+      "height": 160,
+      "fit": "contain"
+    },
+    "guard": {
+      "x": 75,
+      "y": 492,
+      "width": 210,
+      "height": 60,
+      "fit": "contain"
+    },
+    "tassel": {
+      "x": 155,
+      "y": 650,
+      "width": 50,
+      "height": 70,
+      "fit": "contain"
+    }
+  },
+  "layers": [
+    {
+      "name": "bladeFinish",
+      "z": 10,
+      "slot": "blade",
+      "render": "mask-fill",
+      "mask": "type.blade",
+      "source": "state.finish"
+    },
+    {
+      "name": "bladeDetail",
+      "z": 11,
+      "slot": "blade",
+      "render": "source-overlay",
+      "source": "type.blade",
+      "opacity": 0.3
+    },
+    {
+      "name": "handle",
+      "z": 20,
+      "slot": "handle",
+      "render": "image",
+      "source": "state.handle"
+    },
+    {
+      "name": "guard",
+      "z": 30,
+      "slot": "guard",
+      "render": "image",
+      "source": "type.guard"
+    },
+    {
+      "name": "tassel",
+      "z": 40,
+      "slot": "tassel",
+      "render": "image",
+      "source": "state.tassel",
+      "when": "state.tassel != null"
+    }
+  ],
+  "example": {
+    "input": {
+      "type": "judgment",
+      "state": "tempered",
+      "skill_id": "sword-001"
+    },
+    "resolved": [
+      "blade-judgment.png",
+      "finish-tempered.png",
+      "handle-tempered.png",
+      "guard-judgment.png",
+      "tassel-tempered.png"
+    ]
+  },
+  "qaPreview": {
+    "components": "components-overview.png",
+    "combinations": "preview-grid.png"
+  }
+}
