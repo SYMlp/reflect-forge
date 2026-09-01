@@ -8,6 +8,11 @@
     "desc": "一位带 AI 团队的前辈三小时深谈提炼",
     "cited": "今晨为本产品定 why 时引用——动词不是 why，why 一定是描述性的"
   },
+  "charge_sheet": {
+    "ledger_path": "D:/Project/personal/toys/my-desk/pa/hook-route-ledger.jsonl",
+    "session_glob": "C:/Users/Administrator/.claude/projects/d--Project-personal-toys/",
+    "out_dir": "data/charge"
+  },
   "foreign_scrolls": [
     {
       "id": "drawio-skill",

@@ -3,3 +3,6 @@ __pycache__/
 forge.log
 .DS_Store
 .playwright-mcp/
+data/charge/
+forge-demo-7713.log
+项目提交的截图/
