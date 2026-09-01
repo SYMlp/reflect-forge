@@ -42,9 +42,10 @@ CONFIG_FILE = ROOT / "config.json"
 # 前 16 位与台账 sid 对齐——两根轴就靠这 16 个字符缝合
 SID_KEY_LEN = 16
 
-# 每个组件挂几条代表性开场样本 / miss 区挂几条 / 事轴每 sid 只取首条申报
+# 每个组件挂几条代表性开场样本 / 开场 miss 区挂几条 / 中途 miss 挂几条 / 事轴每 sid 只取首条申报
 COMPONENT_SAMPLES = 4
 MISS_SAMPLES = 12
+MIDSESSION_SAMPLES = 5
 PROMPT_HEAD_MAX = 140
 
 # miss 样本里这些前缀不是「开场」——是后台 re-invoke 与系统注入的噪声，
@@ -150,14 +151,28 @@ def _session_time(fp):
 
 
 def scan_ledger(path, since=None):
-    """逐行流式扫台账，按组件归集命中，并单收 miss 样本。
+    """逐行流式扫台账，按组件归集命中，并把 miss 分成「开场 / 中途」两类单收。
+
+    开场判定（确定性 sessionize，2026-09-01 首炉修订）：台账按 append 时序落行，
+    某 sid 在**全量台账**里的第一行即该会话的开场——first-seen 跨全文件计算，
+    不受 since 窗口影响（窗前已开的场，窗内的行都算中途）。缺 sid 的行无法
+    sessionize，保守按开场计——宁可多进样本区被人看到，不静默藏进中途。
+
+    miss 语义由此分层：**开场 miss** = 该有设计到场却裸奔（重点矿）；
+    **中途 miss** = 会话中途的 prompt 无路由命中（常态，仅供观察，不算裸奔）。
+    这是归集口径不是含金量判断——开场/中途是台账里的机械事实。
 
     since 非 None（朴素 datetime）时，只统计 `ts >= since` 的行——无法解析 ts 的行
-    因为定位不了时间、也就无法确认在窗内，一并剔除。since 为 None 时行为逐字节不变。
+    因为定位不了时间、也就无法确认在窗内，一并剔除（但仍参与 first-seen 判定）。
+    since 为 None 时归集范围不变。
 
     返回 dict：
       components: {route: {hits, first_ts, last_ts, files:set, samples:[head]}}
-      misses:     [head]           # 已滤掉系统噪声的真·裸奔开场
+      opening_rows: int            # 窗内开场行总数（命中 + miss，噪声不算）
+      opening_misses: [head]       # 开场裸奔样本
+      opening_miss_rows: int
+      midsession_misses: [head]    # 中途无命中样本（少量，仅供观察）
+      midsession_miss_rows: int
       noise_miss: int              # 被判为噪声的 miss 条数（照实报，不静默）
       rows, miss_rows: int         # 总行数 / matched 为空的行数
       span:       (first_ts, last_ts)   # 整个台账的时间跨度
@@ -167,9 +182,12 @@ def scan_ledger(path, since=None):
         raise FileNotFoundError("找不到 hook 路由台账：{}".format(f))
 
     components = {}
-    misses, noise_miss = [], 0
+    opening_misses, midsession_misses = [], []
+    opening_rows = opening_miss_rows = midsession_miss_rows = 0
+    noise_miss = 0
     rows, miss_rows = 0, 0
     first_ts, last_ts = None, None
+    seen_sids = set()
 
     with f.open(encoding="utf-8", errors="replace") as fh:
         for line in fh:
@@ -180,6 +198,13 @@ def scan_ledger(path, since=None):
                 ev = json.loads(line)
             except Exception:
                 continue
+            # 开场判定必须先于窗口过滤：first-seen 跨全量台账（窗前开的场，窗内行=中途）
+            sid = ev.get("sid")
+            if sid:
+                is_opening = sid not in seen_sids
+                seen_sids.add(sid)
+            else:
+                is_opening = True  # 缺 sid 无法 sessionize，保守按开场计（见 docstring）
             ts = _parse_ts(ev.get("ts"))
             if since is not None and (ts is None or ts < since):
                 continue  # 窗外 / 无法定位时间 → 不计入本窗（含组件轴与 miss 区）
@@ -191,13 +216,22 @@ def scan_ledger(path, since=None):
             matched = ev.get("matched") or []
             head = _clean_head(ev.get("prompt_head"))
             files = ev.get("files") or []
+            noise = _is_noise(head)
+            if is_opening and not noise:
+                opening_rows += 1
 
             if not matched:
                 miss_rows += 1
-                if _is_noise(head):
+                if noise:
                     noise_miss += 1
-                elif head and len(misses) < MISS_SAMPLES:
-                    misses.append(head)
+                elif is_opening:
+                    opening_miss_rows += 1
+                    if head and len(opening_misses) < MISS_SAMPLES:
+                        opening_misses.append(head)
+                else:
+                    midsession_miss_rows += 1
+                    if head and len(midsession_misses) < MIDSESSION_SAMPLES:
+                        midsession_misses.append(head)
                 continue
 
             for route in matched:
@@ -219,7 +253,11 @@ def scan_ledger(path, since=None):
 
     return {
         "components": components,
-        "misses": misses,
+        "opening_rows": opening_rows,
+        "opening_misses": opening_misses,
+        "opening_miss_rows": opening_miss_rows,
+        "midsession_misses": midsession_misses,
+        "midsession_miss_rows": midsession_miss_rows,
         "noise_miss": noise_miss,
         "rows": rows,
         "miss_rows": miss_rows,
@@ -350,7 +388,10 @@ def build_charge_sheet(ledger, sessions, since=None):
 
     rows = ledger["rows"]
     miss_rows = ledger["miss_rows"]
-    miss_density = round(miss_rows / rows, 3) if rows else 0.0
+    opening_rows = ledger["opening_rows"]
+    opening_miss_rows = ledger["opening_miss_rows"]
+    # 密度只按开场口径算：中途 prompt 无路由是常态，混进分母只会虚高（2026-09-01 首炉修订）
+    opening_miss_density = round(opening_miss_rows / opening_rows, 3) if opening_rows else 0.0
 
     # 候选淬火排序：确定性指标堆一起，给「建议看的先后」，不下「该不该淬火」的结论
     ranking = []
@@ -378,9 +419,13 @@ def build_charge_sheet(ledger, sessions, since=None):
         "by_component": comps,
         "misses": {
             "miss_rows": miss_rows,
-            "miss_density": miss_density,
+            "opening_rows": opening_rows,
+            "opening_miss_rows": opening_miss_rows,
+            "opening_miss_density": opening_miss_density,
+            "midsession_miss_rows": ledger["midsession_miss_rows"],
             "noise_dropped": ledger["noise_miss"],
-            "samples": ledger["misses"],
+            "samples": ledger["opening_misses"],
+            "midsession_samples": ledger["midsession_misses"],
         },
         "events": {
             "declared": sessions["declared"],
@@ -433,20 +478,30 @@ def render_md(sheet):
         L.append("_台账里没有任何命中记录。_")
         L.append("")
 
-    # miss 区
+    # miss 区（开场/中途分层，2026-09-01 首炉修订）
     m = sheet["misses"]
-    L.append("## 二、miss 样本区 —— 该有设计到场却裸奔的开场")
+    L.append("## 二、开场 miss 区 —— 该有设计到场却裸奔的开场")
     L.append("")
-    L.append("miss 行 **{}** 条 · miss 密度 **{}** · 已滤系统噪声 {} 条。".format(
-        m["miss_rows"], m["miss_density"], m["noise_dropped"]))
+    L.append("窗内开场 **{}** 场：裸奔 **{}** 场 · 开场 miss 密度 **{}** · 已滤系统噪声 {} 条。".format(
+        m["opening_rows"], m["opening_miss_rows"], m["opening_miss_density"], m["noise_dropped"]))
     L.append("")
-    L.append("> 这些是回炉的重点矿：开场没接到任何设计，可能是缺 route、也可能是卡的场景没覆盖。")
+    L.append("> 开场判定 = sid 在全量台账的首行。这些是回炉的重点矿："
+             "开场没接到任何设计，可能是缺 route、也可能是卡的场景没覆盖。")
     L.append("")
     if m["samples"]:
         for s in m["samples"]:
             L.append("- {}".format(s))
     else:
-        L.append("_没有采到裸奔开场样本（要么全命中，要么全是系统噪声）。_")
+        L.append("_没有采到裸奔开场（要么开场全命中，要么全是系统噪声）。_")
+    L.append("")
+    L.append("另有会话**中途** miss **{}** 条——中途 prompt 多数本就无需路由到场，"
+             "仅供观察、不算裸奔（样本最多 {} 条）：".format(
+                 m["midsession_miss_rows"], MIDSESSION_SAMPLES))
+    L.append("")
+    for s in m["midsession_samples"]:
+        L.append("- {}".format(s))
+    if not m["midsession_samples"]:
+        L.append("_无中途 miss。_")
     L.append("")
 
     # 事轴
@@ -469,7 +524,7 @@ def render_md(sheet):
     # 候选淬火排序
     L.append("## 四、候选淬火排序（只排序，不下结论）")
     L.append("")
-    L.append("> 按命中频次降序。频次高 = 用得狠 = 淬火收益面大；miss 密度见第二节。"
+    L.append("> 按命中频次降序。频次高 = 用得狠 = 淬火收益面大；开场 miss 密度见第二节。"
              "**排序不等于结论**——最终看谁值得回炉，是反思会话的活。")
     L.append("")
     if sheet["ranking"]:
@@ -548,6 +603,9 @@ def selftest():
             {"ts": "2026-09-05T13:00:00.0", "sid": "eeee5555-ffff-66",
              "project": "toys", "matched": [], "files": [],
              "prompt_head": "随便问一句没被任何路由接住的话"},
+            {"ts": "2026-09-05T15:00:00.0", "sid": "ffff7777-8888-99",
+             "project": "toys", "matched": [], "files": [],
+             "prompt_head": "第一句就裸奔的新开场"},
             {"ts": "2026-09-06T14:00:00.0", "sid": "9999aaaa-bbbb-cc",
              "project": "toys", "matched": [], "files": [],
              "prompt_head": "<task-notification>\n<task-id>xxx</task-id>"},
@@ -593,10 +651,16 @@ def selftest():
         check(sheet["by_component"][0]["component"] == "opening", "排序：opening 居首（频次最高）")
         check(comp["opening"]["span_days"] == 2, "opening 跨度 2 天（09-01→09-03）")
 
-        check(sheet["misses"]["miss_rows"] == 2, "miss 行 2 条")
+        check(sheet["misses"]["miss_rows"] == 3, "miss 行 3 条（1 开场 + 1 中途 + 1 噪声）")
         check(sheet["misses"]["noise_dropped"] == 1, "系统噪声滤掉 1 条")
-        check(len(sheet["misses"]["samples"]) == 1, "miss 样本只留 1 条真开场")
-        check("没被任何路由" in sheet["misses"]["samples"][0], "miss 样本内容正确")
+        check(sheet["misses"]["opening_rows"] == 4, "开场行 4 条（噪声开场不计）")
+        check(sheet["misses"]["opening_miss_rows"] == 1, "开场 miss 仅 1 条")
+        check(sheet["misses"]["opening_miss_density"] == 0.25, "开场 miss 密度 1/4")
+        check(len(sheet["misses"]["samples"]) == 1
+              and "裸奔的新开场" in sheet["misses"]["samples"][0], "开场 miss 样本正确")
+        check(sheet["misses"]["midsession_miss_rows"] == 1
+              and "没被任何路由" in sheet["misses"]["midsession_samples"][0],
+              "中途 miss 单收（同 sid 第二行起算中途）")
 
         decl = {d["sid"]: d["decl"] for d in sheet["events"]["declared"]}
         check(sheet["events"]["declared_count"] == 1, "事轴：仅 1 份真申报")
@@ -616,17 +680,25 @@ def selftest():
         # 台账：跨 08-29 → 09-02，外加一条无 ts 行。since=2026-08-31 应只留窗内。
         ledger2 = tmp / "ledger2.jsonl"
         rows2 = [
-            {"ts": "2026-08-29T09:00:00.0", "matched": ["opening"], "files": [],
+            {"ts": "2026-08-29T09:00:00.0", "sid": "old11111-aaaa-bb",
+             "matched": ["opening"], "files": [],
              "prompt_head": "窗前老开场，应被切掉"},
-            {"ts": "2026-08-30T09:00:00.0", "matched": [], "files": [],
+            {"ts": "2026-08-30T09:00:00.0", "sid": "old22222-cccc-dd",
+             "matched": [], "files": [],
              "prompt_head": "窗前 miss，应被切掉"},
-            {"ts": "2026-09-01T09:00:00.0", "matched": ["opening"], "files": [],
+            {"ts": "2026-09-01T09:00:00.0", "sid": "win33333-eeee-ff",
+             "matched": ["opening"], "files": [],
              "prompt_head": "窗内开场 A"},
-            {"ts": "2026-09-02T09:00:00.0", "matched": ["deep-dig"], "files": [],
+            {"ts": "2026-09-02T09:00:00.0", "sid": "win33333-eeee-ff",
+             "matched": ["deep-dig"], "files": [],
              "prompt_head": "窗内 deep-dig"},
-            {"ts": "2026-09-02T10:00:00.0", "matched": [], "files": [],
-             "prompt_head": "窗内 miss"},
-            {"matched": ["opening"], "files": [],
+            {"ts": "2026-09-02T10:00:00.0", "sid": "old11111-aaaa-bb",
+             "matched": [], "files": [],
+             "prompt_head": "窗内 miss，但 sid 窗前已开场，应算中途"},
+            {"ts": "2026-09-02T11:00:00.0", "sid": "win44444-9999-88",
+             "matched": [], "files": [],
+             "prompt_head": "窗内新开场裸奔"},
+            {"sid": "nots5555-7777-66", "matched": ["opening"], "files": [],
              "prompt_head": "无 ts 行，since 下应被切掉"},
         ]
         ledger2.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows2) + "\n",
@@ -672,10 +744,15 @@ def selftest():
 
         # 组件轴 + miss 区都按窗过滤
         comp2 = {c["component"]: c for c in s2["by_component"]}
-        check(s2["window"]["ledger_rows"] == 3, "窗内台账行 3 条（切掉 2 窗前 + 1 无 ts）")
+        check(s2["window"]["ledger_rows"] == 4, "窗内台账行 4 条（切掉 2 窗前 + 1 无 ts）")
         check(comp2.get("opening", {}).get("hits") == 1, "窗内 opening 仅 1 次（窗前那条被切）")
         check(comp2.get("deep-dig", {}).get("hits") == 1, "窗内 deep-dig 1 次")
-        check(s2["misses"]["miss_rows"] == 1, "窗内 miss 仅 1 条（窗前 miss 被切）")
+        check(s2["misses"]["opening_miss_rows"] == 1
+              and "新开场裸奔" in s2["misses"]["samples"][0], "窗内开场 miss 仅 1 条")
+        check(s2["misses"]["midsession_miss_rows"] == 1
+              and "应算中途" in s2["misses"]["midsession_samples"][0],
+              "first-seen 跨窗：窗前开的场，窗内 miss 算中途")
+        check(s2["misses"]["opening_rows"] == 2, "窗内开场 2 场（开场A + 新开场裸奔）")
         check(s2["window"]["since"] == "2026-08-31", "window.since 记录生效日期")
 
         # 事轴：消息 ts 判窗 + mtime 兜底
@@ -691,9 +768,9 @@ def selftest():
         out3 = tmp / "out3"
         s3, _, _ = generate(str(ledger2), str(sess2), str(out3))
         comp3 = {c["component"]: c for c in s3["by_component"]}
-        check(s3["window"]["ledger_rows"] == 6, "不传 since：台账全量 6 行")
+        check(s3["window"]["ledger_rows"] == 7, "不传 since：台账全量 7 行")
         check(comp3.get("opening", {}).get("hits") == 3, "不传 since：opening 全量 3 次")
-        check(s3["misses"]["miss_rows"] == 2, "不传 since：miss 全量 2 条")
+        check(s3["misses"]["miss_rows"] == 3, "不传 since：miss 全量 3 条")
         check(s3["events"]["total_sessions"] == 4, "不传 since：session 全量 4 份")
         check(s3["window"]["since"] == "", "不传 since：window.since 为空")
 
@@ -721,8 +798,9 @@ def _print_report(sheet, jp, mp):
     if sheet["ranking"]:
         top = sheet["ranking"][0]
         print("        最热：{}（{} 次）".format(top["component"], top["hits"]))
-    print("miss 区：{} 条裸奔行 · 密度 {} · 滤噪声 {} 条 · 采样 {} 条".format(
-        m["miss_rows"], m["miss_density"], m["noise_dropped"], len(m["samples"])))
+    print("miss 区：开场 {}/{} 裸奔 · 密度 {} · 中途 miss {} 条 · 滤噪声 {} 条".format(
+        m["opening_miss_rows"], m["opening_rows"], m["opening_miss_density"],
+        m["midsession_miss_rows"], m["noise_dropped"]))
     print("事  轴：{} 份 session，{} 份有「本场一件事」申报，{} 份无".format(
         e["total_sessions"], e["declared_count"], e["undeclared_count"]))
 
