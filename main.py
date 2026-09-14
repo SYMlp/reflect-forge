@@ -19,6 +19,8 @@ import shutil
 import subprocess
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
+
+import heroes
 from urllib.parse import urlparse, parse_qs
 
 ROOT = Path(__file__).parent
@@ -57,6 +59,10 @@ DEFAULT_CONFIG = {
     "forge_master": "锻造师",
     "works_slain_base": 0,
     "session_dir": "~/.claude/projects/",
+    # 花名册：哪几位侠客的卷宗算进矿场，各自的矿场在哪。
+    # 留空 = 在册的全体到齐、各用各的默认根（见 heroes/）。
+    # 只想认一位就只写一位——比如那台只跑 Codex 的机器：[{"id": "codex"}]
+    "heroes": [],
     "prospect_banner": "",
     "featured_scroll": {},
     # 外来名剑：别人锻好的开源 SKILL.md，重锻炉的进料口。登记在册的才认（见 find_foreign_scroll）
@@ -305,31 +311,17 @@ GRADES = ("上品", "中品", "下品")
 
 
 def jsonl_to_text(path, limit=24000):
-    """.jsonl 会话留痕 → 可喂给炉子的纯文本。只留人说了什么、AI 答了什么。"""
+    """.jsonl 会话留痕 → 可喂给炉子的纯文本。只留人说了什么、AI 答了什么。
+
+    「怎么把话从留痕里捡出来」各门派规矩不同，交给侠客自己去认（见 heroes/）；
+    炉子只管两件与门派无关的事：不是 jsonl 的原样端上、太长的掐头留尾。
+    """
     f = Path(path).expanduser()
     if not f.exists():
         raise ForgeError("no_file", "找不到这份会话记录：{}".format(f))
     if f.suffix.lower() != ".jsonl":
         return f.read_text(encoding="utf-8", errors="replace")[:limit]
-    out = []
-    for line in f.read_text(encoding="utf-8", errors="replace").split("\n"):
-        if not line.strip():
-            continue
-        try:
-            ev = json.loads(line)
-        except Exception:
-            continue
-        msg = ev.get("message") or {}
-        role = msg.get("role") or ev.get("type")
-        content = msg.get("content")
-        if isinstance(content, str) and content.strip():
-            out.append("[{}] {}".format(role, content.strip()[:1200]))
-        elif isinstance(content, list):
-            for blk in content:
-                if isinstance(blk, dict) and blk.get("type") == "text" \
-                        and blk.get("text", "").strip():
-                    out.append("[{}] {}".format(role, blk["text"].strip()[:1200]))
-    text = "\n".join(out)
+    text = heroes.whose(f).to_text(f)
     if len(text) > limit:
         # 掐头留尾：开场定了要干什么，收尾见得到结果，中间的过程可以省
         text = text[:limit // 2] + "\n…（中间略）…\n" + text[-limit // 2:]
@@ -895,34 +887,34 @@ def write_assays(a):
 
 
 def session_dir(dirname=""):
+    """单个矿场。老路：不指名就用配置里的 session_dir（Claude 的根）。
+
+    寻料早已不止一座矿场（见 hero_mines），这个函数只剩两个用处：
+    外部显式指名某座矿场时，以及验矿认门时的兜底。
+    """
     d = Path(dirname or read_config()["session_dir"]).expanduser()
     if not d.exists() or not d.is_dir():
         raise ForgeError("no_file", "这个矿场不存在：{}".format(d))
     return d
 
 
-def prettify_slug(slug):
-    """矿脉出身。~/.claude/projects 下的目录名是把真实路径的分隔符压成 '-' 得来的
-    （D:\\Project\\personal\\toys → d--Project-personal-toys）。这个压缩有损——
-    项目名自带的连字符也变成了 '-'，光看字符串还不回去（reflect-forge 会被劈成两截）。
-    所以照着磁盘贪心还原：每一层取「能对上真实目录的最长名字」。还原不上就退回粗切分，
-    出身写歪一点也比没有强。"""
-    m = re.match(r"^([a-zA-Z])--(.+)$", slug)
-    if not m:
-        return slug.strip("-").replace("-", "/") or slug
-    parts = m.group(2).split("-")
-    cur, out, i = Path(m.group(1).upper() + ":\\"), [], 0
-    while i < len(parts):
-        for j in range(len(parts), i, -1):
-            cand = "-".join(parts[i:j])
-            if (cur / cand).is_dir():
-                out.append(cand)
-                cur, i = cur / cand, j
-                break
-        else:
-            out.extend(parts[i:])
-            break
-    return "/".join(out)
+def hero_mines(dirname=""):
+    """→ [(侠客, 矿场根)]。指名了 dirname 就只开那一座（按路径认是谁的矿）。
+
+    矿场不存在的直接跳过——没装 Codex 的机器上不该因为花名册上挂着他就开不了炉。
+    全都不在，才算真没矿。
+    """
+    if dirname:
+        d = session_dir(dirname)
+        return [(heroes.whose(d), d)]
+    out = []
+    for h, root in heroes.enabled(read_config()):
+        d = Path(root).expanduser()
+        if d.exists() and d.is_dir():
+            out.append((h, d))
+    if not out:
+        raise ForgeError("no_file", "一座矿场都没照见：花名册上的根都不在这台机器上")
+    return out
 
 
 # 全盘上千份卷宗，列表一次吃不下也不该吃下——只端最近的这些上来
@@ -930,32 +922,24 @@ PROSPECT_LIMIT = 100
 
 
 def prospect(dirname=""):
-    """矿场是整座江湖：~/.claude/projects 下一层是各项目的 slug 目录，jsonl 躺在里面。
-    翻一层子目录把所有卷宗收齐，每份标出身。"""
-    root = session_dir(dirname)
+    """矿场是整座江湖。每位在册的侠客各有各的矿场、各有各的归档规矩，
+    翻卷宗的活交给他们自己干（heroes/），炉子只负责把各家的料并到一处、
+    按新旧排好、贴上验矿结果。
+    """
     assays = read_assays()
     out = []
-    for sub in root.iterdir():
-        if not sub.is_dir():
+    for h, root in hero_mines(dirname):
+        try:
+            found = h.scrolls(root)
+        except OSError as e:
+            log("{}的矿场翻不动（{}），先跳过".format(h.NAME, e))
             continue
-        project = prettify_slug(sub.name)
-        for f in sub.glob("*.jsonl"):
-            try:
-                st = f.stat()
-            except OSError:
-                continue
-            cached = assays.get(str(f.resolve())) or {}
-            out.append({
-                "file": f.name,
-                # 前端要拿这个去 /api/reflect {source:"file"}——列表里点一下就能直接入炉
-                "path": str(f),
-                "project": project,
-                "date": datetime.datetime.fromtimestamp(st.st_mtime).strftime("%Y-%m-%d"),
-                "size_kb": round(st.st_size / 1024, 1),
-                "assay": cached.get("assay") or "未验",
-                "note": cached.get("note") or "",
-                "_mtime": st.st_mtime,
-            })
+        for item in found:
+            cached = assays.get(str(Path(item["path"]).resolve())) or {}
+            item["assay"] = cached.get("assay") or "未验"
+            item["note"] = cached.get("note") or ""
+            item["hero_name"] = h.NAME      # 门派名归侠客自己报，页面不维护第二份名单
+            out.append(item)
     # 新的排前面：最近的会话最可能还记得，也最可能有铁。日期只到天，排序按 mtime 才不糊
     out.sort(key=lambda x: x["_mtime"], reverse=True)
     for item in out:
@@ -964,32 +948,11 @@ def prospect(dirname=""):
 
 
 def head_lines(path, n=200):
-    """只读前 n 行。验矿是替锻造师省火的，自己先别把整份 500KB 会话塞进去烧。"""
-    lines, out = [], []
-    with Path(path).open(encoding="utf-8", errors="replace") as fh:
-        for i, line in enumerate(fh):
-            if i >= n:
-                break
-            lines.append(line)
-    for line in lines:
-        if not line.strip():
-            continue
-        try:
-            ev = json.loads(line)
-        except Exception:
-            out.append(line.strip()[:300])
-            continue
-        msg = ev.get("message") or {}
-        role = msg.get("role") or ev.get("type")
-        content = msg.get("content")
-        if isinstance(content, str) and content.strip():
-            out.append("[{}] {}".format(role, content.strip()[:400]))
-        elif isinstance(content, list):
-            for blk in content:
-                if isinstance(blk, dict) and blk.get("type") == "text" \
-                        and blk.get("text", "").strip():
-                    out.append("[{}] {}".format(role, blk["text"].strip()[:400]))
-    return "\n".join(out)[:12000]
+    """只读前 n 行。验矿是替锻造师省火的，自己先别把整份 500KB 会话塞进去烧。
+
+    掀开头几页的手法同样各门派不同（见 heroes/），这里只管别掀太多。
+    """
+    return heroes.whose(path).head(path, n)[:12000]
 
 
 def parse_assay(raw):
@@ -1005,16 +968,23 @@ def parse_assay(raw):
 
 
 def assay(file="", dirname=""):
-    d = session_dir(dirname)
+    mines = hero_mines(dirname)
     name = (file or "").strip()
     if not name:
         raise ForgeError("bad_request", "验矿得指一份记录：给 file")
-    # 矿场分了项目巷道，光给个文件名得先摸出它在哪条巷子里
     p = Path(name)
-    f = p.resolve() if p.is_absolute() else next(
-        (c for c in sorted(d.glob("*/" + p.name)) if c.is_file()), d / p.name).resolve()
-    # 认矿场这道门：不许用 ../ 或外部绝对路径把手伸到别处去
-    if not str(f).startswith(str(d.resolve())) or not f.exists():
+    if p.is_absolute():
+        f = p.resolve()
+    else:
+        # 矿场分了巷道，光给个文件名得先摸出它在哪条巷子里。Claude 的巷道深一层、
+        # Codex 的按日子深三层，所以一路 rglob 找到为止。
+        f = next((c for _, d in mines
+                  for c in sorted(d.rglob(p.name)) if c.is_file()),
+                 mines[0][1] / p.name).resolve()
+    # 认矿场这道门：不许用 ../ 或外部绝对路径把手伸到别处去。
+    # 多矿场之后判据从「在那座矿场里」变成「在任意一座在册矿场里」——
+    # 门还是那道门，只是江湖大了，不是把门拆了。
+    if not any(str(f).startswith(str(d.resolve())) for _, d in mines) or not f.exists():
         raise ForgeError("no_file", "矿场里没有这份记录：{}".format(name))
 
     log("验矿：{}".format(f.name))

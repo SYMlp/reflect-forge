@@ -9,6 +9,13 @@
 把 session 里的精华（**铁**）用 AI 反思提炼出来，锻成可复用的 skill（**剑**）。
 你是**锻造师**，Claude Code / Codex 这些 agent 是执剑的**侠客**——你不挥剑，你锻剑。
 
+> **侠客已可点将**（2026-09-14）：Claude Code 与 Codex 两位在册，`config.json` 的 `heroes` 说了算。
+> 在此之前这句话只是世界观——炉子实际只认 `~/.claude/projects/`。现在两派卷宗混流入炉，
+> 出铁一视同仁。改判三行：①触发＝要把这台炉子整套搬到另一台只跑 Codex 的机器上用；
+> ②参照＝炉子自己的世界观（侠客是可替换的执剑人，锻造师才是主体）；
+> ③排除了「为 Codex 另起一台炉子」和「把 Codex 卷宗先转成 Claude 格式再喂」——
+> 前者让锻造师分裂成两个，后者把门派差异渗进炉膛。
+
 别人的方法、现成的参考，都是通用件——锻造出来的，才是你的。
 
 ⚔️ 作品已锻成——VibeHacks #05（2026-08-29）参赛作品，今晚路演。
@@ -39,7 +46,23 @@ python main.py
 
 浏览器打开 **http://localhost:7712**，点「开炉」进锻造台。（7711 留给前身 component-forge，两台炉子可以同时开。）
 
-**认自己的门**（可选）：根目录 `config.json` 四个字段——`forge_master` 锻造师名号、`works_slain_base` 斩活底账、`session_dir` 寻料时翻哪个卷宗目录（默认 `~/.claude/projects/`）、`featured_scroll` 秘籍阁那卷实藏。改完重启即生效。
+**认自己的门**（可选）：根目录 `config.json`——`forge_master` 锻造师名号、`works_slain_base` 斩活底账、`featured_scroll` 秘籍阁那卷实藏，以及下面这份**花名册**。改完重启即生效。
+
+**点谁的将**（`heroes`）：寻料时翻哪几位侠客的卷宗。
+
+```json
+"heroes": [
+  { "id": "claude", "root": "~/.claude/projects/" },
+  { "id": "codex",  "root": "~/.codex/sessions/"  }
+]
+```
+
+留空 = 在册的全体到齐、各用各的默认根；矿场不在这台机器上的自动跳过，不会因此开不了炉。
+只跑 Codex 的那台机器，写 `"heroes": [{"id": "codex"}]` 就行——**一行配置，不动一个字的代码**。
+（老配置里的 `session_dir` 仍然管用，它是 Claude 的根，因为这炉子出生时只认他一位。）
+
+**再添一位侠客**：`heroes/` 下加个模块，实现 `scrolls` / `to_text` / `head` / `owns` 四件事，
+在 `heroes/__init__.py` 的 `ROSTER` 里挂个名。炉子一个字不用改——门派差异全关在各自模块里。
 
 **只观剑不开炉**（公网展示用）：`FORGE_DEMO=1 python main.py` 起演示模式——所有 POST 一律 403（反思 / 锻剑 / 淬火 / 转正 / 授剑 / 重锻 / 验矿全不开），寻料页不扫本机 `~/.claude/projects`，只端 `static/demo-prospect.json` 里的预置样例。页面照常能逛：五个 tab、剑详情、谱系、重锻记都在，按钮点得下去，只弹一句「炉火在路演现场，这里只观剑」。也可以在 `config.json` 里写 `"demo_mode": true`——环境变量压过配置文件，临时开一台演示服务不必去动仓库里的配置。
 

@@ -608,6 +608,9 @@
   .mine-file { min-width: 0; }
   .mine-file strong { display: block; overflow: hidden; color: var(--paper-100); font: 600 16px/1.45 var(--body); text-overflow: ellipsis; white-space: nowrap; }
   .mine-file span { color: var(--iron-500); font-size: 12px; }
+  .hero-mark { display: inline-block; margin-right: 7px; padding: 0 5px; border: 1px solid; border-radius: 2px; font-size: 11px; letter-spacing: .06em; vertical-align: 1px; }
+  .hero-claude { color: #c8a85e; border-color: rgba(200, 168, 94, .42); }
+  .hero-codex { color: #86ad95; border-color: rgba(134, 173, 149, .42); }
   .mine-date, .mine-size { color: #b2a68e; font-variant-numeric: tabular-nums; }
   .assay-stamp { display: inline-block; width: 66px; padding: 4px 3px; border: 1px solid #787064; color: #9e9689; font: 700 13px/1.2 var(--display); text-align: center; transform: rotate(-2deg); }
   .assay-stamp.rich { border-color: #aa7b38; color: #e0af5a; background: rgba(166,103,36,.1); }
@@ -1290,6 +1293,12 @@
     document.getElementById('temperWhy').focus();
   }
 
+  function heroMark(mine) {
+    if (!mine.hero_name) return '';   // 演示矿场等老数据没有门派字段，不挂就是了
+    const cls = mine.hero === 'codex' ? 'hero-codex' : 'hero-claude';
+    return `<span class="hero-mark ${cls}">${escapeHtml(mine.hero_name)}</span>`;
+  }
+
   function renderProspect({mines, banner}) {
     document.getElementById('prospectBanner').textContent = banner || '旧会话仍在，经验不必随下班蒸发';
     const rows = document.getElementById('mineRows');
@@ -1303,7 +1312,7 @@
     rows.innerHTML = mines.map(mine => {
       const assayClass = mine.assay === '富矿' ? 'rich' : mine.assay === '贫矿' ? 'poor' : 'unknown';
       return `<article class="mine-row">
-        <div class="mine-file"><strong title="${escapeHtml(mine.file)}">${escapeHtml(mine.file)}</strong><span title="${escapeHtml(mine.project || '')}">${escapeHtml(mine.project || 'session 卷宗')}</span></div>
+        <div class="mine-file"><strong title="${escapeHtml(mine.file)}">${escapeHtml(mine.file)}</strong><span title="${escapeHtml(mine.project || '')}">${heroMark(mine)}${escapeHtml(mine.project || 'session 卷宗')}</span></div>
         <time class="mine-date">${escapeHtml(mine.date)}</time>
         <span class="mine-size">${Number(mine.size_kb).toLocaleString('zh-CN')} KB</span>
         <span class="assay-stamp ${assayClass}">${escapeHtml(mine.assay)}</span>
