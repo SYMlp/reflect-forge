@@ -122,24 +122,24 @@ def quote_usable(quote):
 # ── 找源会话（第 14.4 节第 2 条） ──────────────────────────────────
 
 _UUID = re.compile(r"([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$")
-# 只翻会话那一层：claude 根下一层项目目录里的 *.jsonl（不进 <会话>/subagents/），codex 同 scrolls 的口径。
-# 不调 scrolls：codex 的 scrolls 每份要读头 40 行认出身，按号找会话只用得着文件名
-_PATTERNS = {"claude": "*/*.jsonl", "codex": "**/rollout-*.jsonl"}
 _SID_IN_SRC = re.compile(r"会话\s*([0-9a-f][0-9a-f-]{7,35})")
 _DAY = re.compile(r"\d{4}-\d{2}-\d{2}")
 _ROLLOUT_DAY = re.compile(r"rollout-(\d{4}-\d{2}-\d{2})T")
 
 
 def _rolls(cfg):
-    """→ [(侠客, 路径, 会话 uuid)]。花名册同寻料页（heroes.enabled），根不在的跳过。"""
+    """→ [(侠客, 路径, 会话 uuid)]。花名册同寻料页（heroes.enabled），根不在的跳过。
+
+    卷宗怎么翻交给侠客自己（scrolls）：加一位侠客，这里一个字不用改。
+    原来为了快自己按文件名 glob，实测 scrolls 两家合计 0.13 秒，炼一炉要半分钟起，不值得把门派差异漏在外面。
+    """
     out = []
     for h, root in heroes.enabled(cfg or {}):
         d = Path(root).expanduser()
         if not d.is_dir():
             continue
-        pat = _PATTERNS.get(h.ID)
         try:
-            files = sorted(d.glob(pat)) if pat else [Path(s["path"]) for s in h.scrolls(d)]
+            files = sorted(Path(s["path"]) for s in h.scrolls(d))
         except OSError:
             continue
         for f in files:
