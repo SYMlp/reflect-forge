@@ -24,6 +24,8 @@ import datetime
 import json
 from pathlib import Path
 
+from ._said import MACHINE_OPEN, ai_drafted, unpasted
+
 ID = "codex"
 NAME = "Codex"
 DEFAULT_ROOT = "~/.codex/sessions/"
@@ -141,3 +143,40 @@ def head(path, n=200, cap=400):
         for role, text in _speech(ev):
             out.append("[{}] {}".format(role, text[:cap]))
     return "\n".join(out)
+
+
+# ── 补原话：只留他开口的话 ───────────────────────────────────────
+# 读法同 _speech（role=user 的 input_text，跳过 _INJECT_HEADS），另加三条与门派无关的（见 _said）：
+# 头标标明是粘进来的别人的话；机器任务书开的场（handoff 派下来的活）整场不算他说的；AI 写的任务书、开场白不算他说的
+def user_turns(path):
+    out = []
+    try:
+        with Path(path).open(encoding="utf-8", errors="replace") as fh:
+            for no, line in enumerate(fh, 1):
+                if '"response_item"' not in line or '"user"' not in line:
+                    continue
+                try:
+                    ev = json.loads(line)
+                except Exception:
+                    continue
+                p = ev.get("payload") or {}
+                if ev.get("type") != "response_item" or p.get("type") != "message" \
+                        or p.get("role") != "user":
+                    continue
+                for b in (p.get("content") or []):
+                    if not isinstance(b, dict) or b.get("type") != "input_text":
+                        continue
+                    t = (b.get("text") or "").strip()
+                    if not t or t.startswith(_INJECT_HEADS):
+                        continue
+                    t = unpasted(t)
+                    if not t:
+                        continue
+                    if not out and MACHINE_OPEN.match(t):
+                        return []
+                    if ai_drafted(t):
+                        continue
+                    out.append((no, t))
+    except OSError:
+        return []
+    return out

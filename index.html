@@ -571,6 +571,15 @@
   .stock-row .cite-seal { position: static; display: inline-block; max-width: none; padding: 3px 8px; transform: none; }
   .stock-row .stock-text { margin: 0 0 6px; color: #efe1c4; font: 600 15px/1.6 var(--body); }
   .stock-row .iron-anchor { color: #cbbb9b; }
+  /* 炼料出的铁：「出自料」指回料仓那条料（title 放正本指针），「他认」= 补不出原话、坐那条不带锚的座位 */
+  .iron-top { flex-wrap: wrap; row-gap: 6px; }
+  .iron-tag { padding: 3px 9px; border: 1px solid; font-size: 12px; letter-spacing: .08em; white-space: nowrap; }
+  .iron-from { color: #d8c08a; border-color: rgba(201,164,87,.5); background: rgba(201,164,87,.08); cursor: help; }
+  .iron-seat { color: #df7962; border-color: #c65b46; background: rgba(108,27,22,.18); }
+  .iron-anchor-seat { color: #c9a997; }
+  .iron-anchor-src { display: block; margin-top: 4px; color: var(--iron-500); font-size: 12px; }
+  .stock-ptr { margin: 6px 0 0; color: var(--iron-500); font-size: 12px; overflow-wrap: anywhere; }
+  .stock-ptr code { color: #a99d87; font: 12px/1.6 "Cascadia Code", Consolas, monospace; user-select: all; cursor: text; }
   .why-timeline { position: relative; margin-left: 7px; padding-left: 25px; }
   .why-timeline::before { content: ""; position: absolute; left: 4px; top: 6px; bottom: 9px; width: 1px; background: #66583f; }
   .why-entry { position: relative; padding: 0 0 20px; }
@@ -620,6 +629,80 @@
   .mine-action { min-width: 98px; min-height: 40px; padding: 0 14px; border: 1px solid #77684e; background: rgba(103,83,54,.17); color: var(--paper-200); cursor: pointer; font: 600 14px/1 var(--display); letter-spacing: .08em; }
   .prospect-error, .prospect-empty { display: none; min-height: 230px; place-items: center; color: var(--muted); text-align: center; }
   .prospect-error.show, .prospect-empty.show { display: grid; }
+
+  /* 料仓：寻料页第二区。料是别处攒好的现成判断，卡片沿用铁卡那套底色与类型框；
+     勾选做成显式小框，因为卡里还有能点开的原话、场次和附注，整卡当 label 会误勾 */
+  .bin-section { display: none; margin-top: 30px; }
+  .bin-section.show { display: block; animation: panel-in .45s ease both; }
+  .bin-head { padding: 18px 22px 16px; border: 1px solid var(--line); border-left: 3px solid var(--ember); background: rgba(20,19,16,.94); box-shadow: 0 18px 42px rgba(0,0,0,.32); }
+  .bin-lede { margin: 0; color: #c4b79e; font-size: 15px; }
+  .bin-lede strong { color: var(--paper-100); font-weight: 600; }
+  .bin-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; margin-top: 14px; }
+  .bin-toolbar .source-switch small { margin-left: 6px; font-size: 12px; font-variant-numeric: tabular-nums; opacity: .78; }
+  .bin-view-count { color: var(--muted); font-size: 14px; }
+  .bin-view-count b { color: var(--ember-hot); font-variant-numeric: tabular-nums; }
+  .bin-notes { margin: 14px 0 0; padding: 0; list-style: none; }
+  .bin-notes li { padding: 8px 0 8px 12px; border-top: 1px dashed rgba(220,195,143,.14); color: #b8ad96; font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
+  .bin-notes em { color: var(--iron-500); font-style: normal; }
+  .bin-via { margin-right: 8px; color: var(--gold); font: 12px/1.6 "Cascadia Code", Consolas, monospace; }
+  .bin-note-meta { margin-left: 8px; color: var(--iron-500); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .bin-cached { margin-left: 6px; padding: 0 6px; border: 1px dashed #8b7858; color: #c6b89b; font-size: 12px; }
+  .bin-problems { margin-top: 10px; padding: 8px 12px; border-left: 3px solid var(--cinnabar-hot); background: rgba(157,52,37,.12); }
+  .bin-problems summary { color: #e8a58f; cursor: pointer; font-size: 14px; }
+  .bin-problems ul { margin: 8px 0 2px; padding-left: 20px; color: #e8c8b7; font-size: 13px; line-height: 1.65; overflow-wrap: anywhere; }
+  .bin-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(440px, 100%), 1fr)); gap: 14px; margin-top: 16px; }
+  .bin-card { position: relative; display: flex; min-width: 0; flex-direction: column; padding: 16px 18px 12px; border: 1px solid #655d50; background: linear-gradient(155deg, rgba(56,52,45,.97), rgba(31,29,25,.98)); box-shadow: inset 0 1px rgba(255,255,255,.04), 0 12px 28px rgba(0,0,0,.24); transition: border-color .18s ease, background .18s ease, opacity .18s ease; }
+  .bin-card.picked { border-color: var(--ember); background: linear-gradient(155deg, rgba(76,59,41,.98), rgba(35,30,24,.98)); box-shadow: inset 0 0 0 1px rgba(235,145,61,.18), 0 12px 32px rgba(0,0,0,.3); }
+  .bin-card.dim { border-style: dashed; opacity: .56; filter: grayscale(.6); }
+  .bin-card.discarded { opacity: .62; }
+  .bin-card.discarded .bin-text { text-decoration: line-through; text-decoration-color: rgba(204,73,53,.55); }
+  .bin-card-top { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-bottom: 10px; }
+  .bin-pick { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px 2px 6px; border: 1px solid #8b7858; color: var(--paper-200); cursor: pointer; font-size: 13px; letter-spacing: .1em; }
+  .bin-pick input { width: 16px; height: 16px; margin: 0; accent-color: var(--ember); cursor: pointer; }
+  .bin-card.picked .bin-pick { border-color: var(--ember); color: var(--ember-hot); background: rgba(229,138,53,.12); }
+  .bin-chip { padding: 3px 9px; border: 1px solid #7b705e; color: #c6b89b; font-size: 12px; letter-spacing: .08em; white-space: nowrap; }
+  .bin-chip.ok { color: #a9c6af; border-color: rgba(134,173,149,.45); }
+  .bin-forge { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .bin-forge.into { color: var(--ember-hot); border-color: rgba(229,138,53,.55); }
+  .bin-forge.sword { color: #edbd63; border-color: #a57b35; }
+  .bin-forge.gone { color: #d9806a; border-color: rgba(204,73,53,.55); }
+  .bin-reason { margin: 0 0 9px; padding: 6px 10px; border-left: 3px solid var(--iron-500); color: #cdbfa5; background: rgba(0,0,0,.2); font-size: 13px; }
+  .bin-text { margin: 0 0 10px; color: #efe1c4; font: 600 15px/1.7 var(--body); overflow-wrap: anywhere; }
+  .bin-folds { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 6px 8px; margin-bottom: 10px; }
+  .bin-fold { flex: 0 0 auto; max-width: 100%; }
+  .bin-fold[open] { flex-basis: 100%; }
+  .bin-fold summary, .bin-flag { display: inline-block; padding: 2px 9px; border: 1px solid #6d6455; color: #b9ad95; font-size: 12px; letter-spacing: .06em; }
+  .bin-fold summary { cursor: pointer; list-style: none; }
+  .bin-fold summary::-webkit-details-marker { display: none; }
+  .bin-fold summary::after { content: " ▸"; color: var(--iron-500); }
+  .bin-fold[open] summary::after { content: " ▾"; }
+  .bin-fold.quote summary { color: #e0c487; border-color: rgba(201,164,87,.5); }
+  .bin-flag.miss { color: #d9806a; border-style: dashed; border-color: rgba(204,73,53,.5); }
+  .bin-fold-body { margin: 8px 0 2px; padding: 10px 12px; border: 1px solid rgba(255,255,255,.07); background: #11100d; color: #d7c9ad; font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
+  ol.bin-fold-body { padding-left: 30px; }
+  .bin-fold-body time { margin-right: 8px; color: var(--gold); font-variant-numeric: tabular-nums; }
+  .bin-extra dt { color: var(--gold); font-size: 12px; letter-spacing: .06em; }
+  .bin-extra dd { margin: 0 0 6px; }
+  .bin-card-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: auto; padding-top: 10px; border-top: 1px solid rgba(220,195,143,.1); }
+  .bin-ptr { flex: 1 1 200px; min-width: 0; overflow: hidden; color: #8e8572; font: 12px/1.6 "Cascadia Code", Consolas, monospace; text-overflow: ellipsis; white-space: nowrap; }
+  .bin-ts { color: var(--iron-500); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .bin-discard { flex: none; min-height: 30px; padding: 0 12px; border: 1px solid #77684e; background: rgba(103,83,54,.17); color: var(--paper-200); cursor: pointer; font: 600 13px/1 var(--display); letter-spacing: .08em; }
+  .bin-discard.undo { border-color: #a64c3b; color: #d36f57; }
+  .bin-empty { grid-column: 1 / -1; margin: 0; padding: 40px 20px; border: 1px dashed #685f50; color: var(--muted); background: rgba(20,19,16,.82); text-align: center; }
+  .bin-more { display: none; justify-content: center; margin-top: 14px; }
+  .bin-more.show { display: flex; }
+  /* 操作条贴底：「全部」有三百来条，勾到一半不该得滚到底才找得到炼料键 */
+  .bin-bar { position: sticky; bottom: 0; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px 18px; margin-top: 16px; padding: 12px 18px; border: 1px solid var(--line); background: rgba(16,15,12,.96); box-shadow: 0 -10px 26px rgba(0,0,0,.35); }
+  .bin-bar p { margin: 0; color: var(--muted); }
+  .bin-bar b { color: var(--ember-hot); font-variant-numeric: tabular-nums; }
+  .bin-bar .bin-smelt-msg { flex: 1 1 260px; min-width: 0; color: #e8c8b7; font-size: 14px; overflow-wrap: anywhere; }
+  .bin-smelt-msg:empty { display: none; }
+  @media (max-width: 640px) {
+    .bin-section .section-ribbon p { white-space: normal; }
+    .bin-head { padding: 14px; }
+    .bin-bar { justify-content: space-between; padding: 10px 12px; }
+    .bin-bar .primary-btn { flex: 1 1 100%; }
+  }
 
   .weapons-ledger { position: relative; padding: 24px; border: 1px solid #6f624e; background: linear-gradient(rgba(15,14,12,.72), rgba(15,14,12,.88)), url("static/bg-forge.png") center / cover; box-shadow: var(--shadow-deep), inset 0 0 0 7px rgba(184,139,69,.035); }
   .weapons-ledger::before, .weapons-ledger::after { content: ""; position: absolute; width: 44px; height: 44px; border-color: #8b724b; opacity: .8; pointer-events: none; }
@@ -921,6 +1004,32 @@
           <div class="prospect-empty" id="prospectEmpty"><p>此处尚无矿脉。先让侠客斩几场活，过程自然会留下铁。</p></div>
           <div class="prospect-error" id="prospectError"><p>矿灯熄了，暂未照见历史卷宗。</p></div>
         </section>
+        <section class="bin-section" id="binSection" aria-labelledby="binTitle">
+          <div class="section-ribbon">
+            <h3 id="binTitle">料仓</h3>
+            <p>别处攒好的判断 · 先炼成铁，再进锻剑炉</p>
+          </div>
+          <div class="bin-head">
+            <p class="bin-lede">料是别的组件攒好的现成判断。勾了先<strong>炼成铁</strong>，才进锻剑炉；<strong>撞回场数只排先后，不算品级</strong>。</p>
+            <div class="bin-toolbar">
+              <div class="source-switch" id="binToggle" role="group" aria-label="料仓范围">
+                <button class="active" type="button" data-bin-scope="candidate" aria-pressed="true">候选<small id="binCandCount">—</small></button>
+                <button type="button" data-bin-scope="all" aria-pressed="false">全部<small id="binAllCount">—</small></button>
+              </div>
+              <span class="bin-view-count">撞回 ≥ <span id="binCandMin">3</span> 场算候选 · 眼下 <b id="binCount">0</b> 条</span>
+            </div>
+            <ul class="bin-notes" id="binNotes" aria-label="各读数口的限定语"></ul>
+            <details class="bin-problems" id="binProblems" hidden></details>
+            <div class="message" id="binError" role="alert"></div>
+          </div>
+          <div class="bin-list" id="binList"><p class="bin-empty">正在翻料仓……</p></div>
+          <div class="bin-more" id="binMore"><button class="secondary-btn" type="button" id="binMoreBtn">再显示</button></div>
+          <div class="bin-bar">
+            <p class="bin-smelt-msg" id="binSmeltMsg" role="status"></p>
+            <p>已择 <b id="binPickedCount">0</b> 条料<span id="binPickedHidden"></span></p>
+            <button class="primary-btn" id="smeltBtn" type="button" disabled>炼料</button>
+          </div>
+        </section>
       </section>
       <section class="tab-panel" id="tab-weapons" aria-labelledby="weaponsTitle">
         <header class="stage-head">
@@ -1032,7 +1141,22 @@
     // 重锻态：{path, name}。置上之后「锻剑」按钮改走 /api/reforge，选的铁融进那把外来名剑
     reforge: null,
     // 演示模式：由 /api/profile 的 demo 位置上。真身在后端，这里只是让手感提前一步
-    demo: false
+    demo: false,
+    // 料仓：bin 是最近一次读数；binPicked 跨「候选 / 全部」切换保留；binVisible 是眼下画出来的那几张
+    bin: null,
+    binScope: 'candidate',
+    binLimit: 120,
+    binPicked: new Set(),
+    binVisible: new Set(),
+    binSmelting: false
+  };
+
+  const BIN_PAGE = 120;
+  const BIN_PICK_MAX = 20;   // 同 /api/smelt 的上限：多了后端回 400
+  const BIN_KIND_NAMES = {decision: '拍板', profile: '画像候选', insight: '提炼候选', kg: 'kg 段'};
+  const BIN_STATE_WHY = {
+    stale: '正本里找不到了：改过字，或者被收割走了',
+    unverified: '正本没读到，没核过'
   };
 
   const forgeSayings = [
@@ -1152,6 +1276,33 @@
     requestAnimationFrame(() => document.querySelectorAll('.exp-fill').forEach(el => { el.style.width = el.dataset.width; }));
   }
 
+  const binKindName = kind => BIN_KIND_NAMES[kind] || String(kind || '料');
+
+  // 炼料出的铁才有 from / seat；反思炉的铁两样都没有，这里回空串，铁卡照旧
+  function ironOriginTags(iron) {
+    const tags = [];
+    if (iron.from && typeof iron.from === 'object') {
+      const kind = String(iron.from.material || '').split(':')[0];
+      tags.push(`<span class="iron-tag iron-from" title="${escapeHtml(iron.from.ptr || iron.from.material || '')}">出自料·${escapeHtml(binKindName(kind))}</span>`);
+    }
+    if (iron.seat === '他认') {
+      tags.push('<span class="iron-tag iron-seat" title="补不出原话：勾料那一勾算他认，占锻剑炉那条不带锚的判据座位">他认</span>');
+    }
+    return tags.join('');
+  }
+
+  // 锚那一行。「他认」铁没有 anchor 键，写明座位和勾料日期，不画一对空的「」
+  function ironAnchorLine(iron, quoted) {
+    if (iron.seat === '他认' && !iron.anchor) {
+      return `<p class="iron-anchor iron-anchor-seat">无原话锚 · 他认 · ${escapeHtml(iron.from?.picked || '日期不明')}</p>`;
+    }
+    const text = quoted ? `「${escapeHtml(iron.anchor)}」` : escapeHtml(iron.anchor);
+    const src = iron.anchor_src && typeof iron.anchor_src === 'object'
+      ? `<small class="iron-anchor-src" title="${escapeHtml(iron.anchor_src.sid || '')}">补自会话 ${escapeHtml(String(iron.anchor_src.sid || '').slice(0, 8))} 第 ${escapeHtml(iron.anchor_src.line ?? '?')} 行</small>`
+      : '';
+    return `<p class="iron-anchor">${text}${src}</p>`;
+  }
+
   function renderIrons(irons) {
     state.irons = irons;
     state.selectedIrons = new Set(irons.map(iron => iron.id));
@@ -1161,10 +1312,11 @@
       <div class="iron-top">
         <span class="iron-kind">${escapeHtml(iron.kind)}</span>
         <span class="iron-grade ${iron.grade === '上品' ? 'top' : ''}">${escapeHtml(iron.grade)}</span>
+        ${ironOriginTags(iron)}
       </div>
       ${iron.cite ? `<span class="cite-seal">引·${escapeHtml(iron.cite.name)}</span>` : ''}
       <h4>${escapeHtml(iron.text)}</h4>
-      <p class="iron-anchor">${escapeHtml(iron.anchor)}</p>
+      ${ironAnchorLine(iron, false)}
       <span class="selected-mark" aria-hidden="true">✓</span>
     </label>`).join('');
     grid.querySelectorAll('.iron-check').forEach(input => input.addEventListener('change', event => {
@@ -1231,14 +1383,17 @@
       return;
     }
     section.classList.add('show');
+    // from.ptr 那一行是「从铁点回正本那一行」的线：等宽、点一下全选，复制走就能去正本里找
     list.innerHTML = irons.map(iron => `<article class="stock-row">
       <div class="iron-top">
         <span class="iron-kind">${escapeHtml(iron.kind)}</span>
         <span class="iron-grade ${iron.grade === '上品' ? 'top' : ''}">${escapeHtml(iron.grade)}</span>
         ${iron.cite ? `<span class="cite-seal">引·${escapeHtml(iron.cite.name)}</span>` : ''}
+        ${ironOriginTags(iron)}
       </div>
       <p class="stock-text">${escapeHtml(iron.text)}</p>
-      <p class="iron-anchor">「${escapeHtml(iron.anchor)}」</p>
+      ${ironAnchorLine(iron, true)}
+      ${iron.from?.ptr ? `<p class="stock-ptr">出处 <code>${escapeHtml(iron.from.ptr)}</code></p>` : ''}
     </article>`).join('');
   }
 
@@ -1329,6 +1484,233 @@
       setCharge(mine.mineFile, `${mine.mineProject} · ${Number(mine.mineSize).toLocaleString('zh-CN')} KB`);
       showToast('卷宗已送至反思炉投料口');
     }));
+  }
+
+  // ── 料仓（INTAKE-SPEC 第 14.2 节）──────────────────────────────
+  // 演示模式整区不画、不请求：第一句是约定的守卫，后端自测按正则核它
+  async function loadBin() {
+    if (state.demo) return;
+    if (window.STATIC_MODE) return;   // 快照站不抓 /api/intake/*，这里也不去敲
+    const section = document.getElementById('binSection');
+    section.classList.add('show');
+    let data;
+    try {
+      data = await api('intake/materials');
+    } catch (error) {
+      data = {ok: false, error: `料仓没打开：${error.message || '接口没回话'}`, items: [], notes: [], problems: []};
+    }
+    const problems = Array.isArray(data.problems) ? data.problems : [];
+    state.bin = {
+      ok: data.ok !== false,
+      error: data.error || (data.ok === false ? `进料没开${problems.length ? '，原因见下面的问题' : ''}` : ''),
+      candidateMin: typeof data.candidate_min === 'number' ? data.candidate_min : 3,
+      items: Array.isArray(data.items) ? data.items : [],
+      notes: Array.isArray(data.notes) ? data.notes : [],
+      problems
+    };
+    // 重拉以后，勾着的料要是没了、或者不再能勾（变 stale / 被弃），就放下
+    const pickable = new Set(state.bin.items.filter(binPickable).map(item => item.id));
+    [...state.binPicked].forEach(id => { if (!pickable.has(id)) state.binPicked.delete(id); });
+    renderBinHead();
+    renderBinList();
+  }
+
+  const binForgeState = item => item.forge?.state || '未看';
+  const binPickable = item => (item.state === 'ok' || item.state === 'alone') && binForgeState(item) !== '弃';
+  const binIsCandidate = item => (Number(item.count) || 0) >= state.bin.candidateMin;
+  const binAsof = value => value ? String(value).replace('T', ' ').slice(0, 16) : '时刻不明';
+
+  // count 从多到少；同数按 ts 从新到旧，ts 为 null 的排后。count 只排先后，不进品级（第 14.5 节）
+  function binSorted(items) {
+    return [...items].sort((a, b) => {
+      const byCount = (Number(b.count) || 0) - (Number(a.count) || 0);
+      if (byCount) return byCount;
+      const ta = a.ts ? String(a.ts) : null;
+      const tb = b.ts ? String(b.ts) : null;
+      if (ta === tb) return 0;
+      if (ta === null) return 1;
+      if (tb === null) return -1;
+      return ta < tb ? 1 : -1;
+    });
+  }
+
+  // 各口的 note 是这份读数的限定语，规范要求必须显示，所以平铺不折叠；problems 可折叠，条数露在外面
+  function renderBinHead() {
+    const bin = state.bin;
+    document.getElementById('binNotes').innerHTML = bin.notes.map(note => `<li>
+      <code class="bin-via">${escapeHtml(note.via || '没署名的口')}</code>${note.note ? escapeHtml(note.note) : '<em>这个口没写 note</em>'}<span class="bin-note-meta">读于 ${escapeHtml(binAsof(note.asof))}</span>${note.cached ? '<span class="bin-cached" title="这份读数取自缓存，ttl 内没有重跑">缓存</span>' : ''}
+    </li>`).join('');
+    const box = document.getElementById('binProblems');
+    if (bin.problems.length) {
+      box.innerHTML = `<summary>进料问题 ${bin.problems.length} 条</summary><ul>${bin.problems.map(problem => `<li>${escapeHtml(typeof problem === 'string' ? problem : JSON.stringify(problem))}</li>`).join('')}</ul>`;
+      box.open = !bin.ok;
+      box.hidden = false;
+    } else {
+      box.innerHTML = '';
+      box.hidden = true;
+    }
+    const error = document.getElementById('binError');
+    error.textContent = bin.error;
+    error.classList.toggle('show', Boolean(bin.error));
+    document.getElementById('binCandMin').textContent = bin.candidateMin;
+  }
+
+  function binForgeChip(item) {
+    const forge = item.forge || {};
+    const irons = Array.isArray(forge.irons) ? forge.irons : [];
+    const swords = Array.isArray(forge.swords) ? forge.swords : [];
+    const list = (ids, unit) => ids.length ? ` · ${escapeHtml(ids[0])}${ids.length > 1 ? ` 等 ${ids.length} ${unit}` : ''}` : '';
+    const title = [swords.length ? `剑：${swords.join('、')}` : '', irons.length ? `铁：${irons.join('、')}` : ''].filter(Boolean).join('；');
+    switch (binForgeState(item)) {
+      case '已成剑': return `<span class="bin-chip bin-forge sword" title="${escapeHtml(title)}">已成剑${list(swords, '把')}</span>`;
+      case '已入炉': return `<span class="bin-chip bin-forge into" title="${escapeHtml(title)}">已入炉${list(irons, '块')}</span>`;
+      case '弃': return '<span class="bin-chip bin-forge gone">弃</span>';
+      default: return '<span class="bin-chip bin-forge">未看</span>';
+    }
+  }
+
+  function binCardHtml(item) {
+    const forgeState = binForgeState(item);
+    const pickable = binPickable(item);
+    const picked = pickable && state.binPicked.has(item.id);
+    const dim = item.state === 'stale' || item.state === 'unverified';
+    const id = escapeHtml(item.id);
+    const count = Number(item.count) || 0;
+    const seen = Array.isArray(item.seen) ? item.seen : [];
+    const classes = ['bin-card', picked ? 'picked' : '', dim ? 'dim' : '', forgeState === '弃' ? 'discarded' : ''].filter(Boolean).join(' ');
+    const stateChip = item.state === 'ok' ? '<span class="bin-chip ok" title="正本口里有这条">已核</span>'
+      : item.state === 'alone' ? '<span class="bin-chip" title="这个 kind 没声明正本口，派生口单独作答">单口</span>'
+      : dim ? '' : `<span class="bin-chip">${escapeHtml(item.state)}</span>`;
+    const quote = item.quote
+      ? `<details class="bin-fold quote"><summary>有原话</summary><blockquote class="bin-fold-body">「${escapeHtml(item.quote)}」</blockquote></details>`
+      : '<span class="bin-flag miss" title="炼料时去源会话补；补不出就坐「他认」座位">缺原话</span>';
+    const hits = count > 0 && seen.length
+      ? `<details class="bin-fold"><summary>撞回 ${count} 场</summary><ol class="bin-fold-body">${seen.map(hit => `<li title="${escapeHtml(hit.sid || '')}"><time>${escapeHtml(hit.date || '日期不明')}</time>${escapeHtml(hit.title || '（无标题）')}</li>`).join('')}</ol></details>`
+      : `<span class="bin-flag">撞回 ${count} 场</span>`;
+    const extra = item.extra && typeof item.extra === 'object' && Object.keys(item.extra).length
+      ? `<details class="bin-fold"><summary>附注</summary><dl class="bin-fold-body bin-extra">${Object.entries(item.extra).map(([key, value]) => `<dt>${escapeHtml(key)}</dt><dd>${escapeHtml(typeof value === 'string' ? value : JSON.stringify(value))}</dd>`).join('')}</dl></details>`
+      : '';
+    // 弃只给「未看 / 弃」两种：已入炉、已成剑是算出来的，压过手记的弃，按了也看不出变化
+    const discard = forgeState === '未看' || forgeState === '弃'
+      ? `<button class="bin-discard ${forgeState === '弃' ? 'undo' : ''}" type="button" data-bin-discard="${id}">${forgeState === '弃' ? '撤弃' : '弃'}</button>`
+      : '';
+    return `<article class="${classes}" data-bin-id="${id}">
+      <div class="bin-card-top">
+        ${pickable ? `<label class="bin-pick"><input class="bin-check" type="checkbox" value="${id}" ${picked ? 'checked' : ''}>择</label>` : ''}
+        <span class="iron-kind">${escapeHtml(binKindName(item.kind))}</span>
+        ${stateChip}
+        ${binForgeChip(item)}
+      </div>
+      ${dim ? `<p class="bin-reason">${escapeHtml(BIN_STATE_WHY[item.state])}</p>` : ''}
+      <p class="bin-text">${escapeHtml(item.text)}</p>
+      <div class="bin-folds">${quote}${hits}${extra}</div>
+      <div class="bin-card-foot">
+        <code class="bin-ptr" title="${escapeHtml(item.ptr)}">${escapeHtml(item.ptr)}</code>
+        <span class="bin-ts">${item.ts ? `立于 ${escapeHtml(String(item.ts).slice(0, 10))}` : '无日期'}</span>
+        ${discard}
+      </div>
+    </article>`;
+  }
+
+  function renderBinList() {
+    const bin = state.bin;
+    if (!bin) return;
+    const candidates = bin.items.filter(binIsCandidate);
+    const view = binSorted(state.binScope === 'all' ? bin.items : candidates);
+    document.getElementById('binCandCount').textContent = candidates.length;
+    document.getElementById('binAllCount').textContent = bin.items.length;
+    document.getElementById('binCount').textContent = view.length;
+    document.querySelectorAll('[data-bin-scope]').forEach(button => {
+      const active = button.dataset.binScope === state.binScope;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-pressed', String(active));
+    });
+    const shown = view.slice(0, state.binLimit);
+    state.binVisible = new Set(shown.map(item => item.id));
+    const empty = !bin.ok ? '这次没读出料。'
+      : state.binScope === 'candidate' && bin.items.length ? `还没有撞回 ≥ ${bin.candidateMin} 场的料，切到「全部」看看。`
+      : '料仓里还没有料。';
+    document.getElementById('binList').innerHTML = shown.length ? shown.map(binCardHtml).join('') : `<p class="bin-empty">${escapeHtml(empty)}</p>`;
+    const rest = view.length - shown.length;
+    const more = document.getElementById('binMore');
+    more.classList.toggle('show', rest > 0);
+    document.getElementById('binMoreBtn').textContent = `再显示 ${Math.min(BIN_PAGE, rest)} 条（还剩 ${rest} 条）`;
+    updateBinPicked();
+  }
+
+  function updateBinPicked() {
+    const picked = state.binPicked.size;
+    const hidden = [...state.binPicked].filter(id => !state.binVisible.has(id)).length;
+    document.getElementById('binPickedCount').textContent = picked;
+    document.getElementById('binPickedHidden').textContent = hidden ? `（其中 ${hidden} 条不在眼下的列表里）` : '';
+    document.getElementById('smeltBtn').disabled = state.binSmelting || picked === 0;
+  }
+
+  function setBinSmeltMsg(message = '') {
+    document.getElementById('binSmeltMsg').textContent = message;
+  }
+
+  async function toggleBinDiscard(id, button) {
+    if (demoBlocked()) return;
+    const item = state.bin?.items.find(entry => entry.id === id);
+    if (!item) return;
+    button.disabled = true;
+    try {
+      const result = await api('intake/discard', {method: 'POST', body: {id}});
+      // 撤弃回 null：落回算得出的状态（按钮只给未看 / 弃两种，这里通常就是未看）
+      const forge = item.forge || {};
+      const computed = forge.swords?.length ? '已成剑' : forge.irons?.length ? '已入炉' : '未看';
+      item.forge = {...forge, state: result.state === '弃' ? '弃' : computed};
+      if (result.state === '弃') state.binPicked.delete(id);
+      const holder = document.createElement('div');
+      holder.innerHTML = binCardHtml(item);
+      button.closest('.bin-card').replaceWith(holder.firstElementChild);
+      updateBinPicked();
+      showToast(result.state === '弃' ? '这条料已弃——点「撤弃」可以撤回' : '已撤弃，这条料回到未看');
+    } catch (error) {
+      button.disabled = false;
+      showToast(error.message || '没弃成，请再试。', 4000);
+    }
+  }
+
+  async function smeltPicked() {
+    if (demoBlocked()) return;
+    const ids = [...state.binPicked];
+    if (!ids.length || state.binSmelting) return;
+    const button = document.getElementById('smeltBtn');
+    state.binSmelting = true;
+    button.textContent = '炼料中…';
+    updateBinPicked();
+    setBinSmeltMsg('');
+    try {
+      const result = await api('smelt', {method: 'POST', body: {material_ids: ids}});
+      const irons = Array.isArray(result.irons) ? result.irons : [];
+      const skipped = Array.isArray(result.skipped) ? result.skipped : [];
+      const firstWhy = skipped.length ? `${skipped.length} 条料没炼：${skipped[0].why || '没说原因'}` : '';
+      if (!irons.length) {
+        // 一块铁都没出：不切页，就在料仓里说清楚
+        setBinSmeltMsg(`一块铁都没炼出来${firstWhy ? `。${firstWhy}` : '。'}`);
+        loadBin();
+        return;
+      }
+      setError('');
+      // 炼出的铁走的是锻剑这条路（料→铁→剑），重锻态留着，锻剑键就成了「重锻」
+      exitReforge();
+      document.querySelector('[data-tab="reflect"]').click();
+      document.getElementById('swordResult').classList.remove('show');
+      renderIrons(irons);
+      setForgeLoading(false, `炼料出铁 ${irons.length} 块`);
+      document.getElementById('forgeStatusLine').textContent = '料已炼成铁，择铁再锻剑';
+      if (skipped.length) showToast(firstWhy, 6000);
+      state.binPicked.clear();
+      loadBin();
+    } catch (error) {
+      setBinSmeltMsg(error.message || '炼料没成，请再试。');
+    } finally {
+      state.binSmelting = false;
+      button.textContent = '炼料';
+      updateBinPicked();
+    }
   }
 
   function selectSource(source) {
@@ -1605,11 +1987,43 @@
     }
   });
 
+  // 料仓的事件挂在区上一次（卡片会整张重画，委派省得每次重绑）
+  document.querySelectorAll('[data-bin-scope]').forEach(button => button.addEventListener('click', () => {
+    if (state.binScope === button.dataset.binScope) return;
+    state.binScope = button.dataset.binScope;
+    state.binLimit = BIN_PAGE;
+    renderBinList();
+  }));
+  document.getElementById('binMoreBtn').addEventListener('click', () => {
+    state.binLimit += BIN_PAGE;
+    renderBinList();
+  });
+  document.getElementById('binList').addEventListener('change', event => {
+    const input = event.target.closest('.bin-check');
+    if (!input) return;
+    if (input.checked && state.binPicked.size >= BIN_PICK_MAX) {
+      input.checked = false;
+      showToast(`一次最多炼 ${BIN_PICK_MAX} 条料，先炼掉这一批再勾`, 3600);
+      return;
+    }
+    if (input.checked) state.binPicked.add(input.value);
+    else state.binPicked.delete(input.value);
+    input.closest('.bin-card').classList.toggle('picked', input.checked);
+    updateBinPicked();
+  });
+  document.getElementById('binList').addEventListener('click', event => {
+    const button = event.target.closest('[data-bin-discard]');
+    if (button) toggleBinDiscard(button.dataset.binDiscard, button);
+  });
+  document.getElementById('smeltBtn').addEventListener('click', smeltPicked);
+
   // demo 位跟着档案一起到——它是后端唯一告诉前端"这台炉子在路演现场"的地方
   api('profile').then(profile => {
     state.demo = Boolean(profile?.demo);
     // 观剑模式的门面开关：横幅与开屏徽标都挂在这个 class 上，只此一处
     document.body.classList.toggle('demo-mode', state.demo);
+    // 料仓只能在 demo 位落定之后才去拉：演示模式整区不画、不请求（INTAKE-SPEC 第 10 节）
+    loadBin();
     renderProfile(profile);
   }).catch(error => {
     document.getElementById('profileName').textContent = '档案未载入';

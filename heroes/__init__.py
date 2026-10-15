@@ -6,11 +6,12 @@
     Claude Code   ~/.claude/projects/<项目slug>/<会话uuid>.jsonl
     Codex         ~/.codex/sessions/YYYY/MM/DD/rollout-<时间>-<uuid>.jsonl
 
-这个包把「门派差异」全关在各自的模块里，对外只露三件事：
+这个包把「门派差异」全关在各自的模块里，对外只露四件事：
 
     scrolls(root)      寻料 —— 翻出这位侠客的全部卷宗，每份标出身与日子
     to_text(path,lim)  出铁 —— 卷宗 → 可入炉的纯文本（只留人说了什么、AI 答了什么）
     head(path, n)      验矿 —— 只掀开头几页，替锻造师省一簇火
+    user_turns(path)   补原话 —— 只留「他开口的话」[(jsonl 行号, 文本)]，炼料时从里面找原话锚
 
 外加一个 owns(path)：前端把路径原样传回来入炉时，靠它认出该请哪位侠客。
 

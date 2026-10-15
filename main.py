@@ -22,6 +22,7 @@ from pathlib import Path
 
 import heroes
 import intake
+import smelt
 from urllib.parse import urlparse, parse_qs
 
 ROOT = Path(__file__).parent
@@ -31,6 +32,8 @@ DATA = ROOT / "data"
 IRONS = DATA / "irons"
 SWORDS = DATA / "swords"
 PROFILE_FILE = DATA / "profile.json"
+# 料仓的加工状态只记「弃」，其余三种从 irons / swords 现算（INTAKE-SPEC 第 14.6 节）
+INTAKE_STATE_FILE = DATA / "intake-state.json"
 CONFIG_FILE = ROOT / "config.json"
 LOG_FILE = ROOT / "forge.log"
 PORT = int(os.environ.get("FORGE_PORT", "7712"))  # 7711 归前身 component-forge，两台炉子可同时开
@@ -169,8 +172,12 @@ LEVELS = [
 
 
 def count_reflect_sessions():
-    """一个 json 文件 = 一场反思（文件名是 session hash，重复喂同一段不重复计数）。"""
-    return len(list(IRONS.glob("*.json")))
+    """一个 json 文件 = 一场反思（文件名是 session hash，重复喂同一段不重复计数）。
+
+    smelt-*.json 是炼料出的铁，和反思炉的铁同一堆，但炼料不是反思场次——
+    不排除的话，勾一次料等级就涨。
+    """
+    return len([f for f in IRONS.glob("*.json") if not f.name.startswith("smelt-")])
 
 
 def list_sword_metas():
@@ -467,17 +474,40 @@ def iron_snapshot(irons):
     out = []
     for it in irons:
         snap = {k: it.get(k, "") for k in ("id", "text", "anchor", "kind", "grade")}
-        if it.get("cite"):
-            snap["cite"] = it["cite"]
+        # 炼料出的铁带 from（指回正本那一行）和 seat；剑的用料清单靠 from.ptr 一路点回去
+        for k in ("cite", "from", "seat"):
+            if it.get(k):
+                snap[k] = it[k]
         out.append(snap)
     return out
 
 
+def is_seated(it):
+    return it.get("seat") == smelt.SEAT
+
+
+def seat_gate(picked):
+    """一把剑最多一块「他认」铁（INTAKE-SPEC 第 14.4 节）：它占掉锻剑炉那条不带锚的判据座位，座位只有一个。
+
+    挡在 call_claude 之前——两块都进了炉，炉子只能丢一块或编一句，哪样都不该烧完火才发现。
+    """
+    seated = [i.get("id") for i in picked if is_seated(i)]
+    if len(seated) >= 2:
+        raise ForgeError("seat_taken", "一把剑最多一块「他认」铁，这次点了 {} 块：{}".format(
+            len(seated), "、".join(seated)))
+
+
 def iron_line(it):
     """喂给锻剑 prompt 的一行铁。原话锚一起带上——它是这把剑判据的骨头。"""
-    line = "- [{}] {}（{}·{}）原话：「{}」".format(
-        it.get("id"), it.get("text", ""), it.get("kind", ""),
-        it.get("grade", ""), it.get("anchor", ""))
+    if is_seated(it):
+        # 他认铁补不出原话，没有锚可抄：告诉炉子它的判据怎么收尾，别让炉子编一句像原话的话
+        day = (it.get("from") or {}).get("picked", "")
+        line = "- [{}] {}（{}·{}）他认 · {}（无原话锚：用它的判据以「——（他认 · {}）」收尾）".format(
+            it.get("id"), it.get("text", ""), it.get("kind", ""), it.get("grade", ""), day, day)
+    else:
+        line = "- [{}] {}（{}·{}）原话：「{}」".format(
+            it.get("id"), it.get("text", ""), it.get("kind", ""),
+            it.get("grade", ""), it.get("anchor", ""))
     cite = it.get("cite") or {}
     if cite.get("name"):
         line += " ← 引用{}《{}》".format(cite.get("kind", "秘籍"), cite["name"])
@@ -556,11 +586,14 @@ def forge(iron_ids=None, scene=""):
         picked = [index[i] for i in iron_ids if i in index]
         if not picked:
             raise ForgeError("no_iron", "这些铁不在料堆里：{}".format("、".join(iron_ids)))
+        seat_gate(picked)
     elif scene:
-        # 一句话场景：把整堆铁当料库摆给炉子，让它自己挑（选件思路，从 component-forge 搬）
-        picked = list(index.values())
+        # 一句话场景：把整堆铁当料库摆给炉子，让它自己挑（选件思路，从 component-forge 搬）。
+        # 「他认」铁不进料堆，只能点名用：炉子自己挑，一挑就可能挑两块，座位闸就形同虚设
+        picked = [i for i in index.values() if not is_seated(i)]
     else:
         raise ForgeError("bad_request", "锻剑得给料：要么给 iron_ids，要么说一句 scene")
+    pool = {i["id"]: i for i in picked}
 
     log("锻剑炉开火：铁 {} 块 / 场景「{}」".format(len(picked), scene[:30]))
     raw = call_claude(build_forge_prompt(scene, picked), timeout=180)
@@ -569,8 +602,8 @@ def forge(iron_ids=None, scene=""):
     fm = parse_frontmatter(skill_md)
     skill_name = fm.get("name", "")
     sword_name = sword_name or skill_name or "无名剑"
-    # 明确点了名的铁一定算数；scene 模式才信炉子自己报的选铁
-    used = iron_ids or [c for c in chosen if c in index]
+    # 明确点了名的铁一定算数；scene 模式才信炉子自己报的选铁，且只认摆进料堆的那些
+    used = iron_ids or [c for c in chosen if c in pool]
     used_irons = [index[i] for i in used if i in index]
 
     sid = new_sword_id(skill_name, sword_name)
@@ -668,6 +701,7 @@ def reforge(scroll_path, iron_ids=None):
     # 那不叫重锻，这一炉不开
     if not picked:
         raise ForgeError("no_iron", "重锻得带自己的铁，不然只是把别人的剑抄一遍")
+    seat_gate(picked)
 
     log("重锻炉开火：外来名剑《{}》{} 字 + 铁 {} 块".format(
         scroll.get("name"), len(scroll_md), len(picked)))
@@ -1051,6 +1085,47 @@ def intake_materials_query(query):
     return kind, int(mc) if mc else None, None
 
 
+def intake_materials(kind, min_count):
+    """料仓读数 + 每条料的加工状态。forge 是炉子接口的响应，不是料的形状，不升 api（第 14.2 节）。"""
+    out = intake.materials_payload(read_config().get("intake"), kind, min_count)
+    states = smelt.forge_states(IRONS, SWORDS, INTAKE_STATE_FILE, log=log)
+    for it in out.get("items") or []:
+        it["forge"] = smelt.forge_of(states, it.get("id"))
+    return out
+
+
+SMELT_MAX = 20      # 一次最多勾 20 条料（④）：一批只调一次 claude，料越多一次越容易烧超时
+
+
+def smelt_materials(body):
+    """POST /api/smelt。只收 material_ids 一个键：料的 id，不收正文、命令、路径（第 14.3 节）。"""
+    if not isinstance(body, dict) or set(body) != {"material_ids"}:
+        raise ForgeError("bad_request", "炼料只收 material_ids 一个键")
+    ids = body["material_ids"]
+    if not isinstance(ids, list) or not ids:
+        raise ForgeError("bad_request", "material_ids 要是非空的料 id 数组")
+    if len(ids) > SMELT_MAX:
+        raise ForgeError("bad_request", "一次最多炼 {} 条料，收到 {} 条".format(SMELT_MAX, len(ids)))
+    bad = [i for i in ids if not isinstance(i, str) or not smelt.MATERIAL_ID.fullmatch(i)]
+    if bad:
+        raise ForgeError("bad_request", "料 id 要形如 <kind>:<16 位十六进制>，收到 {!r}".format(bad[0]))
+    try:
+        return smelt.run(ids, cfg=read_config(), call=call_claude, irons_dir=IRONS,
+                         now=datetime.datetime.now(), log=log)
+    except smelt.SmeltError as e:
+        raise ForgeError(e.stage, e.message, e.detail)
+
+
+def discard_material(body):
+    """POST /api/intake/discard。再点一次是撤销（第 14.6 节）。"""
+    mid = body.get("id") if isinstance(body, dict) and set(body) == {"id"} else None
+    if not isinstance(mid, str) or not smelt.MATERIAL_ID.fullmatch(mid):
+        raise ForgeError("bad_request", "弃料只收 id 一个键，形如 <kind>:<16 位十六进制>")
+    state = smelt.toggle_discard(mid, INTAKE_STATE_FILE, datetime.datetime.now(), log=log)
+    log("料仓{}：{}".format("弃" if state else "撤销弃", mid))
+    return {"ok": True, "id": mid, "state": state}
+
+
 # ── HTTP ─────────────────────────────────────────────────────────
 
 # 料不对 → 4xx（前端提示用户改输入）；炉子出问题 → 502（前端提示重试/看日志）
@@ -1061,6 +1136,7 @@ STAGE_CODES = {
     "no_iron": 400,
     "no_why": 400,   # 产品红线走的就是这一条
     "not_forged": 400,
+    "seat_taken": 400,   # 一把剑第二块「他认」铁：座位只有一个
     "not_found": 404,
 }
 
@@ -1149,8 +1225,7 @@ class Handler(BaseHTTPRequestHandler):
                 if bad:
                     return self._json(dict(intake_refusal(bad, items=[], notes=[]),
                                            stage="bad_request"), 400)
-                return self._json(intake.materials_payload(read_config().get("intake"),
-                                                           kind, min_count))
+                return self._json(intake_materials(kind, min_count))
 
             if path in ("/", "/index.html"):
                 f = ROOT / "index.html"
@@ -1211,6 +1286,13 @@ class Handler(BaseHTTPRequestHandler):
 
             if path == "/api/bestow":
                 return self._json(bestow(data.get("sword_id") or ""))
+
+            # 料仓两个写口。演示模式不用另判：上面的总闸已经把所有 POST 挡成 403
+            if path == "/api/smelt":
+                return self._json(smelt_materials(data))
+
+            if path == "/api/intake/discard":
+                return self._json(discard_material(data))
 
             return self._json({"error": "unknown route: " + path}, 404)
         except ForgeError as e:

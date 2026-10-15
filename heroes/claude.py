@@ -8,6 +8,8 @@ import json
 import re
 from pathlib import Path
 
+from ._said import MACHINE_OPEN, ai_drafted, unpasted
+
 ID = "claude"
 NAME = "Claude Code"
 DEFAULT_ROOT = "~/.claude/projects/"
@@ -92,6 +94,59 @@ def to_text(path, limit=24000):
         for role, text in _speech(ev):
             out.append("[{}] {}".format(role, text[:1200]))
     return "\n".join(out)
+
+
+# ── 补原话：只留他开口的话 ───────────────────────────────────────
+# role=user 的留痕里一大半不是他打的字：宿主塞的提醒、命令回显、IDE 选区、粘进来的长文。
+# 原话锚要能指回「他当时那句话」，这些混进来，模型就会从提醒里截一句当他的原话。
+# 规矩是 toys session-archaeology/tagger.py 的 user_turns 简版——公开仓不能 import 私仓
+
+# 成对的注入标签区：整段删掉，删完剩下的才是他打的字（他常在提醒后面接着说话）。
+# 收尾标签也会带属性（实测 `</pasted_content id="0625">`），收尾一样放过 [^>]*
+_INJECTED = re.compile(
+    r"<(system-reminder|pasted_content|command-[\w-]+|local-command-[\w-]+|ide_[\w-]+"
+    r"|user-prompt-submit-hook|bash-[\w-]+)\b[^>]*>.*?</\1\b[^>]*>", re.S)
+# hook 往 user 轮里写的回执，带着这些字样的整块都不是人话
+_HOOK_ECHO = ("UserPromptSubmit hook", "additional context", "已注入:", "命中: [")
+
+
+def _said_blocks(ev):
+    if ev.get("type") != "user" or ev.get("isMeta") or "toolUseResult" in ev:
+        return []
+    c = (ev.get("message") or {}).get("content")
+    if isinstance(c, str):
+        return [c]
+    return [b.get("text") or "" for b in (c or [])
+            if isinstance(b, dict) and b.get("type") == "text"]
+
+
+def user_turns(path):
+    out = []
+    try:
+        with Path(path).open(encoding="utf-8", errors="replace") as fh:
+            for no, line in enumerate(fh, 1):
+                if '"user"' not in line:     # 先粗筛，大卷宗里大半是 AI 和工具的留痕
+                    continue
+                try:
+                    ev = json.loads(line)
+                except Exception:
+                    continue
+                for b in _said_blocks(ev):
+                    b = _INJECTED.sub("", b).strip()
+                    if (not b or b.startswith(("<", "[Request interrupted"))
+                            or any(k in b for k in _HOOK_ECHO)):
+                        continue
+                    b = unpasted(b)
+                    if not b:
+                        continue
+                    if not out and MACHINE_OPEN.match(b):
+                        return []
+                    if ai_drafted(b):
+                        continue
+                    out.append((no, b))
+    except OSError:
+        return []
+    return out
 
 
 def head(path, n=200, cap=400):
