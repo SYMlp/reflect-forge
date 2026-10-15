@@ -667,6 +667,12 @@ def find_foreign_scroll(path):
     raise ForgeError("bad_request", "架上没有登记这把外来名剑：{}".format(p))
 
 
+def from_intake(iron):
+    """出自料仓的铁带着他的拍板原话和正本的本机路径（from.ptr）。公网演示关进料（INTAKE-SPEC 第 10 节），
+    关的不只是 /api/intake/*：料炼成铁、铁锻成剑，原话就流进了 /api/irons 和 /api/armory，静态导出也抓这两个。"""
+    return isinstance(iron, dict) and bool(iron.get("from"))
+
+
 def all_irons():
     """整堆料，新出的在前。重锻要从全部铁里挑，不是只挑刚出炉那一场的。"""
     out = []
@@ -701,7 +707,12 @@ def reforge(scroll_path, iron_ids=None):
     # 那不叫重锻，这一炉不开
     if not picked:
         raise ForgeError("no_iron", "重锻得带自己的铁，不然只是把别人的剑抄一遍")
-    seat_gate(picked)
+    # 重锻的每一处改动都要逐字引原话锚（forge_prompts/reforge.md），「他认」铁没有锚：
+    # 放进去，炉子要么编一句像原话的话，要么不融它却照样记进谱系。重锻不设那个不带锚的座位
+    seated = [i.get("id") for i in picked if is_seated(i)]
+    if seated:
+        raise ForgeError("no_anchor", "重锻每处改动都要引原话锚，「他认」铁没有锚，不进重锻：{}".format(
+            "、".join(seated)))
 
     log("重锻炉开火：外来名剑《{}》{} 字 + 铁 {} 块".format(
         scroll.get("name"), len(scroll_md), len(picked)))
@@ -877,6 +888,8 @@ def armory():
     """why_log 全量给出去——前端画的那条时间线就是这个产品的核心证据。"""
     out = []
     for m in list_sword_metas():
+        if DEMO_MODE and any(from_intake(s) for s in (m.get("irons") or [])):
+            continue    # 剑的 SKILL.md 里抄着料的原话锚，快照里有正本路径：整把不出门
         out.append({
             "id": m.get("id"),
             "name": m.get("name"),
@@ -1130,6 +1143,7 @@ def discard_material(body):
 
 # 料不对 → 4xx（前端提示用户改输入）；炉子出问题 → 502（前端提示重试/看日志）
 STAGE_CODES = {
+    "no_anchor": 400,
     "bad_request": 400,
     "too_short": 400,
     "no_file": 400,
@@ -1194,7 +1208,10 @@ class Handler(BaseHTTPRequestHandler):
 
             # 整堆料。重锻要从全部铁里挑，不能只挑当前这一场反思出的
             if path == "/api/irons":
-                return self._json(all_irons())
+                irons = all_irons()
+                if DEMO_MODE:
+                    irons = [i for i in irons if not from_intake(i)]
+                return self._json(irons)
 
             if path == "/api/prospect":
                 # 演示模式不碰真实矿场：dir 参数一律不认，只端预置样例

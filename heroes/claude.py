@@ -8,7 +8,7 @@ import json
 import re
 from pathlib import Path
 
-from ._said import MACHINE_OPEN, ai_drafted, unpasted
+from ._said import ai_drafted, machine_open, unpasted
 
 ID = "claude"
 NAME = "Claude Code"
@@ -139,7 +139,7 @@ def user_turns(path):
                     b = unpasted(b)
                     if not b:
                         continue
-                    if not out and MACHINE_OPEN.match(b):
+                    if not out and machine_open(b):
                         return []
                     if ai_drafted(b):
                         continue

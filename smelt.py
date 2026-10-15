@@ -39,6 +39,7 @@ STATE_WHY = {"stale": "正本里找不到了：改过字，或者被收割走了
              "unverified": "正本没读到，没核过"}
 
 ANCHOR_MAX = 30
+TEXT_MAX = 40            # 铁的一句话（第 14.3 节第 2 条）
 ANCHOR_MIN = 6           # 第 14.3 节第 3 条：6 是 ④
 SEGMENT_LIMIT = 5        # 第 14.4 节第 4 条：≤5 段是 ④
 SEGMENT_MAX = 200
@@ -63,9 +64,14 @@ class SmeltError(Exception):
 
 # 点头只证明他点了头，不算原话锚（拍板账 10-15「补原话」那行）。
 # 长的先删：先删「推荐」会把「按照你的推荐」删成「按照你的」，就认不出是点头了
-NODS = sorted(("A B C D 甲 乙 丙 丁 可以 行 好 好的 对 是 嗯 同意 我同意 按推荐 按照推荐 "
+NODS = sorted(("A B C D 甲 乙 丙 丁 可以 行 好 好的 对 对的 是 是的 嗯 嗯嗯 同意 我同意 按推荐 按照推荐 "
                "按你的推荐 按照你的推荐 按你推荐 按照你推荐 推荐 选 就这样 那就 我觉得 "
-               "吧 啊 呀 ok OK 没问题").split(), key=len, reverse=True)
+               "吧 啊 呀 哈 呢 了 ok OK 没问题 没意见 也行 都行 行吧 收到 好嘞 听你的 "
+               "按你说的 按照你说的 你说的 就按 就照 按照 照着 来 就 这么办 这么定 这么做 定了 "
+               "我们 咱们 继续 下一步").split(), key=len, reverse=True)
+# 删完点头的词，剩下不到这么多字也算点头：「就按你的推荐来吧」「好的，我们就这么办」这类
+# 句子里除了点头只剩虚字，词表列不全（10-15 Codex 复核实测放过了三句）
+NOD_REST = 3
 _QUOTES = "「」『』“”‘’\"'"
 _ELLIPSIS = ("……", "…", "...")
 _NOT_WORD = re.compile(r"[\W_]+")
@@ -79,7 +85,7 @@ def _trim(s):
 def _is_nod(bare):
     for f in NODS:
         bare = bare.replace(f, "")
-    return not bare
+    return len(bare) < NOD_REST
 
 
 def check_anchor(anchor, sources):
@@ -164,7 +170,11 @@ def _sid_match(hint, sid):
     h, u = hint.replace("-", ""), sid.replace("-", "")
     if len(h) < 8:
         return False
-    return u.startswith(h) or (len(h) == 12 and u.startswith(h[:8]) and u.endswith(h[-4:]))
+    if len(h) == 12:
+        # 拍板账里 12 位的号全是前 8 + 后 4（8cfb7d9622d5 对 8cfb7d96-…-e8412b4a22d5）；
+        # 再按「前 12 位」认，会把前 8 位撞上、尾号不对的别的会话一起拉进来
+        return u.startswith(h[:8]) and u.endswith(h[-4:])
+    return u.startswith(h)
 
 
 def _opened_day(path, max_lines=50):
@@ -198,6 +208,20 @@ def _opened_day(path, max_lines=50):
     return None
 
 
+def _local_day(ts):
+    """料的 ts → 本机日期。只给日期的照原样；带时区的换成本机时区（开场日也是按本机算的）。"""
+    if not isinstance(ts, str):
+        return ""
+    if len(ts) > 10:
+        try:
+            dt = datetime.datetime.fromisoformat(ts.replace("Z", "+00:00"))
+            if dt.tzinfo is not None:
+                return dt.astimezone().date().isoformat()
+        except ValueError:
+            pass
+    return ts[:10]
+
+
 def find_sessions(item, cfg, cap=SESSION_CAP):
     """→ (用的哪一步, [(侠客, 路径)])。三步按顺序，前一步一场都没找着才走下一步（④）。"""
     rolls = _rolls(cfg)
@@ -213,8 +237,7 @@ def find_sessions(item, cfg, cap=SESSION_CAP):
             return said("① extra 会话号 {} → {} 场".format("、".join(hints), len(got)), got)
         tried.append("① extra 会话号 {} 在花名册的根里没找到".format("、".join(hints)))
 
-    ts = item.get("ts")
-    day = ts[:10] if isinstance(ts, str) else ""
+    day = _local_day(item.get("ts"))
     if _DAY.fullmatch(day):
         start = datetime.datetime.strptime(day, "%Y-%m-%d").timestamp()
         cands = []
@@ -431,7 +454,6 @@ def run(material_ids, *, cfg, call, irons_dir, now, log=None):
             if not w["supplied"]:
                 supply(w)
                 if w["segs"]:
-                    w["last"] = c
                     retry.append(mid)
                     continue
             results[mid] = (c, None)
@@ -453,12 +475,21 @@ def run(material_ids, *, cfg, call, irons_dir, now, log=None):
         for mid in retry:
             c = got.get(mid)
             if c is None:
-                results[mid] = (works[mid]["last"], None)   # 这轮没吐它：用上一轮给的
+                # 炉子这轮没交这条，原话其实补出来了（段在），不能当「补不出」去坐他认
+                skipped.append({"id": mid, "why": "补了原话后重炼，炉子没吐出这条，可再炼一次"})
                 continue
             ok, why, mark = check_anchor(c.get("anchor"), _sources(works[mid]))
             if not ok:
                 dropped.append({"material": mid, "reason": "补原话后仍不过：" + why, "raw": c})
             results[mid] = (c, mark if ok else None)
+
+    for mid in list(results):
+        n = len(results[mid][0]["text"].strip())
+        if n > TEXT_MAX:
+            # 超长的一句话进了剑，判据就成了长段——同「料直接当铁」的毛病（第 14.3 节排除表）
+            dropped.append({"material": mid, "reason": "一句话 {} 字，超 {} 字".format(n, TEXT_MAX),
+                            "raw": results.pop(mid)[0]})
+            skipped.append({"id": mid, "why": "炼出的一句话 {} 字，超 {} 字，可再炼一次".format(n, TEXT_MAX)})
 
     for mid, (c, mark) in results.items():
         if mark is None and works[mid]["step"]:
@@ -701,6 +732,11 @@ def selftest():
         nods = ["A", "可以", "按推荐", "可以按照你的推荐。我觉得。"]
         for n in nods:
             check(not check_anchor(n, [("quote", n)])[0], "1 锚：点头词「{}」→ 拒".format(n))
+        for n in ("就按你的推荐来吧", "可以，按照你说的来", "好的，我们就这么办"):
+            check(not check_anchor(n, [("quote", n)])[0] and not quote_usable(n),
+                  "1 锚：点头句「{}」（除了点头只剩虚字）→ 拒，quote 也算不能用".format(n))
+        check(check_anchor("可以先不做表达扫描", [("quote", "可以先不做表达扫描")])[0],
+              "1 锚：带点头词但有实话的（可以先不做表达扫描）→ 过")
         check("点头" in check_anchor("可以按照你的推荐。我觉得。", [("quote", "可以按照你的推荐。我觉得。")])[1],
               "1 锚：「可以按照你的推荐。我觉得。」够 6 字，是点头规则拒的")
         r = check_anchor("需求分析一个chat专门做", [("quote", "比如说需求分析 一个 chat\n专门做")])
@@ -755,6 +791,12 @@ def selftest():
             _u("门不是免费的，前置审查会把模型拉向更早停机"),
         ])
         check(hc.user_turns(fm) == [], "7 claude user_turns：机器任务书开的场（# 你是…）整场 []")
+        fq = _jsonl(tmp / "claude-question" / "d--fake-proj" / ("44444444-5555-4666-8777-888888888888.jsonl"), [
+            _u("你是不是把需求和实现混在一起了？"),
+            _u("需求分析必须在实现之前完成"),
+        ])
+        check([t for _l, t in hc.user_turns(fq)] == ["你是不是把需求和实现混在一起了？", "需求分析必须在实现之前完成"],
+              "7 claude user_turns：他以「你是不是…？」开场不算机器任务书，整场照留")
         # 放在另一个根下：不掺进下面 find_sessions 按日子数场的用例
         ft = _jsonl(tmp / "claude-taskbook" / "d--fake-proj" / ("22222222-3333-4444-8555-666666666666.jsonl"), [
             {"type": "queue-operation", "timestamp": "2026-10-09T05:00:00.000Z"},
@@ -822,6 +864,15 @@ def selftest():
         check(ids_of(got) == [S_C] and "①" in step and "②" in step, "8 号在根里找不到：往下走 ts，结果里两步都看得见")
         step, got = find_sessions({"ts": "2001-01-01"}, cfg)
         check(got == [] and "没找到" in step, "8 三步都落空：[]，说没找到")
+        # 前 12 位和 S_B 一样、尾号不同的另一场：按「前 12 位」读会被误认
+        same_head = "f0b38e9d-ac45-4222-8222-222222225678"
+        check(_sid_match("f0b38e9ded42", S_B) and not _sid_match("f0b38e9dac45", same_head)
+              and not _sid_match("f0b38e9dac45", S_B),
+              "8 12 位的号只按前 8 + 后 4 认，不按前 12 位认")
+        utc_noon = datetime.datetime(2026, 9, 16, 12, 0, tzinfo=datetime.timezone.utc)
+        check(_local_day(utc_noon.isoformat().replace("+00:00", "Z")) == utc_noon.astimezone().date().isoformat()
+              and _local_day("2026-09-16") == "2026-09-16" and _local_day(None) == "",
+              "8 带时区的 ts 换成本机日期再找开场日；纯日期照原样")
 
         segs = segments({"text": "认门不是免费的：前置审查会把模型拉向更早停机，只备料不改规则", "quote": "A"},
                         [(hc, fa)])
@@ -951,6 +1002,28 @@ def selftest():
             why4 = {s["id"]: s["why"] for s in res4["skipped"]}
             check(res4["irons"] == [] and "重炼没烧成" in why4.get(m_retry["id"], ""),
                   "6 run：补原话后那一轮烧糊 → 进 skipped 让他再炼，不坐他认")
+
+            def silent_retry(prompt, timeout=120):
+                silent_retry.n += 1
+                if silent_retry.n > 1:
+                    return "[]"
+                return json.dumps([{"material": m_retry["id"], "text": "换班按事情双触发", "kind": "流程",
+                                    "grade": "中品", "anchor": "这句是编的不在原话里"}], ensure_ascii=False)
+            silent_retry.n = 0
+            res5 = run([m_retry["id"]], cfg=cfg, call=silent_retry, irons_dir=irons_dir,
+                       now=datetime.datetime(2026, 10, 15, 15, 6, 0))
+            why5 = {s["id"]: s["why"] for s in res5["skipped"]}
+            check(res5["irons"] == [] and "炉子没吐出这条" in why5.get(m_retry["id"], ""),
+                  "6 run：补原话后那一轮没吐这条 → 进 skipped，不当成补不出去坐他认")
+
+            def wordy(prompt, timeout=120):
+                return json.dumps([{"material": m_good["id"], "text": "分析需求" * 15, "kind": "流程",
+                                    "grade": "上品", "anchor": "需求分析一个chat专门做"}], ensure_ascii=False)
+            res6 = run([m_good["id"]], cfg=cfg, call=wordy, irons_dir=irons_dir,
+                       now=datetime.datetime(2026, 10, 15, 15, 7, 0))
+            why6 = {s["id"]: s["why"] for s in res6["skipped"]}
+            check(res6["irons"] == [] and "超 {} 字".format(TEXT_MAX) in why6.get(m_good["id"], ""),
+                  "6 run：铁的一句话超 40 字 → 不出铁、进 skipped")
         finally:
             intake.load = orig_load
 
@@ -1088,13 +1161,14 @@ def _selftest_main(tmp, check):
             {"id": "x", "name": "外来剑", "path": str(scroll)}])
         try:
             n_before = len(prompts)
-            main.reforge(str(scroll), [t1["id"], t2["id"]])
+            main.reforge(str(scroll), [t1["id"], n1["id"]])
             stage = None
         except main.ForgeError as e:
             stage = e.stage
         finally:
             main.read_config = saved_cfg
-        check(stage == "seat_taken" and len(prompts) == n_before, "2 重锻也走同一道座位闸")
+        check(stage == "no_anchor" and len(prompts) == n_before,
+              "2 重锻不收「他认」铁（重锻每处改动都要引原话锚），挡在调模型之前")
 
         # ── 3 场景模式不放他认铁 ──
         out = main.forge(scene="写日报")
@@ -1131,7 +1205,18 @@ def _selftest_main(tmp, check):
         s1, _ = req("POST", "/api/smelt", {"material_ids": [good_id]})
         s2, _ = req("POST", "/api/intake/discard", {"id": good_id})
         check(s1 == 403 and s2 == 403, "9 演示：POST /api/smelt、/api/intake/discard 回 403")
+        _, demo_irons = req("GET", "/api/irons")
+        _, demo_arm = req("GET", "/api/armory")
         main.DEMO_MODE = False
+        _, live_irons = req("GET", "/api/irons")
+        _, live_arm = req("GET", "/api/armory")
+
+        def carried(swords):
+            return [s["id"] for s in swords if any(i.get("from") for i in s.get("irons") or [])]
+        check(any(i.get("from") for i in live_irons) and not any(i.get("from") for i in demo_irons),
+              "9 演示：/api/irons 不吐出自料仓的铁（原话和正本路径不出门）")
+        check(carried(live_arm) and not carried(demo_arm),
+              "9 演示：/api/armory 不吐用了料仓铁的剑")
         bad = [({"material_ids": ["decision:XYZ"]}, "非法 id"),
                ({"material_ids": [good_id], "path": "C:/x"}, "多余键"),
                ({"material_ids": []}, "空数组"),

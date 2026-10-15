@@ -24,7 +24,7 @@ import datetime
 import json
 from pathlib import Path
 
-from ._said import MACHINE_OPEN, ai_drafted, unpasted
+from ._said import ai_drafted, machine_open, unpasted
 
 ID = "codex"
 NAME = "Codex"
@@ -172,7 +172,7 @@ def user_turns(path):
                     t = unpasted(t)
                     if not t:
                         continue
-                    if not out and MACHINE_OPEN.match(t):
+                    if not out and machine_open(t):
                         return []
                     if ai_drafted(t):
                         continue

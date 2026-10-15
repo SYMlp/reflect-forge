@@ -9,7 +9,16 @@ import re
 PASTED_HEADS = ("外部材料", "外部资料", "外部資料", "公众号文章",
                 "讲座转写", "豆包起草", "豆包对抗", "机器回执", "录音对话")
 # 机器任务书开的场（锻造台、审计器、子分身、handoff 派下来的活）：整场都不是他在说
-MACHINE_OPEN = re.compile(r"^(#+\s*)?你是")
+# 只认角色剧本「你是锻造台的执行枝」「你是「反思锻造台」的锻剑炉」，不认他的问句：
+# 「你是不是把需求和实现混了？」开场，整场他的话都会被当成机器任务书丢光（10-15 Codex 复核实测）
+MACHINE_OPEN = re.compile(r"^(#+\s*)?你是(?!不|否|谁|怎|咋|什么|说|在|真|要|想|觉得|对|错|指|哪|故意)")
+
+
+def machine_open(block):
+    first = re.split(r"[\n。]", block, maxsplit=1)[0]
+    return bool(MACHINE_OPEN.match(block)) and "？" not in first and "?" not in first
+
+
 QUOTE3 = '"""'
 # AI 写好、他粘进来的：派活任务书（实测「# 评审视角：表达扫描」一万多字，整场就这一句）、
 # 上一场收尾起草的新场开场白（「本场一件事：…」，他的原话只是夹在【】里被引用）。

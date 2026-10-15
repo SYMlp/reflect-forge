@@ -109,6 +109,15 @@ def main():
             log("profile.demo 不是 true——抓到的不是演示模式实例，拒绝导出")
             return 1
 
+        # 料炼成铁、铁锻成剑，他的拍板原话和正本路径（from）就流进了 irons / armory。
+        # 演示实例本该滤掉；兜底的 7713 若还跑旧代码就滤不掉——这里再核一道，见到 from 不出站
+        carried = [i.get("id") for i in snapshots["irons"] if isinstance(i, dict) and i.get("from")]
+        carried += [s.get("id") for s in snapshots["armory"] if isinstance(s, dict)
+                    and any(isinstance(i, dict) and i.get("from") for i in s.get("irons") or [])]
+        if carried:
+            log("快照里有出自料仓的铁或剑 {}——料不许进 site/，拒绝导出".format("、".join(map(str, carried))))
+            return 1
+
         if os.path.isdir(SITE):
             shutil.rmtree(SITE)
         api_dir = os.path.join(SITE, "api")

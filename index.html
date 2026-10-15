@@ -1702,7 +1702,8 @@
       setForgeLoading(false, `炼料出铁 ${irons.length} 块`);
       document.getElementById('forgeStatusLine').textContent = '料已炼成铁，择铁再锻剑';
       if (skipped.length) showToast(firstWhy, 6000);
-      state.binPicked.clear();
+      // 只放下这次送出去的：炼料要等一两分钟，等的时候新勾的料还没炼
+      ids.forEach(id => state.binPicked.delete(id));
       loadBin();
     } catch (error) {
       setBinSmeltMsg(error.message || '炼料没成，请再试。');
@@ -1969,6 +1970,8 @@
       // 回拉一次兵器架：谱系（铁快照）只有后端有，不回拉的话新剑抽屉里的用料清单是空的
       api('armory').then(renderArmory).catch(() => {});
       api('profile').then(renderProfile).catch(() => {});
+      // 料仓里用了这些铁的料，状态从「已入炉」变「已成剑」
+      loadBin();
       document.getElementById('swordResult').classList.add('show');
       setForgeLoading(false, '剑成 · 尚待试锋');
       document.getElementById('forgeStatusLine').textContent = '先以草稿斩活，真跑过再转正';

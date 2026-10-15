@@ -6,3 +6,6 @@ forge.log
 data/charge/
 forge-demo-7713.log
 项目提交的截图/
+# 料仓（INTAKE-SPEC 第 10 节）：炼料的铁带着他的拍板原话和本机路径，「弃」记的是他的料 id——本仓是公开仓，不入库
+data/irons/smelt-*.json
+data/intake-state.json
