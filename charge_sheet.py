@@ -326,10 +326,11 @@ def _candidates(cfg, session_glob=""):
 
     for h, root in heroes.enabled(cfg or {}):
         d = Path(root).expanduser()
-        if not d.is_dir():
-            slot(h, root, False)
-            continue
         try:
+            # 根没权限读时 is_dir 本身就会抛：放在 try 里，一家读不动不连累别家出单
+            if not d.is_dir():
+                slot(h, root, False)
+                continue
             got = h.scrolls(d)
         except OSError as e:
             print("[charge] {}的卷宗翻不动（{}），先跳过".format(h.NAME, e))
@@ -965,6 +966,41 @@ def selftest():
         check(s7["events"]["total_sessions"] == 0
               and all(not r["found"] for r in s7["events"]["by_hero"]),
               "两家的根都不在：事轴空，回炉单照出")
+
+        # 中文写成 \uXXXX 的留痕：原始行里没有「本场一件事」字样，needle 预筛不能把它筛掉
+        esc_c = tmp / "esc" / "claude.jsonl"
+        esc_x = tmp / "esc" / "rollout-2026-09-06T10-00-00-01a0dddd-4444-7555-8666-977778888999.jsonl"
+        esc_c.parent.mkdir(parents=True, exist_ok=True)
+        esc_c.write_text(json.dumps(c_ai("2026-09-06T01:00:00.000Z", "本场一件事：转义的申报"),
+                                    ensure_ascii=True) + "\n", encoding="utf-8")
+        esc_x.write_text(json.dumps({"timestamp": "2026-09-06T02:00:00.000Z", "type": "response_item",
+                                     "payload": {"type": "message", "role": "assistant", "content": [
+                                         {"type": "output_text", "text": "本场一件事：转义的申报"}]}},
+                                    ensure_ascii=True) + "\n", encoding="utf-8")
+        check([t for _, t in hc.ai_lines(esc_c, EVENT_MARKER)] == ["本场一件事：转义的申报"]
+              and [t for _, t in hx.ai_lines(esc_x, EVENT_MARKER)] == ["本场一件事：转义的申报"],
+              "ai_lines 的 needle：中文转义成 \\uXXXX 的申报两家都认得")
+
+        # 根没权限读：is_dir 本身就抛 PermissionError——这家跳过，别家照出
+        denied = tmp / "denied-codex"
+        real_is_dir = Path.is_dir
+
+        def is_dir_denied(self, *a, **k):
+            if Path(self) == denied:
+                raise PermissionError(13, "拒绝访问", str(denied))
+            return real_is_dir(self, *a, **k)
+
+        Path.is_dir = is_dir_denied
+        try:
+            s9, _, _ = generate(str(ledger2), str(tmp / "out9"), since=since, cfg={"heroes": [
+                {"id": "claude", "root": str(cl3)}, {"id": "codex", "root": str(denied)}]})
+            h9 = {r["hero"]: r for r in s9["events"]["by_hero"]}
+            ok9 = h9["codex"]["found"] is False and h9["claude"]["declared"] == 2
+        except PermissionError:
+            ok9 = False
+        finally:
+            Path.is_dir = real_is_dir
+        check(ok9, "Codex 根没权限读：跳过、点名记根不在，Claude 照常出单（不整份崩）")
 
         # 调试口 --sessions：只扫给的目录，按路径认侠客
         s8, _, _ = generate(str(ledger), str(tmp / "out8"), session_glob=str(sess_dir))

@@ -149,12 +149,12 @@ def head(path, n=200, cap=400):
 # 只认 response_item 里 role=assistant 的 output_text。同一句话 event_msg 里还会再记一遍（item_completed），
 # 两处都收就数重了。不套 _speech 的 _INJECT_HEADS：那是挡灌进 user 轮的东西，AI 自己的话以 < 开头也是它说的
 def ai_lines(path, needle=""):
-    """→ 逐条吐 (时刻, AI 说的一段话)，口径同 claude.ai_lines。"""
+    """→ 逐条吐 (时刻, AI 说的一段话)，口径同 claude.ai_lines（含 \\u 转义的行照样解析）。"""
     try:
         with Path(path).open(encoding="utf-8", errors="replace") as fh:
             for line in fh:
                 if '"response_item"' not in line or '"assistant"' not in line \
-                        or (needle and needle not in line):
+                        or (needle and needle not in line and "\\u" not in line):
                     continue
                 try:
                     ev = json.loads(line)

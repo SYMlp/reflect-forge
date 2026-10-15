@@ -155,11 +155,12 @@ def ai_lines(path, needle=""):
     """→ 逐条吐 (时刻, AI 说的一段话)。时刻是留痕上原样的 timestamp 串，没有就是 None。
 
     逐行流式读，十几 MB 的卷宗也不整份载入。needle 给了，原始行里没有它的直接跳过、不解析：
-    一份卷宗里含申报字样的往往只有几行。"""
+    一份卷宗里含申报字样的往往只有几行。
+    行里有 \\u 转义的照样解析：中文写成 \\uXXXX 的留痕，原始行里找不到中文字样（10-15 Codex 复核实测）。"""
     try:
         with Path(path).open(encoding="utf-8", errors="replace") as fh:
             for line in fh:
-                if needle and needle not in line:
+                if needle and needle not in line and "\\u" not in line:
                     continue
                 try:
                     ev = json.loads(line)

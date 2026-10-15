@@ -262,7 +262,7 @@ materials:
 | ④ 回炉单收债 | 会话来源改走 `heroes`；`charge-sheet.md` 改名并留黑匣子 | `charge_sheet.py --selftest` 全绿；真数据下 Codex 卷宗的申报也进事轴 |
 | ⑤ 文字 | `DESIGN.md` 第 1 节世界观表加「料 / 料仓」一行；README 插件位那段改成「声明即协议」 | 两处文字和本件第 0 节一致 |
 
-落地情况：①② 10-14 前已落；③④⑤ 10-15 落地。③ 的读数在 toys `self-analysis/2026-10-15-forge-bin-exec-receipt.md`。④ 的读数：`charge_sheet.py --selftest` 60 条全过；`--since 2026-10-08` 真数据扫到 Codex 162 份会话，其中 32 份的申报进了事轴。
+落地情况：①② 10-14 前已落；③④⑤ 10-15 落地。③ 的读数在 toys `self-analysis/2026-10-15-forge-bin-exec-receipt.md`。④ 的读数：`charge_sheet.py --selftest` 62 条全过（含 Codex 复核补的 2 条：根没权限读不整份崩、`\uXXXX` 转义的申报认得出）；`--since 2026-10-08` 真数据扫到 Codex 162 份会话，其中 32 份的申报进了事轴。
 
 第 ⑤ 条世界观表要加的那行（④）：**料 / 料仓 / 炼料** —— 料是别的组件声明给炉子的现成判断，带「被撞回 N 场」。料是别处攒的，铁是本炉炼的；料要先炼成铁，才能进锻剑炉（第 14.3 节）。料仓是炉子里看这些料的地方，在寻料页。「料仓」这个名字 README 插件位里已经有，只是从「往里写」换成「去扫」。
 
