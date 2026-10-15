@@ -1126,7 +1126,10 @@ def _selftest_main(tmp, check):
               "grade": "上品", "from": dict(frm, material="decision:" + "c" * 16), "anchor_src": "quote"}
         (main.IRONS / "smelt-20261015-143012.json").write_text(
             json.dumps({"source": "smelt", "irons": [t1, t2, n1]}, ensure_ascii=False), encoding="utf-8")
-        (main.IRONS / "0f2d3f3dfdde.json").write_text(json.dumps({"irons": []}), encoding="utf-8")
+        r1 = {"id": "0f2d3f3d-i1", "text": "反思炉出的一块", "anchor": "动词是 how，不是 why", "kind": "判断",
+              "grade": "上品"}
+        (main.IRONS / "0f2d3f3dfdde.json").write_text(json.dumps({"irons": [r1]}, ensure_ascii=False),
+                                                     encoding="utf-8")
 
         # ── 5 炼料不是反思场次 ──
         check(main.count_reflect_sessions() == 1, "5 count_reflect_sessions 不数 smelt-*.json")
@@ -1154,6 +1157,12 @@ def _selftest_main(tmp, check):
               "2 一块他认 + 一块普通 → 能锻；剑的铁快照带 from.ptr，他认那块带 seat")
         check("他认 · 2026-10-15（无原话锚：用它的判据以「——（他认 · 2026-10-15）」收尾）" in prompts[-1]
               and "原话：「需求分析一个chat专门做」" in prompts[-1], "2 iron_line：他认铁标出来，普通铁照旧")
+        ign = main.SWORDS / out["sword"]["id"] / ".gitignore"
+        check(ign.exists() and ign.read_text(encoding="utf-8").splitlines()[-1] == "*",
+              "2 用了料仓铁的剑：剑目录里放只写 * 的 .gitignore，整把不进公开仓")
+        out_r = main.forge(iron_ids=[r1["id"]])
+        check(not (main.SWORDS / out_r["sword"]["id"] / ".gitignore").exists(),
+              "2 只用反思炉的铁锻的剑：不放 .gitignore，照旧入库")
         scroll = mroot / "SKILL.md"
         scroll.write_text("---\nname: x\n---\n# 外来剑\n", encoding="utf-8")
         saved_cfg = main.read_config

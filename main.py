@@ -609,6 +609,7 @@ def forge(iron_ids=None, scene=""):
     sid = new_sword_id(skill_name, sword_name)
     d = SWORDS / sid
     d.mkdir(parents=True, exist_ok=True)
+    keep_off_repo(d, used_irons)
     (d / "SKILL.md").write_text(skill_md + "\n", encoding="utf-8")
     meta = {
         "id": sid,
@@ -673,6 +674,18 @@ def from_intake(iron):
     return isinstance(iron, dict) and bool(iron.get("from"))
 
 
+# 剑目录里放一个只写 * 的 .gitignore：git 认目录里的 .gitignore，整把剑（连这个文件自己）都不入库。
+# 剑照旧住 data/swords/，兵器架、淬火、授剑都不用分两处找
+SWORD_PRIVATE = ("# 用了料仓的铁：SKILL.md 抄着他的拍板原话，铁快照带正本路径。"
+                 "本仓是公开仓，整把不入库（INTAKE-SPEC 第 10 节）\n*\n")
+
+
+def keep_off_repo(d, irons):
+    """用了料仓的铁锻出的剑不进公开仓（10-15 他拍「可以。我同意」）。"""
+    if any(from_intake(i) for i in irons):
+        (d / ".gitignore").write_text(SWORD_PRIVATE, encoding="utf-8")
+
+
 def all_irons():
     """整堆料，新出的在前。重锻要从全部铁里挑，不是只挑刚出炉那一场的。"""
     out = []
@@ -726,6 +739,7 @@ def reforge(scroll_path, iron_ids=None):
     sid = new_sword_id(skill_name, sword_name)
     d = SWORDS / sid
     d.mkdir(parents=True, exist_ok=True)
+    keep_off_repo(d, picked)
     (d / "SKILL.md").write_text(skill_md + "\n", encoding="utf-8")
     meta = {
         "id": sid,
