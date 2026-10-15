@@ -1,38 +1,44 @@
-"""回炉单生成器 Charge Sheet —— 炉子的进料口。
+"""回炉单生成器 Charge Sheet —— 炉子自己的攒料器。
 
 反思锻造台把 session 里的精华（铁）锻成剑。但反思本身有入场成本：
 要想起来开、要自己找料、要自己组织问题。这个生成器把「找料 + 归集」自动化——
 它是一台**确定性归集器**（不是判断器），按两根轴把使用痕迹归成一份「回炉单」：
 
   · 组件轴：每个 route/组件被命中多少次、时间跨度、代表性开场样本
-  · 事  轴：每场会话申报的「本场一件事」（session 契约标记）
+  · 事  轴：每场会话申报的「本场一件事」（session 契约标记），标明是哪位侠客的会话
 
 产出「回炉单」（markdown 人读版 + json 机读版），供反思炉 / 反思会话消费。
+「进料口」这个名字归扫描器 intake.py：回炉单读的是痕迹，不是成形的料（docs/INTAKE-SPEC.md 第 8 节）。
 
 设计权威：
   · toys/self-analysis/2026-09-01-用磨分离锻造回路-深挖框题.md（§1 缺口 / §3 切片 1 / §3½ 递归分层）
   · toys/self-analysis/2026-08-31-开场意图识别机制设计稿.md（§10 复述契约）
+  · docs/INTAKE-SPEC.md 第 8 节（并列不替换、改名、会话来源走侠客花名册）
 
 硬边界（写死在设计里，不许破）：
   · **本文件里没有一次 LLM 调用**。含金量判断留给炉子和反思会话——
     判断给 LLM、归集给程序，这是设计原则。这台机器只数数、只归集、只排序。
-  · 只读 toys 侧数据（ledger + session 转写），只写本仓 data/ 与配置。
+  · 只读 hook 台账 + 花名册上各位侠客的卷宗（heroes.enabled，同寻料页），只写本仓 data/。
   · session 转写可能上到十几 MB——**逐行流式解析，绝不整文件载入**。
 
 跑法：
-  python charge_sheet.py            # 读 config.json 的 charge_sheet 键，真实数据出回炉单
+  python charge_sheet.py            # 台账读 config.json 的 charge_sheet 段，会话走侠客花名册
   python charge_sheet.py --selftest # 临时目录造数据自测，不碰真实数据
   python charge_sheet.py --since 2026-09-01           # 只看该日期起（含）的裸奔率，切掉老账
-  python charge_sheet.py --ledger <路径> --sessions <目录或glob> --out <目录>  # 临时覆盖
+  python charge_sheet.py --ledger <路径> --sessions <目录或glob> --out <目录>  # 临时覆盖（--sessions 调试用，给了就不走花名册）
 """
 import argparse
 import datetime
 import glob as globmod
 import json
 import os
+import re
 import sys
 import tempfile
+from contextlib import closing
 from pathlib import Path
+
+import heroes
 
 ROOT = Path(__file__).parent
 DATA = ROOT / "data"
@@ -54,12 +60,11 @@ NOISE_PREFIXES = ("<task-notification>", "<system-reminder>", "<command-name>",
                   "<local-command", "<bash-", "Caveat:")
 
 # config.json 里 charge_sheet 段缺省值。真实路径全部走配置，代码里只留形状缺省，
-# 禁止把用户机器上的绝对路径硬编在源码里
+# 禁止把用户机器上的绝对路径硬编在源码里。
+# 会话不在这一段：走整份 config 的 heroes（侠客花名册，同寻料页）——加一位侠客，回炉单一个字不用改
 DEFAULT_CHARGE_CFG = {
-    # hook 路由台账：每条 prompt 的命中/miss 落账
+    # hook 路由台账：每条 prompt 的命中/miss 落账（生产者读自己的上游，不算写死路径，INTAKE-SPEC 第 11 节）
     "ledger_path": "",
-    # session 转写目录（或 glob）。逐行流式读，从 assistant 文本取「本场一件事：」申报
-    "session_glob": "",
     # 回炉单落盘目录（相对本仓）
     "out_dir": "data/charge",
 }
@@ -70,15 +75,16 @@ def _now():
 
 
 def read_charge_config():
-    """从 config.json 读 charge_sheet 段。缺段就返回空缺省——由调用方决定报不报错。"""
-    cfg = dict(DEFAULT_CHARGE_CFG)
+    """→ (charge_sheet 段, 整份 config)。整份给 heroes.enabled 认花名册。
+    读不动就当空的——由调用方决定报不报错。"""
+    cfg, whole = dict(DEFAULT_CHARGE_CFG), {}
     if CONFIG_FILE.exists():
         try:
             whole = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
             cfg.update(whole.get("charge_sheet") or {})
         except Exception as e:
             print("[charge] config.json 读不动（{}），charge_sheet 段先空着".format(e))
-    return cfg
+    return cfg, whole
 
 
 # ── 组件轴：扫 hook 路由台账 ──────────────────────────────────────
@@ -265,17 +271,74 @@ def scan_ledger(path, since=None):
     }
 
 
-# ── 事轴：流式扫 session 转写，取「本场一件事：」申报 ──────────────
+# ── 事轴：流式扫花名册上各位侠客的卷宗，取「本场一件事：」申报 ──────
 
 EVENT_MARKER = "本场一件事"
 
+# 卷宗 → 台账 sid。Claude 的文件名就是会话 uuid；Codex 的是 rollout-<时刻>-<uuid>，uuid 在尾巴上。
+# 台账两家都记 uuid 前 16 位（实测 Codex 的行形如 01a13d98-a610-75），所以都先取 uuid 再截
+_UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+
+# mtime 预筛放宽一天：开场时刻是丢了时区的 UTC（见 _parse_ts），本机在 UTC 以西时，
+# 窗内的场 mtime 可能早于 since。宽一天就预筛不掉窗内的场，精判仍归 _session_time
+_PREFILTER_SLACK = datetime.timedelta(days=1)
+
+
+def _sid_of(fp):
+    stem = Path(fp).stem
+    m = _UUID.search(stem)
+    return (m.group(0) if m else stem)[:SID_KEY_LEN]
+
 
 def _resolve_session_files(session_glob):
-    """session_glob 既可是目录（自动补 *.jsonl），也可是 glob 串。"""
+    """调试口 --sessions：既可是目录（自动补 *.jsonl），也可是 glob 串。"""
     p = Path(session_glob).expanduser()
     if p.is_dir():
         return sorted(str(x) for x in p.glob("*.jsonl"))
     return sorted(globmod.glob(os.path.expanduser(session_glob)))
+
+
+def _candidates(cfg, session_glob=""):
+    """→ (点名, 卷宗)。点名 [{hero, name, root, found, sessions, declared}]，
+    卷宗 [(点名那一格, 侠客模块, 路径, 出身, mtime)]。
+
+    默认走花名册（heroes.enabled，同寻料页）：Claude 根下全部项目槽、Codex 根下全部 rollout，
+    怎么翻归侠客自己（scrolls）。根不在的跳过，但点名里照实记 found=False——
+    没装 Codex 的机器不该开不了单，也不该悄悄少一家。
+    session_glob 给了是调试口：只扫它，每份按路径认是谁的（heroes.whose）。
+    """
+    roll, files = {}, []
+
+    def slot(h, root, found):
+        return roll.setdefault((h.ID, str(root)), {
+            "hero": h.ID, "name": h.NAME, "root": str(root),
+            "found": found, "sessions": 0, "declared": 0})
+
+    if session_glob:
+        for fp in _resolve_session_files(session_glob):
+            h = heroes.whose(fp)
+            try:
+                mt = os.path.getmtime(fp)
+            except OSError:
+                continue
+            files.append((slot(h, session_glob, True), h, fp, "", mt))
+        return list(roll.values()), files
+
+    for h, root in heroes.enabled(cfg or {}):
+        d = Path(root).expanduser()
+        if not d.is_dir():
+            slot(h, root, False)
+            continue
+        try:
+            got = h.scrolls(d)
+        except OSError as e:
+            print("[charge] {}的卷宗翻不动（{}），先跳过".format(h.NAME, e))
+            slot(h, root, False)
+            continue
+        entry = slot(h, root, True)
+        for s in got:
+            files.append((entry, h, s["path"], s.get("project", ""), s["_mtime"]))
+    return list(roll.values()), files
 
 
 def _extract_declaration(text):
@@ -291,68 +354,56 @@ def _extract_declaration(text):
     return None
 
 
-def scan_sessions(session_glob, since=None):
-    """逐行流式扫每份 session 转写，取「本场一件事」申报。
+def scan_sessions(cfg=None, since=None, session_glob=""):
+    """逐份流式扫卷宗，取「本场一件事」申报。会话从哪来见 _candidates。
 
-    绝不整文件载入：先对原始行做一次廉价子串判断（marker 不在行内直接跳过，
-    不 JSON 解析），命中才解析、才确认是 assistant 文本块里的申报行。十几 MB 的
-    转写也只在真正含 marker 的少数行上付解析成本。
+    AI 说了什么、怎么从留痕里捡出来，各门派规矩不同，交给侠客的 ai_lines；这里只把 marker
+    递给它当廉价闸门（原始行里没有 marker 的不解析），再从吐出来的话里找申报行。
+    人那一侧的话 ai_lines 不吐：用户读设计文档、工具回显也会带出 marker，不算申报。
 
-    since 非 None（朴素 datetime）时，按 `_session_time(fp) >= since` 过滤文件：
-    窗外的整份不扫、不计数（total_files 也只算窗内）。since 为 None 时行为逐字节不变。
+    since 非 None（朴素 datetime）时：先按 mtime 预筛（放宽一天，见 _PREFILTER_SLACK），
+    再按 `_session_time(fp) >= since` 精判；窗外的整份不扫、不计数（total_files 也只算窗内）。
+    since 为 None 时全扫。
 
     返回 dict：
-      declared:   [{sid, decl, file}]   # 有申报的会话（每 sid 取首条）
+      declared:   [{sid, hero, hero_name, project, decl, at, file}]   # 有申报的会话，每份取首条，按申报时刻排
       declared_count / undeclared_count / total_files: int
+      by_hero:    [{hero, name, root, found, sessions, declared}]      # 各位侠客的点名，根不在的也列
     """
-    files = _resolve_session_files(session_glob)
+    roll, files = _candidates(cfg, session_glob)
     if since is not None:
-        files = [fp for fp in files
-                 if (t := _session_time(fp)) is not None and t >= since]
-    declared = {}   # sid16 -> {sid, decl, file}
+        floor = (since - _PREFILTER_SLACK).timestamp()
+        files = [f for f in files if f[4] >= floor]
+        files = [f for f in files
+                 if (t := _session_time(f[2])) is not None and t >= since]
 
-    for fp in files:
-        sid16 = Path(fp).stem[:SID_KEY_LEN]
-        if sid16 in declared:
-            continue  # 已从别的文件拿到该 sid 的申报（正常一 sid 一文件，防御性写法）
+    declared = {}   # (侠客, sid16) -> 申报
+    for entry, h, fp, project, _mt in files:
+        entry["sessions"] += 1
+        key = (h.ID, _sid_of(fp))
+        if key in declared:
+            continue  # 同一位侠客同一个 sid 已从别的文件拿到申报（正常一 sid 一文件，防御性写法）
         found = None
-        try:
-            with open(fp, encoding="utf-8", errors="replace") as fh:
-                for line in fh:
-                    # 廉价闸门：绝大多数行连 marker 字样都没有，直接跳过不解析
-                    if EVENT_MARKER not in line:
-                        continue
-                    try:
-                        ev = json.loads(line)
-                    except Exception:
-                        continue
-                    # 只认 assistant 消息里的申报（用户读设计文档也会带出 marker，不算）
-                    msg = ev.get("message") or {}
-                    role = msg.get("role") or ev.get("type")
-                    if role != "assistant":
-                        continue
-                    content = msg.get("content")
-                    blocks = content if isinstance(content, list) else (
-                        [{"type": "text", "text": content}] if isinstance(content, str) else [])
-                    for blk in blocks:
-                        if not isinstance(blk, dict) or blk.get("type") != "text":
-                            continue
-                        decl = _extract_declaration(blk.get("text") or "")
-                        if decl:
-                            found = decl
-                            break
-                    if found:
-                        break
-        except OSError:
-            continue
+        with closing(h.ai_lines(fp, EVENT_MARKER)) as said:
+            for at, text in said:
+                decl = _extract_declaration(text)
+                if decl:
+                    found = (at, decl)
+                    break
         if found:
-            declared[sid16] = {"sid": sid16, "decl": found, "file": Path(fp).name}
+            entry["declared"] += 1
+            declared[key] = {"sid": key[1], "hero": h.ID, "hero_name": h.NAME,
+                             "project": project, "decl": found[1], "at": found[0] or "",
+                             "file": Path(fp).name}
 
+    out = sorted(declared.values(),
+                 key=lambda d: _parse_ts(d["at"]) or datetime.datetime.max)
     return {
-        "declared": list(declared.values()),
-        "declared_count": len(declared),
-        "undeclared_count": max(0, len(files) - len(declared)),
+        "declared": out,
+        "declared_count": len(out),
+        "undeclared_count": max(0, len(files) - len(out)),
         "total_files": len(files),
+        "by_hero": roll,
     }
 
 
@@ -432,6 +483,7 @@ def build_charge_sheet(ledger, sessions, since=None):
             "declared_count": sessions["declared_count"],
             "undeclared_count": sessions["undeclared_count"],
             "total_sessions": sessions["total_files"],
+            "by_hero": sessions["by_hero"],
         },
         "ranking": ranking,
         "_note": "确定性归集器产物：只数、只归、只排序。含金量判断留给反思炉与反思会话。",
@@ -512,11 +564,22 @@ def render_md(sheet):
              "（契约 2026-09-01 上线，存量少是正常的）。".format(
                  e["total_sessions"], e["declared_count"], e["undeclared_count"]))
     L.append("")
+    # 各位侠客点名：根不在的也列出来，少了哪家看得见，不静默
+    for r in e["by_hero"]:
+        if r["found"]:
+            L.append("- {}：{} 份，有申报 {} 份（根 `{}`）".format(
+                r["name"], r["sessions"], r["declared"], r["root"]))
+        else:
+            L.append("- {}：根不在这台机器上，跳过（`{}`）".format(r["name"], r["root"]))
+    if e["by_hero"]:
+        L.append("")
     if e["declared"]:
-        L.append("| sid | 本场一件事 |")
-        L.append("|:--|:--|")
+        L.append("| 侠客 | sid | 本场一件事 |")
+        L.append("|:--|:--|:--|")
         for d in e["declared"]:
-            L.append("| `{}` | {} |".format(d["sid"], d["decl"]))
+            # 申报里带半角竖线会把表格劈开，转义掉
+            L.append("| {} | `{}` | {} |".format(
+                d["hero_name"], d["sid"], d["decl"].replace("|", "\\|")))
     else:
         L.append("_还没有会话申报「本场一件事」。_")
     L.append("")
@@ -561,9 +624,10 @@ def write_outputs(sheet, out_dir):
 
 # ── 编排 ──────────────────────────────────────────────────────────
 
-def generate(ledger_path, session_glob, out_dir, since=None):
+def generate(ledger_path, out_dir, since=None, cfg=None, session_glob=""):
+    """cfg 是整份 config（认花名册用）；session_glob 是调试口，给了就不走花名册。"""
     ledger = scan_ledger(ledger_path, since=since)
-    sessions = scan_sessions(session_glob, since=since)
+    sessions = scan_sessions(cfg, since=since, session_glob=session_glob)
     sheet = build_charge_sheet(ledger, sessions, since=since)
     json_path, md_path = write_outputs(sheet, out_dir)
     return sheet, json_path, md_path
@@ -614,9 +678,11 @@ def selftest():
                           encoding="utf-8")
 
         # 造 session：一份带申报（assistant 文本首行）、一份用户 tool_result 里也有 marker
-        # （不该被算成申报）、一份完全无 marker
-        sess_dir = tmp / "sessions"
-        sess_dir.mkdir()
+        # （不该被算成申报）、一份完全无 marker。放在一座 Claude 根的一个项目槽里，走花名册读
+        cl1 = tmp / "claude1"
+        sess_dir = cl1 / "d--Proj-toys"
+        sess_dir.mkdir(parents=True)
+        cfg1 = {"heroes": [{"id": "claude", "root": str(cl1)}]}
 
         def wl(fp, objs):
             fp.write_text("\n".join(json.dumps(o, ensure_ascii=False) for o in objs) + "\n",
@@ -642,7 +708,7 @@ def selftest():
         ])
 
         out = tmp / "out"
-        sheet, jp, mp = generate(str(ledger), str(sess_dir), str(out))
+        sheet, jp, mp = generate(str(ledger), str(out), cfg=cfg1)
 
         # —— 断言 ——
         comp = {c["component"]: c for c in sheet["by_component"]}
@@ -705,8 +771,10 @@ def selftest():
                            encoding="utf-8")
 
         # session：用顶层 timestamp 判窗；无 timestamp 的用 mtime 兜底
-        sess2 = tmp / "sessions2"
-        sess2.mkdir()
+        cl2 = tmp / "claude2"
+        sess2 = cl2 / "d--Proj-toys"
+        sess2.mkdir(parents=True)
+        cfg2 = {"heroes": [{"id": "claude", "root": str(cl2)}]}
 
         def wl2(name, objs, mtime=None):
             fp = sess2 / name
@@ -740,7 +808,7 @@ def selftest():
 
         since = datetime.datetime(2026, 8, 31)
         out2 = tmp / "out2"
-        s2, _, _ = generate(str(ledger2), str(sess2), str(out2), since=since)
+        s2, _, _ = generate(str(ledger2), str(out2), since=since, cfg=cfg2)
 
         # 组件轴 + miss 区都按窗过滤
         comp2 = {c["component"]: c for c in s2["by_component"]}
@@ -766,13 +834,142 @@ def selftest():
 
         # 同数据不传 since：行为回到全量（不变）
         out3 = tmp / "out3"
-        s3, _, _ = generate(str(ledger2), str(sess2), str(out3))
+        s3, _, _ = generate(str(ledger2), str(out3), cfg=cfg2)
         comp3 = {c["component"]: c for c in s3["by_component"]}
         check(s3["window"]["ledger_rows"] == 7, "不传 since：台账全量 7 行")
         check(comp3.get("opening", {}).get("hits") == 3, "不传 since：opening 全量 3 次")
         check(s3["misses"]["miss_rows"] == 3, "不传 since：miss 全量 3 条")
         check(s3["events"]["total_sessions"] == 4, "不传 since：session 全量 4 份")
         check(s3["window"]["since"] == "", "不传 since：window.since 为空")
+
+        # —— 花名册多根：Claude 两个项目槽 + Codex 按日期分层 ——
+        # 申报要两家都进事轴、侠客标对；--since 对两家都切；根不在跳过不炸
+        from heroes import claude as hc, codex as hx
+
+        def wjl(fp, objs, mtime=None):
+            fp.parent.mkdir(parents=True, exist_ok=True)
+            fp.write_text("\n".join(json.dumps(o, ensure_ascii=False) for o in objs) + "\n",
+                          encoding="utf-8")
+            if mtime is not None:
+                os.utime(fp, (mtime, mtime))
+            return fp
+
+        def c_ai(ts, text):
+            return {"type": "assistant", "timestamp": ts,
+                    "message": {"role": "assistant", "content": [{"type": "text", "text": text}]}}
+
+        cl3 = tmp / "claude3"
+        wjl(cl3 / "d--Proj-alpha" / "1111aaaa-0000-4000-8000-000000000001.jsonl", [
+            {"type": "user", "timestamp": "2026-09-02T01:00:00.000Z",
+             "message": {"role": "user", "content": "本场一件事：他贴进来的，不算"}},
+            c_ai("2026-09-02T01:00:05.000Z", "本场一件事：Claude 甲槽的事 | 带竖线\n开始")])
+        wjl(cl3 / "d--Proj-beta" / "2222bbbb-0000-4000-8000-000000000002.jsonl", [
+            c_ai("2026-09-03T01:00:00.000Z", "本场一件事：Claude 乙槽的事")])
+        # 消息时刻在窗前（mtime 是今天）：预筛放过，精判剔除
+        wjl(cl3 / "d--Proj-beta" / "3333cccc-0000-4000-8000-000000000003.jsonl", [
+            c_ai("2026-08-20T01:00:00.000Z", "本场一件事：窗前的 Claude 场")])
+        # mtime 也在窗前：预筛就剔除
+        t_old = _t.mktime(datetime.datetime(2026, 8, 10).timetuple())
+        wjl(cl3 / "d--Proj-beta" / "4444dddd-0000-4000-8000-000000000004.jsonl", [
+            c_ai("2026-08-10T01:00:00.000Z", "本场一件事：更老的 Claude 场")], mtime=t_old)
+
+        cx3 = tmp / "codex3"
+        cx_sid = "01a0aaaa-1111-7222-8333-944445555666"
+        cx_file = cx3 / "2026" / "09" / "04" / "rollout-2026-09-04T10-00-00-{}.jsonl".format(cx_sid)
+        wjl(cx_file, [
+            {"timestamp": "2026-09-04T02:00:00.000Z", "type": "session_meta",
+             "payload": {"id": cx_sid, "timestamp": "2026-09-04T02:00:00.000Z", "cwd": "d:\\Proj\\gamma"}},
+            {"timestamp": "2026-09-04T02:00:01.000Z", "type": "response_item", "payload": {
+                "type": "message", "role": "developer", "content": [
+                    {"type": "input_text", "text": "## 0. 先申报「本场一件事」\n本场一件事：开场卡里的样例，不算"}]}},
+            {"timestamp": "2026-09-04T02:00:02.000Z", "type": "response_item", "payload": {
+                "type": "message", "role": "user", "content": [
+                    {"type": "input_text", "text": "本场一件事：他贴的旧对话，不算"}]}},
+            # 同一句话 event_msg 先记了一遍：只认 response_item，否则会先认到这份
+            {"timestamp": "2026-09-04T02:00:03.000Z", "type": "event_msg", "payload": {
+                "type": "item_completed", "item": {"role": "assistant", "content": [
+                    {"type": "Text", "text": "本场一件事：event_msg 里那份，不该先被认"}]}}},
+            {"timestamp": "2026-09-04T02:00:03.000Z", "type": "response_item", "payload": {
+                "type": "message", "role": "assistant", "content": [
+                    {"type": "output_text", "text": "本场一件事：Codex 这场的事\n阶段：执行"}]}},
+        ])
+        wjl(cx3 / "2026" / "09" / "05" / "rollout-2026-09-05T10-00-00-01a0cccc-2222-7333-8444-955556666777.jsonl", [
+            {"timestamp": "2026-09-05T02:00:00.000Z", "type": "session_meta", "payload": {"cwd": "d:\\Proj\\gamma"}},
+            {"timestamp": "2026-09-05T02:00:01.000Z", "type": "response_item", "payload": {
+                "type": "message", "role": "assistant", "content": [
+                    {"type": "output_text", "text": "这场没申报"}]}},
+        ])
+        wjl(cx3 / "2026" / "08" / "20" / "rollout-2026-08-20T10-00-00-01a0bbbb-3333-7444-8555-966667777888.jsonl", [
+            {"timestamp": "2026-08-20T02:00:00.000Z", "type": "session_meta", "payload": {"cwd": "d:\\Proj\\gamma"}},
+            {"timestamp": "2026-08-20T02:00:01.000Z", "type": "response_item", "payload": {
+                "type": "message", "role": "assistant", "content": [
+                    {"type": "output_text", "text": "本场一件事：窗前的 Codex 场"}]}},
+        ])
+
+        # 侠客的 ai_lines 只吐 AI 说的话
+        cx_said = list(hx.ai_lines(cx_file))
+        check(len(cx_said) == 1 and cx_said[0][1].startswith("本场一件事：Codex 这场的事")
+              and cx_said[0][0] == "2026-09-04T02:00:03.000Z",
+              "codex.ai_lines 只吐 assistant 的 output_text（developer / user / event_msg 都不吐），带时刻")
+        cl_said = list(hc.ai_lines(sess_dir / "cccc3333-dddd-4400-0000-000000000000.jsonl"))
+        check([t for _, t in cl_said] == ["好的，我看看"], "claude.ai_lines 只吐 assistant 的 text")
+        check(list(hc.ai_lines(sess_dir / "cccc3333-dddd-4400-0000-000000000000.jsonl",
+                               EVENT_MARKER)) == [], "ai_lines 的 needle：原始行没有它的不解析")
+        check(list(hx.ai_lines(tmp / "nope.jsonl")) == [], "ai_lines 文件不在：空，不炸")
+
+        cfg3 = {"heroes": [{"id": "claude", "root": str(cl3)}, {"id": "codex", "root": str(cx3)}]}
+        s4, _, mp4 = generate(str(ledger2), str(tmp / "out4"), since=since, cfg=cfg3)
+        ev4 = s4["events"]
+        d4 = {d["decl"]: d for d in ev4["declared"]}
+        hero4 = {r["hero"]: r for r in ev4["by_hero"]}
+        check(ev4["declared_count"] == 3, "多根 + since：申报 3 份（Claude 两槽各 1 + Codex 1）")
+        check({d["hero"] for d in ev4["declared"]} == {"claude", "codex"}, "两位侠客的申报都进事轴")
+        cxd = d4.get("Codex 这场的事") or {}
+        check(cxd.get("hero") == "codex" and cxd.get("hero_name") == "Codex",
+              "Codex 申报标的是 Codex（取的是 response_item 那份，不是 event_msg / user / developer）")
+        check(cxd.get("sid") == cx_sid[:SID_KEY_LEN], "Codex 的 sid 取文件名尾巴上的 uuid 前 16 位")
+        check(cxd.get("project") == "d:/Proj/gamma", "Codex 申报带出身（session_meta 的 cwd）")
+        check((d4.get("Claude 甲槽的事 | 带竖线") or {}).get("hero_name") == "Claude Code"
+              and "Claude 乙槽的事" in d4, "Claude 两个项目槽的申报都进来，标 Claude Code")
+        check("他贴进来的，不算" not in d4, "Claude 用户轮里的 marker 不算申报")
+        check("窗前的 Claude 场" not in d4 and "更老的 Claude 场" not in d4,
+              "since 切 Claude：消息时刻窗前的剔除（mtime 预筛 + 精判两条路）")
+        check("窗前的 Codex 场" not in d4, "since 切 Codex：消息时刻窗前的剔除")
+        check(hero4["claude"]["sessions"] == 2 and hero4["claude"]["declared"] == 2,
+              "点名：Claude 窗内 2 份、有申报 2 份")
+        check(hero4["codex"]["sessions"] == 2 and hero4["codex"]["declared"] == 1,
+              "点名：Codex 窗内 2 份、有申报 1 份")
+        check(ev4["total_sessions"] == 4 and ev4["undeclared_count"] == 1, "多根：窗内 4 份、无申报 1 份")
+        md4 = mp4.read_text(encoding="utf-8")
+        check("| 侠客 | sid | 本场一件事 |" in md4 and "| Codex | `{}` |".format(cx_sid[:16]) in md4
+              and "| Claude Code |" in md4, "md 事轴表多一列「侠客」")
+        check("带竖线" in md4 and "\\| 带竖线" in md4, "申报里的半角竖线转义，不劈表格")
+
+        s5, _, _ = generate(str(ledger2), str(tmp / "out5"), cfg=cfg3)
+        h5 = {r["hero"]: r for r in s5["events"]["by_hero"]}
+        check(h5["claude"]["sessions"] == 4 and h5["claude"]["declared"] == 4
+              and h5["codex"]["sessions"] == 3 and h5["codex"]["declared"] == 2,
+              "不传 since：两家全量（Claude 4/4、Codex 3/2）")
+
+        # 根不在：跳过、点名里照实记，不炸
+        cfg6 = {"heroes": [{"id": "claude", "root": str(cl3)},
+                           {"id": "codex", "root": str(tmp / "no-such-codex")}]}
+        s6, _, mp6 = generate(str(ledger2), str(tmp / "out6"), since=since, cfg=cfg6)
+        h6 = {r["hero"]: r for r in s6["events"]["by_hero"]}
+        check(h6["codex"]["found"] is False and h6["codex"]["sessions"] == 0
+              and h6["claude"]["declared"] == 2, "Codex 根不在：跳过，Claude 照常")
+        check("根不在这台机器上" in mp6.read_text(encoding="utf-8"), "md 点名里写出根不在的那家")
+        cfg7 = {"heroes": [{"id": "claude", "root": str(tmp / "nope1")},
+                           {"id": "codex", "root": str(tmp / "nope2")}]}
+        s7, _, _ = generate(str(ledger2), str(tmp / "out7"), cfg=cfg7)
+        check(s7["events"]["total_sessions"] == 0
+              and all(not r["found"] for r in s7["events"]["by_hero"]),
+              "两家的根都不在：事轴空，回炉单照出")
+
+        # 调试口 --sessions：只扫给的目录，按路径认侠客
+        s8, _, _ = generate(str(ledger), str(tmp / "out8"), session_glob=str(sess_dir))
+        check(s8["events"]["declared_count"] == 1 and s8["events"]["total_sessions"] == 3
+              and s8["events"]["declared"][0]["hero"] == "claude", "--sessions 调试口照旧可用")
 
     finally:
         # 临时目录清干净，不留垃圾
@@ -803,15 +1000,21 @@ def _print_report(sheet, jp, mp):
         m["midsession_miss_rows"], m["noise_dropped"]))
     print("事  轴：{} 份 session，{} 份有「本场一件事」申报，{} 份无".format(
         e["total_sessions"], e["declared_count"], e["undeclared_count"]))
+    for r in e["by_hero"]:
+        if r["found"]:
+            print("        {}：{} 份，有申报 {} 份".format(r["name"], r["sessions"], r["declared"]))
+        else:
+            print("        {}：根不在，跳过（{}）".format(r["name"], r["root"]))
 
 
 def main(argv=None):
-    ap = argparse.ArgumentParser(description="回炉单生成器 · 炉子的进料口（确定性归集，无 LLM）")
+    ap = argparse.ArgumentParser(description="回炉单生成器 · 炉子自己的攒料器（确定性归集，无 LLM）")
     ap.add_argument("--selftest", action="store_true", help="临时目录造数据自测，不碰真实数据")
     ap.add_argument("--since", default="", metavar="YYYY-MM-DD",
                     help="只统计该日期（含）起的台账行与该日期后开场的会话，切掉窗前老账")
     ap.add_argument("--ledger", default="", help="覆盖 config 的 hook 路由台账路径")
-    ap.add_argument("--sessions", default="", help="覆盖 config 的 session 转写目录或 glob")
+    ap.add_argument("--sessions", default="",
+                    help="调试用：只扫这个会话目录或 glob，不走侠客花名册")
     ap.add_argument("--out", default="", help="覆盖 config 的回炉单落盘目录")
     args = ap.parse_args(argv)
 
@@ -825,21 +1028,24 @@ def main(argv=None):
             print("[charge] --since 格式应为 YYYY-MM-DD（收到：{}）".format(args.since))
             return 2
 
-    cfg = read_charge_config()
+    cfg, whole = read_charge_config()
     ledger_path = args.ledger or cfg["ledger_path"]
-    session_glob = args.sessions or cfg["session_glob"]
     out_dir = args.out or cfg["out_dir"] or "data/charge"
 
-    if not ledger_path or not session_glob:
-        print("[charge] 缺路径：请在 config.json 的 charge_sheet 段填 ledger_path / session_glob，"
-              "或用 --ledger / --sessions 覆盖。")
+    if not ledger_path:
+        print("[charge] 缺路径：请在 config.json 的 charge_sheet 段填 ledger_path，或用 --ledger 覆盖。")
         return 2
 
     print("[charge] 台账：{}".format(ledger_path))
-    print("[charge] 转写：{}".format(session_glob))
+    if args.sessions:
+        print("[charge] 会话：{}（--sessions，不走花名册）".format(args.sessions))
+    else:
+        for h, root in heroes.enabled(whole):
+            print("[charge] 会话：{} · {}".format(h.NAME, root))
     if since:
         print("[charge] 窗口：{} 起（--since）".format(args.since))
-    sheet, jp, mp = generate(ledger_path, session_glob, out_dir, since=since)
+    sheet, jp, mp = generate(ledger_path, out_dir, since=since, cfg=whole,
+                             session_glob=args.sessions)
     _print_report(sheet, jp, mp)
     return 0
 

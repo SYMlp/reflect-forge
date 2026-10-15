@@ -20,7 +20,6 @@
   },
   "charge_sheet": {
     "ledger_path": "D:/Project/personal/toys/my-desk/pa/hook-route-ledger.jsonl",
-    "session_glob": "C:/Users/Administrator/.claude/projects/d--Project-personal-toys/",
     "out_dir": "data/charge"
   },
   "intake": {

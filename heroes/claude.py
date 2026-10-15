@@ -149,6 +149,29 @@ def user_turns(path):
     return out
 
 
+# ── 回炉单：只留 AI 说的话 ───────────────────────────────────────
+# 事轴要从 AI 的回复里找「本场一件事：」申报。人那一侧不算：他贴设计文档、工具回显都会带出这几个字
+def ai_lines(path, needle=""):
+    """→ 逐条吐 (时刻, AI 说的一段话)。时刻是留痕上原样的 timestamp 串，没有就是 None。
+
+    逐行流式读，十几 MB 的卷宗也不整份载入。needle 给了，原始行里没有它的直接跳过、不解析：
+    一份卷宗里含申报字样的往往只有几行。"""
+    try:
+        with Path(path).open(encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                if needle and needle not in line:
+                    continue
+                try:
+                    ev = json.loads(line)
+                except Exception:
+                    continue
+                for role, text in _speech(ev):
+                    if role == "assistant":
+                        yield ev.get("timestamp"), text
+    except OSError:
+        return
+
+
 def head(path, n=200, cap=400):
     out = []
     with Path(path).open(encoding="utf-8", errors="replace") as fh:

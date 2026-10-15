@@ -145,6 +145,35 @@ def head(path, n=200, cap=400):
     return "\n".join(out)
 
 
+# ── 回炉单：只留 AI 说的话 ───────────────────────────────────────
+# 只认 response_item 里 role=assistant 的 output_text。同一句话 event_msg 里还会再记一遍（item_completed），
+# 两处都收就数重了。不套 _speech 的 _INJECT_HEADS：那是挡灌进 user 轮的东西，AI 自己的话以 < 开头也是它说的
+def ai_lines(path, needle=""):
+    """→ 逐条吐 (时刻, AI 说的一段话)，口径同 claude.ai_lines。"""
+    try:
+        with Path(path).open(encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                if '"response_item"' not in line or '"assistant"' not in line \
+                        or (needle and needle not in line):
+                    continue
+                try:
+                    ev = json.loads(line)
+                except Exception:
+                    continue
+                p = ev.get("payload") or {}
+                if ev.get("type") != "response_item" or p.get("type") != "message" \
+                        or p.get("role") != "assistant":
+                    continue
+                for b in (p.get("content") or []):
+                    if not isinstance(b, dict) or b.get("type") != "output_text":
+                        continue
+                    t = (b.get("text") or "").strip()
+                    if t:
+                        yield ev.get("timestamp"), t
+    except OSError:
+        return
+
+
 # ── 补原话：只留他开口的话 ───────────────────────────────────────
 # 读法同 _speech（role=user 的 input_text，跳过 _INJECT_HEADS），另加三条与门派无关的（见 _said）：
 # 头标标明是粘进来的别人的话；机器任务书开的场（handoff 派下来的活）整场不算他说的；AI 写的任务书、开场白不算他说的
