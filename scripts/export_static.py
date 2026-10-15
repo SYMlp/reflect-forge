@@ -21,6 +21,8 @@ import urllib.request
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SITE = os.path.join(ROOT, "site")
 # 页面 js 实际发起的全部 GET。prospect_banner 不在契约 §4 里但前端真的在调（横幅单开的一路）
+# 不抓 /api/intake/*：料仓里是他的拍板原话和画像候选，只许在本机看，不能进 site/（INTAKE-SPEC 第 10 节）。
+# 演示实例那两口本来也只回空料，但闸要立在这儿——哪天有人顺手把它加进列表，导出直接拒跑
 GET_ENDPOINTS = ["profile", "armory", "irons", "prospect", "prospect_banner", "manifest"]
 CNAME_DOMAIN = "forge.lsrabbit.space"
 FALLBACK_PORT = 7713
@@ -82,6 +84,11 @@ def start_demo_instance():
 
 
 def main():
+    leaked = [e for e in GET_ENDPOINTS if e.startswith("intake")]
+    if leaked:
+        log("GET_ENDPOINTS 里混进了料仓接口 {}——料不许进 site/，拒绝导出".format("、".join(leaked)))
+        return 1
+
     proc, port = start_demo_instance()
     if port is None:
         log("专用实例没起来，退到 7713 只读实例兜底抓数")

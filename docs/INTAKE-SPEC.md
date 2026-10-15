@@ -120,7 +120,7 @@ materials:
 
 | kind | 叫法 | 单位（一条料是什么） | 正本 | id 正文 | `ts` 取 | `quote` 取 | 命名空间 | 已知派生 |
 |---|---|---|---|---|---|---|---|---|
-| `decision` | 拍板 | `DECISION-LEDGER.md` 里一行 `- YYYY-MM-DD \| …` | toys `DECISION-LEDGER.md` | 整行，含行首 `- ` | 行首日期 | 第一对「」里的话 | `decision-ledger` | `judgment_hits.db` |
+| `decision` | 拍板 | `DECISION-LEDGER.md` 里一行 `- YYYY-MM-DD \| …` | toys `DECISION-LEDGER.md` | 整行，含行首 `- ` | 行首日期 | 原话锚：最后一个「——」后面那对「」；锚是（…）或没有「——」的不给 | `decision-ledger` | `judgment_hits.db` |
 | `profile` | 画像候选 | `profile-ledger.jsonl` 里一条 `event: member` | toys `my-desk/harvest/semantic-candidates/profile-ledger.jsonl` | observation、evidence_quote、cluster_title、draft、reason 里是字符串的，依次空格拼起来 | `date` | `evidence_quote` | `profile` | `judgment_hits.db` |
 | `insight` | 提炼候选 | `INGEST-QUEUE.md` 里一行 `- …` | toys `INGEST-QUEUE.md` | 整行，含行首 `- ` | 行尾 `\| YYYY-MM-DD` | — | `ingest` | `judgment_hits.db`（v0 没有正本口） |
 | `kg` | kg 段 | kg 文件里的一段（YAML 按顶层键和第一层条目切，md 按 1–3 级标题切） | knowledge-graph 仓 | 段正文 | `null` | — | `kg` | `judgment_hits.db`（v0 没有正本口） |
@@ -171,6 +171,12 @@ materials:
 | `GET /api/intake/registry` | `{ok, api: "intake/v0", sources: [{component, id, title, kind, tier, path}], chains: {<kind>: [<口>, …]}, problems: [...]}`。不跑任何读数 |
 | `GET /api/intake/materials?kind=&min_count=` | `{ok, api, asof, items: [合并后的料], problems: [...]}`。两个参数都可省；请求里不收任何命令或路径 |
 
+- 执行场补定的几处（④，切片 ② 落地时定）：
+  - registry 的 `path` 是声明所在那张 ASSET.yml 的路径（修声明去那里）；口的全名 `<组件>/<口>` 用在 `chains` 和料的 `via` 里。
+  - materials 另带 `notes: [{via, note, asof, cached}]`：每个口那份读数的 `note` 原样透传，炉子必须显示（第 5 节）。另回显 `kind`、`min_count`、`candidate_min`。
+  - `min_count` 不给就不筛；`candidate_min` 只回显，留给料仓页面标「候选」，不当 `min_count` 的缺省。
+  - 带了 `kind`、`min_count` 以外的参数回 400，不是忽略。演示模式两个接口回 200 加 `ok: false`，不扫本机。
+
 - **加工状态**由炉子自己记：按料的 id 记在 `data/intake-state.json`（未看 / 已入炉 / 已成剑 / 弃），不回写产出方，读数口始终只读。id 跨次稳定，就是为了这个。属于后面的切片。
 
 ## 8 回炉单（`charge_sheet.py`）怎么办
@@ -218,7 +224,7 @@ materials:
 
 | 口 | 读什么 | `text` | `quote` | `ts` | `count` / `seen` | `extra` |
 |---|---|---|---|---|---|---|
-| `decisions` | `DECISION-LEDGER.md` 里每行 `- YYYY-MM-DD \|` | 「——「」前面那句拍板 | 第一对「」 | 行首日期 | 不给 | why、排除、节点、源；机器补记行尾的「默认通过，非他过目」放 `mark` |
+| `decisions` | `DECISION-LEDGER.md` 里每行 `- YYYY-MM-DD \|` | 原话锚前面那句拍板（没有锚就整段） | 最后一个「——」后面那对「」（拍板句里也会引「」，第一对常是引的词） | 行首日期 | 不给 | why、排除、节点、源；机器补记行尾的「默认通过，非他过目」放 `mark` |
 | `profile` | `profile-ledger.jsonl` 里 `event: member` 的行 | `observation` | `evidence_quote` | `date` | 不给 | `cluster`、`cluster_title`、`ws`、`sid`、`mark` |
 | `judgment-hits` | `judgment_hits.db`，只读打开 | 库里的展示正文 | 不给 | 库里的 `entry_date` | `count` = 撞回的不同场数；`seen` = 那几场 | `same_day`：其中几场是同一天 |
 

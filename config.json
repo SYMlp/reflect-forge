@@ -23,6 +23,11 @@
     "session_glob": "C:/Users/Administrator/.claude/projects/d--Project-personal-toys/",
     "out_dir": "data/charge"
   },
+  "intake": {
+    "roots": ["D:/Project/personal/toys"],
+    "candidate_min": 3,
+    "timeout": 20
+  },
   "foreign_scrolls": [
     {
       "id": "drawio-skill",

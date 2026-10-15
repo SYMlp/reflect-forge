@@ -21,6 +21,7 @@ from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 
 import heroes
+import intake
 from urllib.parse import urlparse, parse_qs
 
 ROOT = Path(__file__).parent
@@ -69,6 +70,9 @@ DEFAULT_CONFIG = {
     "foreign_scrolls": [],
     # 演示模式：公网扫码只观剑，不开炉。默认关，路演现场用 FORGE_DEMO=1 起
     "demo_mode": False,
+    # 进料（docs/INTAKE-SPEC.md）：扫哪些根目录里 ASSET.yml 的 materials: 声明。
+    # 公开仓默认一个根都不扫——roots 是信任边界，加一个根等于信它目录里的脚本，只在本机 config.json 里加
+    "intake": {"roots": [], "candidate_min": 3, "timeout": 20},
 }
 
 
@@ -1022,6 +1026,31 @@ def manifest():
     }
 
 
+# ── 料仓（别的组件声明给炉子的现成判断，见 docs/INTAKE-SPEC.md） ─────
+
+INTAKE_PARAMS = ("kind", "min_count")
+
+
+def intake_refusal(error, **empty):
+    """进料接口不开门时的回话：形状和正常回话对齐，前端不用分两套读法。"""
+    return {"ok": False, "api": intake.API, "error": error, **empty, "problems": []}
+
+
+def intake_materials_query(query):
+    """只收 kind 和 min_count。→ (kind, min_count, 错误)。请求里不收任何命令、路径。"""
+    q = parse_qs(query, keep_blank_values=True)
+    extra = sorted(set(q) - set(INTAKE_PARAMS))
+    if extra:
+        return None, None, "只收 kind 和 min_count 两个参数，多了：{}".format("、".join(extra))
+    kind = (q.get("kind") or [""])[0].strip() or None
+    if kind is not None and kind not in intake.KINDS:
+        return None, None, "kind 只认 {}，收到 {}".format(" / ".join(intake.KINDS), kind)
+    mc = (q.get("min_count") or [""])[0].strip()
+    if mc and not re.fullmatch(r"[0-9]+", mc):
+        return None, None, "min_count 要是非负整数，收到 {}".format(mc)
+    return kind, int(mc) if mc else None, None
+
+
 # ── HTTP ─────────────────────────────────────────────────────────
 
 # 料不对 → 4xx（前端提示用户改输入）；炉子出问题 → 502（前端提示重试/看日志）
@@ -1106,6 +1135,22 @@ class Handler(BaseHTTPRequestHandler):
 
             if path == "/api/manifest":
                 return self._json(manifest())
+
+            # 料仓两口。演示模式一律不扫本机：料里是他的拍板原话和画像候选，不能上公网
+            if path == "/api/intake/registry":
+                if DEMO_MODE:
+                    return self._json(intake_refusal("演示模式不扫本机料仓", sources=[], chains={}))
+                return self._json(intake.registry_payload(read_config().get("intake")))
+
+            if path == "/api/intake/materials":
+                if DEMO_MODE:
+                    return self._json(intake_refusal("演示模式不扫本机料仓", items=[], notes=[]))
+                kind, min_count, bad = intake_materials_query(urlparse(self.path).query)
+                if bad:
+                    return self._json(dict(intake_refusal(bad, items=[], notes=[]),
+                                           stage="bad_request"), 400)
+                return self._json(intake.materials_payload(read_config().get("intake"),
+                                                           kind, min_count))
 
             if path in ("/", "/index.html"):
                 f = ROOT / "index.html"
